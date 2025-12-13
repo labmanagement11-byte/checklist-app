@@ -947,6 +947,58 @@ body {
     margin-bottom: 0.5rem;
 }
 
+/* ========== MENU LIST ========== */
+
+.menu-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border-color);
+    transition: background var(--transition-fast);
+}
+
+.menu-item:first-child {
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+.menu-item:last-child {
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-bottom: none;
+}
+
+.menu-item.clickable:active {
+    background: var(--bg-tertiary);
+    transform: scale(0.99);
+}
+
+.menu-icon {
+    font-size: 1.5rem;
+    width: 2rem;
+    text-align: center;
+}
+
+.menu-label {
+    flex: 1;
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.menu-arrow {
+    font-size: 1.5rem;
+    color: var(--text-tertiary);
+}
+
 /* ========== RESPONSIVE ========== */
 
 @media (max-width: 480px) {

@@ -117,6 +117,8 @@ function showMobileOwnerView() {
     renderMobileOwnerDashboard();
     loadMobileProperties();
     loadMobileStaffInline();
+    loadMobileTasks();
+    loadMobileSchedule();
 }
 
 function showMobileEmployeeView() {
@@ -144,6 +146,19 @@ function switchMobileTab(tabName) {
         content.classList.remove('active');
     });
     document.getElementById(`tab-${tabName}`).classList.add('active');
+    
+    // Cargar datos según la tab
+    if (tabName === 'tasks') {
+        loadMobileTasks();
+    } else if (tabName === 'schedule') {
+        loadMobileSchedule();
+    } else if (tabName === 'inventory') {
+        loadMobileInventory();
+    } else if (tabName === 'staff') {
+        loadMobileStaff();
+    } else if (tabName === 'properties') {
+        loadMobileProperties();
+    }
 }
 
 function switchEmployeeMobileTab(tabName) {
@@ -904,6 +919,452 @@ function getItemEmoji(category, itemName) {
     };
     
     return categoryEmojis[category] || '📦';
+}
+
+// ========== OWNER TASKS MOBILE ==========
+
+function loadMobileTasks() {
+    const propId = getMobileSelectedProperty();
+    if (!propId) {
+        document.getElementById('tasksContentMobile').innerHTML = '<div class="empty-state"><div class="empty-text">Selecciona una casa</div></div>';
+        return;
+    }
+    
+    const propertyOptions = Object.entries(properties).map(([key, prop]) => 
+        `<option value="${key}" ${key === propId ? 'selected' : ''}>${prop.name}</option>`
+    ).join('');
+    document.getElementById('tasksPropertySelect').innerHTML = '<option value="">Selecciona una casa...</option>' + propertyOptions;
+    
+    const tasks = cleaningTasks.filter(t => t.propertyId === propId);
+    
+    if (tasks.length === 0) {
+        document.getElementById('tasksContentMobile').innerHTML = '<div class="empty-state"><div class="empty-text">No hay tareas creadas</div></div>';
+        return;
+    }
+    
+    const tasksHTML = tasks.map(task => {
+        const prop = properties[task.propertyId];
+        const assignedStaff = prop?.staff?.find(s => s.id === task.assignedTo);
+        return `
+            <div class="task-item clickable ${task.completed ? 'completed' : ''}" onclick="toggleMobileTask('${task.id}')" style="cursor: pointer;">
+                <input type="checkbox" ${task.completed ? 'checked' : ''} onclick="event.stopPropagation(); toggleMobileTask('${task.id}')">
+                <div class="task-content">
+                    <div class="task-title">${task.task}</div>
+                    <div class="task-meta">
+                        ${getPriorityBadge(task.priority)}
+                        ${assignedStaff ? `<span class="badge" style="background: var(--primary);">👤 ${assignedStaff.name}</span>` : '<span class="badge" style="background: var(--warning);">Sin asignar</span>'}
+                    </div>
+                </div>
+                <button class="btn-icon" onclick="event.stopPropagation(); deleteMobileTask('${task.id}')" style="color: var(--danger);">🗑️</button>
+            </div>
+        `;
+    }).join('');
+    
+    document.getElementById('tasksContentMobile').innerHTML = tasksHTML;
+}
+
+function showAddTaskMobile() {
+    const propId = getMobileSelectedProperty();
+    if (!propId) {
+        alert('Primero selecciona una casa');
+        return;
+    }
+    
+    const prop = properties[propId];
+    const staffOptions = (prop?.staff || []).map(s => 
+        `<option value="${s.id}">${s.name} - ${getRoleName(s.role)}</option>`
+    ).join('');
+    
+    const modalBody = `
+        <div class="form-group">
+            <label class="form-label">Descripción de la Tarea</label>
+            <input type="text" id="mobileTaskDesc" class="form-control" placeholder="Ej: Limpiar cocina">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Asignar a</label>
+            <select id="mobileTaskStaff" class="form-control">
+                <option value="">Sin asignar</option>
+                ${staffOptions}
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Prioridad</label>
+            <select id="mobileTaskPriority" class="form-control">
+                <option value="normal">Normal</option>
+                <option value="high">Alta</option>
+                <option value="urgent">Urgente</option>
+            </select>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="saveMobileTask()">Crear Tarea</button>
+    `;
+    showMobileModal('📋 Nueva Tarea', modalBody);
+}
+
+function saveMobileTask() {
+    const propId = getMobileSelectedProperty();
+    if (!propId) return;
+    
+    const desc = document.getElementById('mobileTaskDesc').value.trim();
+    const staffId = document.getElementById('mobileTaskStaff').value;
+    const priority = document.getElementById('mobileTaskPriority').value;
+    
+    if (!desc) {
+        alert('Ingresa una descripción');
+        return;
+    }
+    
+    const task = {
+        id: `task_${Date.now()}`,
+        propertyId: propId,
+        task: desc,
+        assignedTo: staffId || null,
+        priority: priority,
+        completed: false,
+        createdAt: new Date().toISOString()
+    };
+    
+    cleaningTasks.push(task);
+    saveData();
+    closeMobileModal();
+    loadMobileTasks();
+    alert('✅ Tarea creada');
+}
+
+function deleteMobileTask(taskId) {
+    if (!confirm('¿Eliminar esta tarea?')) return;
+    cleaningTasks = cleaningTasks.filter(t => t.id !== taskId);
+    saveData();
+    loadMobileTasks();
+}
+
+// ========== OWNER SCHEDULE MOBILE ==========
+
+function loadMobileSchedule() {
+    const propId = getMobileSelectedProperty();
+    if (!propId) {
+        document.getElementById('scheduleContentMobile').innerHTML = '<div class="empty-state"><div class="empty-text">Selecciona una casa</div></div>';
+        return;
+    }
+    
+    const propertyOptions = Object.entries(properties).map(([key, prop]) => 
+        `<option value="${key}" ${key === propId ? 'selected' : ''}>${prop.name}</option>`
+    ).join('');
+    document.getElementById('schedulePropertySelect').innerHTML = '<option value="">Selecciona una casa...</option>' + propertyOptions;
+    
+    const schedules = scheduledDates.filter(s => s.propertyId === propId).sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    if (schedules.length === 0) {
+        document.getElementById('scheduleContentMobile').innerHTML = '<div class="empty-state"><div class="empty-text">No hay fechas agendadas</div></div>';
+        return;
+    }
+    
+    const scheduleHTML = schedules.map(schedule => {
+        const prop = properties[schedule.propertyId];
+        const assignedStaff = prop?.staff?.find(s => s.id === schedule.assignedTo);
+        const date = new Date(schedule.date);
+        const isPast = date < new Date();
+        return `
+            <div class="calendar-item clickable ${schedule.completed ? 'completed' : ''} ${isPast && !schedule.completed ? 'overdue' : ''}" onclick="toggleMobileSchedule('${schedule.id}')" style="cursor: pointer;">
+                <div class="calendar-date">
+                    <div style="font-weight: 600;">${formatDateShort(schedule.date)}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-secondary);">${date.toLocaleDateString('es-ES', {weekday: 'short'})}</div>
+                </div>
+                <div class="calendar-content">
+                    <div class="calendar-title">${schedule.type}</div>
+                    <div class="calendar-meta">
+                        <span>🏠 ${prop?.name || 'Casa'}</span>
+                        ${assignedStaff ? `<span>👤 ${assignedStaff.name}</span>` : '<span>⚠️ Sin asignar</span>'}
+                    </div>
+                </div>
+                <input type="checkbox" ${schedule.completed ? 'checked' : ''} onclick="event.stopPropagation(); toggleMobileSchedule('${schedule.id}')">
+            </div>
+        `;
+    }).join('');
+    
+    document.getElementById('scheduleContentMobile').innerHTML = scheduleHTML;
+}
+
+function showAddScheduleMobile() {
+    const propId = getMobileSelectedProperty();
+    if (!propId) {
+        alert('Primero selecciona una casa');
+        return;
+    }
+    
+    const prop = properties[propId];
+    const staffOptions = (prop?.staff || []).map(s => 
+        `<option value="${s.id}">${s.name} - ${getRoleName(s.role)}</option>`
+    ).join('');
+    
+    const today = new Date().toISOString().split('T')[0];
+    
+    const modalBody = `
+        <div class="form-group">
+            <label class="form-label">Fecha</label>
+            <input type="date" id="mobileScheduleDate" class="form-control" min="${today}">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Tipo</label>
+            <select id="mobileScheduleType" class="form-control">
+                <option value="limpieza-regular">🧹 Limpieza Regular</option>
+                <option value="limpieza-profunda">✨ Limpieza Profunda</option>
+                <option value="mantenimiento">🔧 Mantenimiento</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Asignar a</label>
+            <select id="mobileScheduleStaff" class="form-control">
+                <option value="">Sin asignar</option>
+                ${staffOptions}
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Turno</label>
+            <select id="mobileScheduleTime" class="form-control">
+                <option value="">Sin turno</option>
+                <option value="mañana">🌅 Mañana</option>
+                <option value="tarde">🌇 Tarde</option>
+                <option value="noche">🌃 Noche</option>
+            </select>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="saveMobileSchedule()">Agendar</button>
+    `;
+    showMobileModal('📅 Nueva Fecha', modalBody);
+}
+
+function saveMobileSchedule() {
+    const propId = getMobileSelectedProperty();
+    if (!propId) return;
+    
+    const date = document.getElementById('mobileScheduleDate').value;
+    const type = document.getElementById('mobileScheduleType').value;
+    const staffId = document.getElementById('mobileScheduleStaff').value;
+    const time = document.getElementById('mobileScheduleTime').value;
+    
+    if (!date) {
+        alert('Selecciona una fecha');
+        return;
+    }
+    
+    const prop = properties[propId];
+    const staff = staffId ? prop.staff?.find(s => s.id === staffId) : null;
+    
+    const schedule = {
+        id: `schedule_${Date.now()}`,
+        propertyId: propId,
+        date: date,
+        type: type,
+        assignedTo: staffId || null,
+        assignedEmployeeName: staff?.name || null,
+        startTime: time || null,
+        completed: false,
+        createdAt: new Date().toISOString()
+    };
+    
+    scheduledDates.push(schedule);
+    saveData();
+    closeMobileModal();
+    loadMobileSchedule();
+    alert('✅ Fecha agendada');
+}
+
+// ========== MORE OPTIONS MOBILE ==========
+
+function showPurchaseListMobile() {
+    const modalBody = `
+        <div class="form-group">
+            <label class="form-label">Artículo</label>
+            <input type="text" id="mobilePurchaseItem" class="form-control" placeholder="Ej: Detergente">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Cantidad</label>
+            <input type="number" id="mobilePurchaseQty" class="form-control" value="1" min="1">
+        </div>
+        <button class="btn btn-primary btn-block" onclick="addMobilePurchaseItem()">Agregar a Lista</button>
+        <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--border-color);">
+        <h3 style="margin-bottom: 1rem;">🛒 Lista Actual</h3>
+        <div id="mobilePurchaseList"></div>
+    `;
+    showMobileModal('🛒 Lista de Compras', modalBody);
+    renderMobilePurchaseList();
+}
+
+function renderMobilePurchaseList() {
+    const list = document.getElementById('mobilePurchaseList');
+    if (!list) return;
+    
+    if (purchaseInventory.length === 0) {
+        list.innerHTML = '<div class="empty-text">Lista vacía</div>';
+        return;
+    }
+    
+    list.innerHTML = purchaseInventory.map(item => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 0.5rem;">
+            <div>
+                <div style="font-weight: 600;">${item.item}</div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary);">Cantidad: ${item.qty}</div>
+            </div>
+            <button class="btn-icon" onclick="deleteMobilePurchaseItem('${item.id}')" style="color: var(--danger);">🗑️</button>
+        </div>
+    `).join('');
+}
+
+function addMobilePurchaseItem() {
+    const item = document.getElementById('mobilePurchaseItem').value.trim();
+    const qty = parseInt(document.getElementById('mobilePurchaseQty').value) || 1;
+    
+    if (!item) {
+        alert('Ingresa el artículo');
+        return;
+    }
+    
+    purchaseInventory.push({
+        id: `purchase_${Date.now()}`,
+        item: item,
+        qty: qty,
+        createdAt: new Date().toISOString()
+    });
+    
+    saveData();
+    document.getElementById('mobilePurchaseItem').value = '';
+    document.getElementById('mobilePurchaseQty').value = '1';
+    renderMobilePurchaseList();
+}
+
+function deleteMobilePurchaseItem(itemId) {
+    purchaseInventory = purchaseInventory.filter(i => i.id !== itemId);
+    saveData();
+    renderMobilePurchaseList();
+}
+
+function showInventoryChecksMobile() {
+    const checks = inventoryChecks.filter(c => !c.approved);
+    
+    let content = '';
+    if (checks.length === 0) {
+        content = '<div class="empty-text">No hay verificaciones pendientes</div>';
+    } else {
+        content = checks.map(check => {
+            const prop = properties[check.propertyId];
+            return `
+                <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 0.75rem;">
+                    <div style="font-weight: 600; margin-bottom: 0.5rem;">🏠 ${prop?.name || 'Casa'}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                        Por: ${check.employeeName || 'Empleado'} - ${new Date(check.createdAt).toLocaleDateString()}
+                    </div>
+                    <div style="font-size: 0.9rem;">${check.notes || 'Sin notas'}</div>
+                    <button class="btn btn-sm btn-primary" onclick="approveMobileInventoryCheck('${check.id}')" style="margin-top: 0.5rem;">✓ Aprobar</button>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    showMobileModal('📋 Verificación de Inventario', `<div>${content}</div>`);
+}
+
+function approveMobileInventoryCheck(checkId) {
+    const check = inventoryChecks.find(c => c.id === checkId);
+    if (check) {
+        check.approved = true;
+        check.approvedAt = new Date().toISOString();
+        saveData();
+        showInventoryChecksMobile();
+    }
+}
+
+function showPurchaseRequestsMobile() {
+    const requests = purchaseRequests.filter(r => !r.approved && !r.rejected);
+    
+    let content = '';
+    if (requests.length === 0) {
+        content = '<div class="empty-text">No hay solicitudes pendientes</div>';
+    } else {
+        content = requests.map(req => {
+            const prop = properties[req.propertyId];
+            return `
+                <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 0.75rem;">
+                    <div style="font-weight: 600; margin-bottom: 0.5rem;">${req.item}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                        🏠 ${prop?.name || 'Casa'} - Cantidad: ${req.qty}<br>
+                        Por: ${req.employeeName || 'Empleado'} - ${new Date(req.createdAt).toLocaleDateString()}
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button class="btn btn-sm btn-primary" onclick="approveMobilePurchaseRequest('${req.id}')" style="flex: 1;">✓ Aprobar</button>
+                        <button class="btn btn-sm btn-secondary" onclick="rejectMobilePurchaseRequest('${req.id}')" style="flex: 1; background: var(--danger);">✗ Rechazar</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    showMobileModal('📝 Solicitudes de Compra', `<div>${content}</div>`);
+}
+
+function approveMobilePurchaseRequest(reqId) {
+    const req = purchaseRequests.find(r => r.id === reqId);
+    if (req) {
+        req.approved = true;
+        req.approvedAt = new Date().toISOString();
+        
+        // Agregar a lista de compras
+        purchaseInventory.push({
+            id: `purchase_${Date.now()}`,
+            item: req.item,
+            qty: req.qty,
+            createdAt: new Date().toISOString()
+        });
+        
+        saveData();
+        showPurchaseRequestsMobile();
+    }
+}
+
+function rejectMobilePurchaseRequest(reqId) {
+    const req = purchaseRequests.find(r => r.id === reqId);
+    if (req) {
+        req.rejected = true;
+        req.rejectedAt = new Date().toISOString();
+        saveData();
+        showPurchaseRequestsMobile();
+    }
+}
+
+function showNotificationsMobile() {
+    const notifications = workDayNotifications.filter(n => !n.read);
+    
+    let content = '';
+    if (notifications.length === 0) {
+        content = '<div class="empty-text">No hay alertas</div>';
+    } else {
+        content = notifications.map(notif => {
+            const prop = properties[notif.propertyId];
+            return `
+                <div style="padding: 1rem; background: var(--warning); color: #000; border-radius: 8px; margin-bottom: 0.75rem;">
+                    <div style="font-weight: 600; margin-bottom: 0.5rem;">⚠️ Día cerrado con pendientes</div>
+                    <div style="font-size: 0.85rem; margin-bottom: 0.5rem;">
+                        🏠 ${prop?.name || 'Casa'}<br>
+                        👤 ${notif.employeeName} - ${notif.date}
+                    </div>
+                    <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">
+                        <strong>Tareas pendientes:</strong><br>
+                        ${(notif.pendingTasks || []).map(t => `• ${t}`).join('<br>')}
+                    </div>
+                    <button class="btn btn-sm" onclick="markMobileNotificationRead('${notif.id}')" style="background: #fff; color: #000; margin-top: 0.5rem;">Marcar como leído</button>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    showMobileModal('⚠️ Alertas del Sistema', `<div>${content}</div>`);
+}
+
+function markMobileNotificationRead(notifId) {
+    const notif = workDayNotifications.find(n => n.id === notifId);
+    if (notif) {
+        notif.read = true;
+        saveData();
+        showNotificationsMobile();
+    }
 }
 
 // ========== INITIALIZATION ==========
