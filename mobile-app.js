@@ -6,6 +6,17 @@ let mobileCurrentUserType = null;
 let mobileSelectedProperty = null;
 let mobileTheme = localStorage.getItem('airbnbmanager_mobile_theme') || 'light';
 
+// Helpers de contexto
+function getMobileSelectedProperty() {
+    return mobileSelectedProperty || mobileCurrentUser?.propertyId || Object.keys(properties)[0] || null;
+}
+
+function getMobileCurrentStaff() {
+    if (!mobileCurrentUser?.staffId || !mobileCurrentUser?.propertyId) return null;
+    const prop = properties[mobileCurrentUser.propertyId];
+    return prop?.staff?.find(s => s.id === mobileCurrentUser.staffId) || null;
+}
+
 // Inicializar tema
 if (mobileTheme === 'dark') {
     document.body.classList.add('dark-theme');
@@ -97,13 +108,22 @@ function showMobileLoginView() {
 function showMobileOwnerView() {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById('ownerMobileView').classList.add('active');
+    if (!mobileSelectedProperty) {
+        mobileSelectedProperty = Object.keys(properties)[0] || null;
+    }
     renderMobileOwnerDashboard();
+    loadMobileProperties();
 }
 
 function showMobileEmployeeView() {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById('employeeMobileView').classList.add('active');
+    if (!mobileSelectedProperty) {
+        mobileSelectedProperty = mobileCurrentUser?.propertyId || getMobileSelectedProperty();
+    }
     renderMobileEmployeeTasks();
+    renderMobileCalendar();
+    renderMobileProfile();
 }
 
 // ========== TAB NAVIGATION ==========
@@ -185,8 +205,11 @@ function renderMobileOwnerDashboard() {
 // ========== OWNER PROPERTIES ==========
 
 function loadMobileProperties() {
+    if (!mobileSelectedProperty) {
+        mobileSelectedProperty = Object.keys(properties)[0] || null;
+    }
     const propertiesHTML = Object.entries(properties).map(([key, prop]) => `
-        <div class="property-item" onclick="selectPropertyMobile('${key}')">
+        <div class="property-item ${mobileSelectedProperty === key ? 'selected' : ''}" onclick="selectPropertyMobile('${key}')">
             <div class="property-name">🏠 ${prop.name}</div>
             <div class="property-info">
                 <span>📍 ${prop.address || 'Sin dirección'}</span>
@@ -202,6 +225,10 @@ function selectPropertyMobile(propId) {
     mobileSelectedProperty = propId;
     loadMobileInventory();
     loadMobileStaff();
+    renderMobileOwnerDashboard();
+    renderMobileEmployeeTasks();
+    renderMobileCalendar();
+    loadMobileProperties();
 }
 
 function showAddPropertyMobile() {
@@ -219,7 +246,11 @@ function loadMobileInventory() {
     document.getElementById('inventoryPropertySelect').innerHTML = 
         '<option value="">Selecciona una casa...</option>' + propertyOptions;
     
+    if (!mobileSelectedProperty) {
+        mobileSelectedProperty = getMobileSelectedProperty();
+    }
     if (!mobileSelectedProperty) return;
+    document.getElementById('inventoryPropertySelect').value = mobileSelectedProperty;
     
     const prop = properties[mobileSelectedProperty];
     if (!prop || !prop.inventory) {
@@ -266,7 +297,11 @@ function loadMobileStaff() {
     document.getElementById('staffPropertySelect').innerHTML = 
         '<option value="">Selecciona una casa...</option>' + propertyOptions;
     
+    if (!mobileSelectedProperty) {
+        mobileSelectedProperty = getMobileSelectedProperty();
+    }
     if (!mobileSelectedProperty) return;
+    document.getElementById('staffPropertySelect').value = mobileSelectedProperty;
     
     const prop = properties[mobileSelectedProperty];
     if (!prop || !prop.staff || prop.staff.length === 0) {
@@ -300,58 +335,143 @@ function loadMobileStaff() {
 // ========== EMPLOYEE TASKS ==========
 
 function renderMobileEmployeeTasks() {
+    const propId = getMobileSelectedProperty();
+    mobileSelectedProperty = propId;
+    const prop = propId ? properties[propId] : null;
+    const staff = getMobileCurrentStaff();
+
     document.getElementById('employeeSubtitle').textContent = 
-        `${mobileCurrentUser.name} - ${mobileCurrentUser.propertyName || ''}`;
-    
-    const tasks = cleaningTasks.filter(task => task.propertyId === mobileSelectedProperty);
-    
-    if (tasks.length === 0) {
+        `${mobileCurrentUser.name}${prop ? ` - ${prop.name || ''}` : ''}`;
+
+    if (!propId || !prop) {
         document.getElementById('employeeTasksContent').innerHTML = `
             <h2 class="section-title">✓ Mis Tareas</h2>
             <div class="empty-state">
-                <div class="empty-icon">✅</div>
-                <div class="empty-title">¡Todo listo!</div>
-                <div class="empty-text">No hay tareas pendientes</div>
+                <div class="empty-icon">ℹ️</div>
+                <div class="empty-title">Selecciona una propiedad</div>
+                <div class="empty-text">No hay propiedad asignada</div>
             </div>
         `;
         return;
     }
-    
-    const tasksHTML = tasks.map((task, idx) => `
-        <div class="task-item ${task.completed ? 'completed' : ''}">
-            <div class="task-content">
-                <div class="task-name">${task.name}</div>
-                <div class="task-area">📍 ${task.section || 'General'}</div>
-            </div>
-            <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} 
-                   onchange="toggleMobileTask(${idx})">
-        </div>
-    `).join('');
-    
-    document.getElementById('employeeTasksContent').innerHTML = `
-        <h2 class="section-title">✓ Mis Tareas</h2>
-        <div class="mt-1">
-            ${tasksHTML}
-        </div>
-    `;
+
+    const isEpic = prop?.name === 'EPIC D1';
+    let roleFilter = isEpic ? null : mobileCurrentUser.role;
+    let tasksBySection = getTasksBySection(propId, roleFilter);
+
+    // Filtrar por tipo de asignación (limpieza/mantenimiento)
+    if (staff?.assignmentType && staff.assignmentType !== 'ambas') {
+        const filtered = {};
+        Object.entries(tasksBySection).forEach(([key, section]) => {
+            const isMaintenance = isMaintenanceSection(key);
+            const include = (staff.assignmentType === 'mantenimiento' && isMaintenance) ||
+                            (staff.assignmentType === 'limpieza' && !isMaintenance);
+            if (include) filtered[key] = section;
+        });
+        tasksBySection = filtered;
+    } else if (!isEpic && mobileCurrentUser.role === 'maintenance') {
+        const filtered = {};
+        Object.entries(tasksBySection).forEach(([key, section]) => {
+            if (isMaintenanceSection(key)) filtered[key] = section;
+        });
+        tasksBySection = filtered;
+    }
+
+    // Filtrar tareas asignadas a este empleado (si assignedTo está definido)
+    Object.keys(tasksBySection).forEach(key => {
+        const section = tasksBySection[key];
+        tasksBySection[key] = {
+            ...section,
+            tasks: section.tasks.filter(t => !t.assignedTo || t.assignedTo === mobileCurrentUser.staffId)
+        };
+    });
+
+    let hasTasks = false;
+    let html = '<h2 class="section-title">✓ Mis Tareas</h2>';
+
+    Object.entries(tasksBySection).forEach(([key, section]) => {
+        if (!section.tasks.length) return;
+        hasTasks = true;
+
+        // Agrupar por subsección si aplica
+        const groups = {};
+        section.tasks.forEach(task => {
+            const subTitle = task.subsectionTitle || section.name || 'General';
+            if (!groups[subTitle]) groups[subTitle] = [];
+            groups[subTitle].push(task);
+        });
+
+        html += `
+            <div class="section-card clickable">
+                <div class="section-header">
+                    <h3 class="section-title" style="margin:0; font-size:1rem;">${section.icon || '🧹'} ${section.name || 'General'}</h3>
+                    <span class="badge-light">${section.tasks.length} tareas</span>
+                </div>`;
+
+        Object.entries(groups).forEach(([subTitle, tasks]) => {
+            html += `<div class="subsection-block"><div class="subsection-title">${subTitle}</div>`;
+            tasks.forEach(task => {
+                const statusIcon = task.verified ? '✔️' : task.completed ? '✅' : '⏳';
+                const statusClass = task.verified ? 'done verified' : task.completed ? 'done' : '';
+                html += `
+                    <div class="task-row clickable ${statusClass}" onclick="toggleMobileTask('${task.id}')">
+                        <div class="task-row-main">
+                            <div class="task-row-title">${task.taskText || task.name || 'Tarea'}</div>
+                            <div class="task-row-sub">${section.name || 'General'}${task.subsectionTitle ? ' · ' + task.subsectionTitle : ''}</div>
+                        </div>
+                        <div class="task-row-status">${statusIcon}</div>
+                    </div>`;
+            });
+            html += '</div>'; // subsection-block
+        });
+
+        html += '</div>'; // section-card
+    });
+
+    if (!hasTasks) {
+        html += `
+            <div class="empty-state">
+                <div class="empty-icon">✅</div>
+                <div class="empty-title">¡Todo listo!</div>
+                <div class="empty-text">No hay tareas pendientes</div>
+            </div>`;
+    }
+
+    document.getElementById('employeeTasksContent').innerHTML = html;
 }
 
-function toggleMobileTask(taskIndex) {
-    cleaningTasks[taskIndex].completed = !cleaningTasks[taskIndex].completed;
+function toggleMobileTask(taskId) {
+    const idx = cleaningTasks.findIndex(t => t.id === taskId || t.id === String(taskId));
+    if (idx < 0) return;
+    if (cleaningTasks[idx].verified) return; // no cambiar tareas ya verificadas
+    cleaningTasks[idx].completed = !cleaningTasks[idx].completed;
     saveData();
     renderMobileEmployeeTasks();
 }
 
 // ========== EMPLOYEE CALENDAR ==========
 
+function toggleMobileSchedule(scheduleId) {
+    toggleScheduleComplete(scheduleId);
+    renderMobileCalendar();
+}
+
 function renderMobileCalendar() {
+    const propId = getMobileSelectedProperty();
+    mobileSelectedProperty = propId;
+    const staffId = mobileCurrentUser?.staffId;
+    const canSeeAll = mobileCurrentUserType === 'owner' || mobileCurrentUserType === 'manager';
+
     const schedulesByType = {};
-    scheduledDates.forEach(date => {
-        if (!schedulesByType[date.type]) {
-            schedulesByType[date.type] = [];
-        }
-        schedulesByType[date.type].push(date);
-    });
+    scheduledDates
+        .filter(date => !propId || date.propertyId === propId)
+        .filter(date => canSeeAll || !date.assignedEmployeeId || date.assignedEmployeeId === staffId)
+        .forEach(date => {
+            if (!schedulesByType[date.type]) {
+                schedulesByType[date.type] = [];
+            }
+            schedulesByType[date.type].push(date);
+        });
     
     let calendarHTML = '';
     
@@ -361,16 +481,28 @@ function renderMobileCalendar() {
         
         calendarHTML += `
             <div class="category-section" style="margin-bottom: 1rem;">
-                <div class="category-header">
+                <div class="category-header clickable">
                     <span class="category-icon">${typeEmoji}</span>
                     <span class="category-name">${typeLabel}</span>
+                    <span class="category-count">${dates.length}</span>
                 </div>
-                <div class="category-items expanded" style="padding: 1rem;">
-                    ${dates.map(date => `
-                        <div class="item-chip">
-                            📅 ${new Date(date.date).toLocaleDateString('es-ES')}
-                        </div>
-                    `).join('')}
+                <div class="category-items expanded" style="padding: 0.5rem 1rem 1rem 1rem;">
+                    ${dates.map(date => {
+                        const localDate = parseLocalDate(date.date);
+                        const dayStr = localDate.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short' });
+                        const assignee = date.assignedEmployeeName ? ` · ${date.assignedEmployeeName}` : '';
+                        const statusIcon = date.completed ? '✅' : '⏳';
+                        const statusClass = date.completed ? 'done' : '';
+                        return `
+                            <div class="task-row clickable ${statusClass}" onclick="toggleMobileSchedule('${date.id}')">
+                                <div class="task-row-main">
+                                    <div class="task-row-title">${dayStr}</div>
+                                    <div class="task-row-sub">${typeLabel}${assignee}</div>
+                                </div>
+                                <div class="task-row-status">${statusIcon}</div>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             </div>
         `;
