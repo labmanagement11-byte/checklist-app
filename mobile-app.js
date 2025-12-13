@@ -158,6 +158,14 @@ function switchMobileTab(tabName) {
         loadMobileStaff();
     } else if (tabName === 'properties') {
         loadMobileProperties();
+    } else if (tabName === 'purchase') {
+        loadMobilePurchaseList();
+    } else if (tabName === 'checks') {
+        loadMobileInventoryChecks();
+    } else if (tabName === 'requests') {
+        loadMobilePurchaseRequests();
+    } else if (tabName === 'alerts') {
+        loadMobileNotifications();
     }
 }
 
@@ -1170,8 +1178,11 @@ function saveMobileSchedule() {
 
 // ========== MORE OPTIONS MOBILE ==========
 
-function showPurchaseListMobile() {
-    const modalBody = `
+function loadMobilePurchaseList() {
+    const content = document.getElementById('purchaseContentMobile');
+    if (!content) return;
+    
+    const formHTML = `
         <div class="form-group">
             <label class="form-label">Artículo</label>
             <input type="text" id="mobilePurchaseItem" class="form-control" placeholder="Ej: Detergente">
@@ -1180,13 +1191,16 @@ function showPurchaseListMobile() {
             <label class="form-label">Cantidad</label>
             <input type="number" id="mobilePurchaseQty" class="form-control" value="1" min="1">
         </div>
-        <button class="btn btn-primary btn-block" onclick="addMobilePurchaseItem()">Agregar a Lista</button>
-        <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--border-color);">
-        <h3 style="margin-bottom: 1rem;">🛒 Lista Actual</h3>
-        <div id="mobilePurchaseList"></div>
+        <button class="btn btn-primary btn-block" onclick="addMobilePurchaseItem()" style="margin-bottom: 1.5rem;">Agregar a Lista</button>
     `;
-    showMobileModal('🛒 Lista de Compras', modalBody);
+    
+    content.innerHTML = formHTML + '<div id="mobilePurchaseList"></div>';
     renderMobilePurchaseList();
+}
+
+function showAddPurchaseItemMobile() {
+    const item = document.getElementById('mobilePurchaseItem');
+    if (item) item.focus();
 }
 
 function renderMobilePurchaseList() {
@@ -1194,17 +1208,17 @@ function renderMobilePurchaseList() {
     if (!list) return;
     
     if (purchaseInventory.length === 0) {
-        list.innerHTML = '<div class="empty-text">Lista vacía</div>';
+        list.innerHTML = '<div class="empty-state"><div class="empty-text">Lista vacía</div></div>';
         return;
     }
     
     list.innerHTML = purchaseInventory.map(item => `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 0.5rem;">
+        <div class="clickable" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 0.5rem;">
             <div>
-                <div style="font-weight: 600;">${item.item}</div>
+                <div style="font-weight: 600;">🛒 ${item.item}</div>
                 <div style="font-size: 0.85rem; color: var(--text-secondary);">Cantidad: ${item.qty}</div>
             </div>
-            <button class="btn-icon" onclick="deleteMobilePurchaseItem('${item.id}')" style="color: var(--danger);">🗑️</button>
+            <button class="btn-icon" onclick="event.stopPropagation(); deleteMobilePurchaseItem('${item.id}')" style="color: var(--danger);">🗑️</button>
         </div>
     `).join('');
 }
@@ -1237,29 +1251,30 @@ function deleteMobilePurchaseItem(itemId) {
     renderMobilePurchaseList();
 }
 
-function showInventoryChecksMobile() {
+function loadMobileInventoryChecks() {
+    const content = document.getElementById('checksContentMobile');
+    if (!content) return;
+    
     const checks = inventoryChecks.filter(c => !c.approved);
     
-    let content = '';
     if (checks.length === 0) {
-        content = '<div class="empty-text">No hay verificaciones pendientes</div>';
-    } else {
-        content = checks.map(check => {
-            const prop = properties[check.propertyId];
-            return `
-                <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 0.75rem;">
-                    <div style="font-weight: 600; margin-bottom: 0.5rem;">🏠 ${prop?.name || 'Casa'}</div>
-                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
-                        Por: ${check.employeeName || 'Empleado'} - ${new Date(check.createdAt).toLocaleDateString()}
-                    </div>
-                    <div style="font-size: 0.9rem;">${check.notes || 'Sin notas'}</div>
-                    <button class="btn btn-sm btn-primary" onclick="approveMobileInventoryCheck('${check.id}')" style="margin-top: 0.5rem;">✓ Aprobar</button>
-                </div>
-            `;
-        }).join('');
+        content.innerHTML = '<div class="empty-state"><div class="empty-text">No hay verificaciones pendientes</div></div>';
+        return;
     }
     
-    showMobileModal('📋 Verificación de Inventario', `<div>${content}</div>`);
+    content.innerHTML = checks.map(check => {
+        const prop = properties[check.propertyId];
+        return `
+            <div class="clickable" style="padding: 1rem; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 0.75rem;">
+                <div style="font-weight: 600; margin-bottom: 0.5rem;">🏠 ${prop?.name || 'Casa'}</div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                    Por: ${check.employeeName || 'Empleado'} - ${new Date(check.createdAt).toLocaleDateString()}
+                </div>
+                <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">${check.notes || 'Sin notas'}</div>
+                <button class="btn btn-sm btn-primary" onclick="approveMobileInventoryCheck('${check.id}')">✓ Aprobar</button>
+            </div>
+        `;
+    }).join('');
 }
 
 function approveMobileInventoryCheck(checkId) {
@@ -1268,36 +1283,38 @@ function approveMobileInventoryCheck(checkId) {
         check.approved = true;
         check.approvedAt = new Date().toISOString();
         saveData();
-        showInventoryChecksMobile();
+        loadMobileInventoryChecks();
+        alert('✅ Verificación aprobada');
     }
 }
 
-function showPurchaseRequestsMobile() {
+function loadMobilePurchaseRequests() {
+    const container = document.getElementById('requestsContentMobile');
+    if (!container) return;
+    
     const requests = purchaseRequests.filter(r => !r.approved && !r.rejected);
     
-    let content = '';
     if (requests.length === 0) {
-        content = '<div class="empty-text">No hay solicitudes pendientes</div>';
-    } else {
-        content = requests.map(req => {
-            const prop = properties[req.propertyId];
-            return `
-                <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 0.75rem;">
-                    <div style="font-weight: 600; margin-bottom: 0.5rem;">${req.item}</div>
-                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
-                        🏠 ${prop?.name || 'Casa'} - Cantidad: ${req.qty}<br>
-                        Por: ${req.employeeName || 'Empleado'} - ${new Date(req.createdAt).toLocaleDateString()}
-                    </div>
-                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                        <button class="btn btn-sm btn-primary" onclick="approveMobilePurchaseRequest('${req.id}')" style="flex: 1;">✓ Aprobar</button>
-                        <button class="btn btn-sm btn-secondary" onclick="rejectMobilePurchaseRequest('${req.id}')" style="flex: 1; background: var(--danger);">✗ Rechazar</button>
-                    </div>
-                </div>
-            `;
-        }).join('');
+        container.innerHTML = '<div class="empty-state"><div class="empty-text">No hay solicitudes pendientes</div></div>';
+        return;
     }
     
-    showMobileModal('📝 Solicitudes de Compra', `<div>${content}</div>`);
+    container.innerHTML = requests.map(req => {
+        const prop = properties[req.propertyId];
+        return `
+            <div class="clickable" style="padding: 1rem; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 0.75rem;">
+                <div style="font-weight: 600; margin-bottom: 0.5rem;">📝 ${req.item}</div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                    🏠 ${prop?.name || 'Casa'} - Cantidad: ${req.qty}<br>
+                    Por: ${req.employeeName || 'Empleado'} - ${new Date(req.createdAt).toLocaleDateString()}
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    <button class="btn btn-sm btn-primary" onclick="approveMobilePurchaseRequest('${req.id}')" style="flex: 1;">✓ Aprobar</button>
+                    <button class="btn btn-sm btn-secondary" onclick="rejectMobilePurchaseRequest('${req.id}')" style="flex: 1; background: var(--danger);">✗ Rechazar</button>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 function approveMobilePurchaseRequest(reqId) {
@@ -1315,7 +1332,8 @@ function approveMobilePurchaseRequest(reqId) {
         });
         
         saveData();
-        showPurchaseRequestsMobile();
+        loadMobilePurchaseRequests();
+        alert('✅ Solicitud aprobada y agregada a lista de compras');
     }
 }
 
@@ -1325,37 +1343,39 @@ function rejectMobilePurchaseRequest(reqId) {
         req.rejected = true;
         req.rejectedAt = new Date().toISOString();
         saveData();
-        showPurchaseRequestsMobile();
+        loadMobilePurchaseRequests();
+        alert('❌ Solicitud rechazada');
     }
 }
 
-function showNotificationsMobile() {
+function loadMobileNotifications() {
+    const container = document.getElementById('alertsContentMobile');
+    if (!container) return;
+    
     const notifications = workDayNotifications.filter(n => !n.read);
     
-    let content = '';
     if (notifications.length === 0) {
-        content = '<div class="empty-text">No hay alertas</div>';
-    } else {
-        content = notifications.map(notif => {
-            const prop = properties[notif.propertyId];
-            return `
-                <div style="padding: 1rem; background: var(--warning); color: #000; border-radius: 8px; margin-bottom: 0.75rem;">
-                    <div style="font-weight: 600; margin-bottom: 0.5rem;">⚠️ Día cerrado con pendientes</div>
-                    <div style="font-size: 0.85rem; margin-bottom: 0.5rem;">
-                        🏠 ${prop?.name || 'Casa'}<br>
-                        👤 ${notif.employeeName} - ${notif.date}
-                    </div>
-                    <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">
-                        <strong>Tareas pendientes:</strong><br>
-                        ${(notif.pendingTasks || []).map(t => `• ${t}`).join('<br>')}
-                    </div>
-                    <button class="btn btn-sm" onclick="markMobileNotificationRead('${notif.id}')" style="background: #fff; color: #000; margin-top: 0.5rem;">Marcar como leído</button>
-                </div>
-            `;
-        }).join('');
+        container.innerHTML = '<div class="empty-state"><div class="empty-text">No hay alertas</div></div>';
+        return;
     }
     
-    showMobileModal('⚠️ Alertas del Sistema', `<div>${content}</div>`);
+    container.innerHTML = notifications.map(notif => {
+        const prop = properties[notif.propertyId];
+        return `
+            <div class="clickable" style="padding: 1rem; background: var(--warning); color: #000; border-radius: 8px; margin-bottom: 0.75rem;">
+                <div style="font-weight: 600; margin-bottom: 0.5rem;">⚠️ Día cerrado con pendientes</div>
+                <div style="font-size: 0.85rem; margin-bottom: 0.5rem;">
+                    🏠 ${prop?.name || 'Casa'}<br>
+                    👤 ${notif.employeeName} - ${notif.date}
+                </div>
+                <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <strong>Tareas pendientes:</strong><br>
+                    ${(notif.pendingTasks || []).map(t => `• ${t}`).join('<br>')}
+                </div>
+                <button class="btn btn-sm" onclick="markMobileNotificationRead('${notif.id}')" style="background: #fff; color: #000; margin-top: 0.5rem;">Marcar como leído</button>
+            </div>
+        `;
+    }).join('');
 }
 
 function markMobileNotificationRead(notifId) {
@@ -1363,8 +1383,16 @@ function markMobileNotificationRead(notifId) {
     if (notif) {
         notif.read = true;
         saveData();
-        showNotificationsMobile();
+        loadMobileNotifications();
     }
+}
+
+function showNotificationsMobile() {
+    loadMobileNotifications();
+}
+
+function showNotificationsMobile() {
+    loadMobileNotifications();
 }
 
 // ========== INITIALIZATION ==========

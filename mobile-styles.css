@@ -383,7 +383,6 @@ body {
 
 .mobile-nav-tabs {
     display: flex;
-    justify-content: space-around;
     gap: 0;
     background: var(--bg-primary);
     border-top: 1px solid var(--border-color);
@@ -394,16 +393,26 @@ body {
     z-index: 20;
     height: auto;
     min-height: var(--nav-height);
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+
+.mobile-nav-tabs::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
 }
 
 .nav-tab {
-    flex: 1;
+    flex: 0 0 auto;
+    min-width: 80px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 0.25rem;
-    padding: 0.75rem 0;
+    padding: 0.75rem 0.5rem;
     border: none;
     background: transparent;
     color: var(--text-tertiary);
@@ -412,6 +421,7 @@ body {
     cursor: pointer;
     transition: color var(--transition-fast);
     position: relative;
+    white-space: nowrap;
 }
 
 .nav-tab.active {

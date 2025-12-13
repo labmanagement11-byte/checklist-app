@@ -95,7 +95,7 @@
                 </div>
 
                 <!-- Bottom Navigation Tabs -->
-                <div class="mobile-nav-tabs" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0;">
+                <div class="mobile-nav-tabs">
                     <button class="nav-tab active" data-tab="dashboard" onclick="switchMobileTab('dashboard')">
                         <span class="tab-icon">📊</span>
                         <span class="tab-label">Inicio</span>
@@ -112,9 +112,29 @@
                         <span class="tab-icon">📅</span>
                         <span class="tab-label">Agenda</span>
                     </button>
-                    <button class="nav-tab" data-tab="more" onclick="switchMobileTab('more')">
-                        <span class="tab-icon">⋯</span>
-                        <span class="tab-label">Más</span>
+                    <button class="nav-tab" data-tab="inventory" onclick="switchMobileTab('inventory')">
+                        <span class="tab-icon">📦</span>
+                        <span class="tab-label">Inventario</span>
+                    </button>
+                    <button class="nav-tab" data-tab="staff" onclick="switchMobileTab('staff')">
+                        <span class="tab-icon">👥</span>
+                        <span class="tab-label">Personal</span>
+                    </button>
+                    <button class="nav-tab" data-tab="purchase" onclick="switchMobileTab('purchase')">
+                        <span class="tab-icon">🛒</span>
+                        <span class="tab-label">Compras</span>
+                    </button>
+                    <button class="nav-tab" data-tab="checks" onclick="switchMobileTab('checks')">
+                        <span class="tab-icon">📋</span>
+                        <span class="tab-label">Verificar</span>
+                    </button>
+                    <button class="nav-tab" data-tab="requests" onclick="switchMobileTab('requests')">
+                        <span class="tab-icon">📝</span>
+                        <span class="tab-label">Solicitudes</span>
+                    </button>
+                    <button class="nav-tab" data-tab="alerts" onclick="switchMobileTab('alerts')">
+                        <span class="tab-icon">⚠️</span>
+                        <span class="tab-label">Alertas</span>
                     </button>
                 </div>
 
@@ -233,40 +253,44 @@
                     </div>
 
                     <!-- More Tab -->
-                    <div id="tab-more" class="tab-content">
+                    <div id="tab-purchase" class="tab-content">
                         <div class="section-card">
-                            <h2 class="section-title">⋯ Más Opciones</h2>
-                            <div class="menu-list">
-                                <div class="menu-item clickable" onclick="switchMobileTab('inventory')" style="cursor: pointer;">
-                                    <span class="menu-icon">📦</span>
-                                    <span class="menu-label">Inventario</span>
-                                    <span class="menu-arrow">›</span>
-                                </div>
-                                <div class="menu-item clickable" onclick="switchMobileTab('staff')" style="cursor: pointer;">
-                                    <span class="menu-icon">👥</span>
-                                    <span class="menu-label">Personal</span>
-                                    <span class="menu-arrow">›</span>
-                                </div>
-                                <div class="menu-item clickable" onclick="showPurchaseListMobile()" style="cursor: pointer;">
-                                    <span class="menu-icon">🛒</span>
-                                    <span class="menu-label">Lista de Compras</span>
-                                    <span class="menu-arrow">›</span>
-                                </div>
-                                <div class="menu-item clickable" onclick="showInventoryChecksMobile()" style="cursor: pointer;">
-                                    <span class="menu-icon">📋</span>
-                                    <span class="menu-label">Verificación de Inventario</span>
-                                    <span class="menu-arrow">›</span>
-                                </div>
-                                <div class="menu-item clickable" onclick="showPurchaseRequestsMobile()" style="cursor: pointer;">
-                                    <span class="menu-icon">📝</span>
-                                    <span class="menu-label">Solicitudes de Compra</span>
-                                    <span class="menu-arrow">›</span>
-                                </div>
-                                <div class="menu-item clickable" onclick="showNotificationsMobile()" style="cursor: pointer;">
-                                    <span class="menu-icon">⚠️</span>
-                                    <span class="menu-label">Alertas del Sistema</span>
-                                    <span class="menu-arrow">›</span>
-                                </div>
+                            <div class="section-header">
+                                <h2 class="section-title">🛒 Lista de Compras</h2>
+                                <button class="btn btn-sm btn-primary" onclick="showAddPurchaseItemMobile()">+ Agregar</button>
+                            </div>
+                            <div id="purchaseContentMobile">
+                                <!-- Contenido dinámico -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Checks Tab -->
+                    <div id="tab-checks" class="tab-content">
+                        <div class="section-card">
+                            <h2 class="section-title">📋 Verificación de Inventario</h2>
+                            <div id="checksContentMobile">
+                                <!-- Contenido dinámico -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Requests Tab -->
+                    <div id="tab-requests" class="tab-content">
+                        <div class="section-card">
+                            <h2 class="section-title">📝 Solicitudes de Compra</h2>
+                            <div id="requestsContentMobile">
+                                <!-- Contenido dinámico -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alerts Tab -->
+                    <div id="tab-alerts" class="tab-content">
+                        <div class="section-card">
+                            <h2 class="section-title">⚠️ Alertas del Sistema</h2>
+                            <div id="alertsContentMobile">
+                                <!-- Contenido dinámico -->
                             </div>
                         </div>
                     </div>
