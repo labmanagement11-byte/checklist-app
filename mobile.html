@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1877f2">
+    <title>AirbnbManager Mobile</title>
+    <link rel="stylesheet" href="mobile-styles.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>🏠</text></svg>">
+</head>
+<body>
+    <div id="app" class="mobile-app">
+        <!-- STATUS BAR SIMULATOR -->
+        <div class="mobile-status-bar"></div>
+
+        <!-- LOGIN VIEW -->
+        <div id="loginView" class="view active">
+            <div class="mobile-login">
+                <div class="login-header">
+                    <div class="logo-circle">🏠</div>
+                    <h1>AirbnbManager</h1>
+                    <p>Gestión profesional de propiedades</p>
+                </div>
+
+                <div class="login-form">
+                    <div class="form-group">
+                        <label class="form-label">Tipo de Usuario</label>
+                        <select id="userType" class="form-control" onchange="updateMobileLoginForm()">
+                            <option value="">Selecciona...</option>
+                            <option value="owner">👤 Dueño</option>
+                            <option value="manager">👨‍💼 Manager</option>
+                            <option value="employee">👷 Empleado</option>
+                        </select>
+                    </div>
+
+                    <div id="ownerLoginGroup" style="display:none;">
+                        <div class="form-group">
+                            <label class="form-label">Usuario</label>
+                            <input type="text" id="ownerUsername" class="form-control" placeholder="Tu usuario">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Contraseña</label>
+                            <input type="password" id="ownerPassword" class="form-control" placeholder="Tu contraseña">
+                        </div>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="rememberOwnerMobile">
+                            <span>Recordar credenciales</span>
+                        </label>
+                    </div>
+
+                    <div id="staffLoginGroup" style="display:none;">
+                        <div class="form-group">
+                            <label class="form-label">Usuario</label>
+                            <input type="text" id="staffUsername" class="form-control" placeholder="Usuario asignado">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Contraseña</label>
+                            <input type="password" id="staffPassword" class="form-control" placeholder="Contraseña asignada">
+                        </div>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="rememberStaffMobile">
+                            <span>Recordar credenciales</span>
+                        </label>
+                    </div>
+
+                    <button class="btn btn-primary btn-block" onclick="mobileLogin()" style="margin-top: 1.5rem;">
+                        <span>Ingresar</span>
+                        <span class="btn-arrow">→</span>
+                    </button>
+                </div>
+
+                <div class="login-footer">
+                    <button class="btn-icon" id="themeMobileToggle" onclick="toggleMobileTheme()" title="Cambiar tema">🌙</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- OWNER MOBILE VIEW -->
+        <div id="ownerMobileView" class="view">
+            <div class="mobile-container">
+                <!-- Top Navigation -->
+                <div class="mobile-header">
+                    <div class="header-top">
+                        <h1 id="ownerMobileName" class="header-title">AirbnbManager</h1>
+                        <div class="header-controls">
+                            <button class="btn-icon" onclick="toggleMobileTheme()">🌙</button>
+                            <button class="btn-icon" onclick="mobileLogout()">🚪</button>
+                        </div>
+                    </div>
+                    <div class="header-subtitle">Dueño del Sistema</div>
+                </div>
+
+                <!-- Bottom Navigation Tabs -->
+                <div class="mobile-nav-tabs">
+                    <button class="nav-tab active" data-tab="dashboard" onclick="switchMobileTab('dashboard')">
+                        <span class="tab-icon">📊</span>
+                        <span class="tab-label">Inicio</span>
+                    </button>
+                    <button class="nav-tab" data-tab="properties" onclick="switchMobileTab('properties')">
+                        <span class="tab-icon">🏠</span>
+                        <span class="tab-label">Casas</span>
+                    </button>
+                    <button class="nav-tab" data-tab="inventory" onclick="switchMobileTab('inventory')">
+                        <span class="tab-icon">📦</span>
+                        <span class="tab-label">Inventario</span>
+                    </button>
+                    <button class="nav-tab" data-tab="staff" onclick="switchMobileTab('staff')">
+                        <span class="tab-icon">👥</span>
+                        <span class="tab-label">Personal</span>
+                    </button>
+                </div>
+
+                <!-- Content Area -->
+                <div class="mobile-content">
+                    <!-- Dashboard Tab -->
+                    <div id="tab-dashboard" class="tab-content active">
+                        <div class="section-card">
+                            <h2 class="section-title">📊 Dashboard</h2>
+                            <div id="dashboardStats" class="stats-grid">
+                                <!-- Contenido dinámico -->
+                            </div>
+                        </div>
+
+                        <div class="section-card">
+                            <h2 class="section-title">🏠 Propiedades Activas</h2>
+                            <div id="dashboardProperties" class="properties-list">
+                                <!-- Contenido dinámico -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Properties Tab -->
+                    <div id="tab-properties" class="tab-content">
+                        <div class="section-card">
+                            <div class="section-header">
+                                <h2 class="section-title">🏠 Mis Propiedades</h2>
+                                <button class="btn btn-sm btn-primary" onclick="showAddPropertyMobile()">+ Agregar</button>
+                            </div>
+                            <div id="propertiesListMobile" class="properties-list">
+                                <!-- Contenido dinámico -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Inventory Tab -->
+                    <div id="tab-inventory" class="tab-content">
+                        <div class="section-card">
+                            <h2 class="section-title">📦 Inventario</h2>
+                            <div id="propertySelectInventory" class="form-group">
+                                <select class="form-control" id="inventoryPropertySelect" onchange="loadMobileInventory()">
+                                    <option value="">Selecciona una casa...</option>
+                                </select>
+                            </div>
+                            <div id="inventoryContentMobile">
+                                <!-- Contenido dinámico -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Staff Tab -->
+                    <div id="tab-staff" class="tab-content">
+                        <div class="section-card">
+                            <h2 class="section-title">👥 Personal</h2>
+                            <div id="propertySelectStaff" class="form-group">
+                                <select class="form-control" id="staffPropertySelect" onchange="loadMobileStaff()">
+                                    <option value="">Selecciona una casa...</option>
+                                </select>
+                            </div>
+                            <div id="staffContentMobile">
+                                <!-- Contenido dinámico -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- EMPLOYEE MOBILE VIEW -->
+        <div id="employeeMobileView" class="view">
+            <div class="mobile-container">
+                <!-- Top Navigation -->
+                <div class="mobile-header">
+                    <div class="header-top">
+                        <h1 class="header-title">Mis Tareas</h1>
+                        <div class="header-controls">
+                            <button class="btn-icon" onclick="toggleMobileTheme()">🌙</button>
+                            <button class="btn-icon" onclick="mobileLogout()">🚪</button>
+                        </div>
+                    </div>
+                    <div id="employeeSubtitle" class="header-subtitle">Empleado</div>
+                </div>
+
+                <!-- Bottom Navigation Tabs -->
+                <div class="mobile-nav-tabs">
+                    <button class="nav-tab active" data-tab="tasks" onclick="switchEmployeeMobileTab('tasks')">
+                        <span class="tab-icon">✓</span>
+                        <span class="tab-label">Tareas</span>
+                    </button>
+                    <button class="nav-tab" data-tab="schedule" onclick="switchEmployeeMobileTab('schedule')">
+                        <span class="tab-icon">📅</span>
+                        <span class="tab-label">Calendario</span>
+                    </button>
+                    <button class="nav-tab" data-tab="requests" onclick="switchEmployeeMobileTab('requests')">
+                        <span class="tab-icon">📝</span>
+                        <span class="tab-label">Solicitudes</span>
+                    </button>
+                    <button class="nav-tab" data-tab="profile" onclick="switchEmployeeMobileTab('profile')">
+                        <span class="tab-icon">👤</span>
+                        <span class="tab-label">Perfil</span>
+                    </button>
+                </div>
+
+                <!-- Content Area -->
+                <div class="mobile-content">
+                    <!-- Tasks Tab -->
+                    <div id="emp-tab-tasks" class="tab-content active">
+                        <div class="section-card">
+                            <div id="employeeTasksContent">
+                                <!-- Contenido dinámico -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Schedule Tab -->
+                    <div id="emp-tab-schedule" class="tab-content">
+                        <div class="section-card">
+                            <h2 class="section-title">📅 Calendario</h2>
+                            <div id="employeeCalendarContent">
+                                <!-- Contenido dinámico -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Requests Tab -->
+                    <div id="emp-tab-requests" class="tab-content">
+                        <div class="section-card">
+                            <h2 class="section-title">📝 Solicitudes</h2>
+                            <div id="employeeRequestsContent">
+                                <!-- Contenido dinámico -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profile Tab -->
+                    <div id="emp-tab-profile" class="tab-content">
+                        <div class="section-card">
+                            <h2 class="section-title">👤 Mi Perfil</h2>
+                            <div id="employeeProfileContent">
+                                <!-- Contenido dinámico -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODALS -->
+        <div id="mobileModal" class="mobile-modal">
+            <div class="modal-overlay" onclick="closeMobileModal()"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalTitle">Modal</h2>
+                    <button class="btn-close" onclick="closeMobileModal()">✕</button>
+                </div>
+                <div id="modalBody" class="modal-body">
+                    <!-- Contenido dinámico -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script src="mobile-app.js"></script>
+</body>
+</html>
