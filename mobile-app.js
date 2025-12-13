@@ -849,41 +849,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Cargar datos
     loadData();
     
-    // Verificar si hay sesión guardada
-    // Auto-login si hay sesión guardada
+    // Prellenar credenciales guardadas pero NO hacer auto-login
     const savedOwnerCreds = localStorage.getItem('airbnbmanager_mobile_owner_creds');
     const savedStaffCreds = localStorage.getItem('airbnbmanager_mobile_staff_creds');
     
     if (savedOwnerCreds) {
         const creds = JSON.parse(savedOwnerCreds);
-        // Auto login como owner
-        if (creds.username === OWNER_CREDENTIALS.username && creds.password === OWNER_CREDENTIALS.password) {
-            mobileCurrentUser = OWNER_CREDENTIALS;
-            mobileCurrentUserType = 'owner';
-            showMobileOwnerView();
-            return; // No mostrar login
-        }
+        document.getElementById('userType').value = 'owner';
+        document.getElementById('ownerUsername').value = creds.username;
+        document.getElementById('ownerPassword').value = creds.password;
+        updateMobileLoginForm();
     } else if (savedStaffCreds) {
         const creds = JSON.parse(savedStaffCreds);
-        // Auto login como staff
-        let staffFound = null;
-        for (const propKey in properties) {
-            const prop = properties[propKey];
-            if (prop.staff) {
-                const staff = prop.staff.find(s => s.username === creds.username && s.password === creds.password);
-                if (staff) {
-                    staffFound = { ...staff, propertyId: propKey, propertyName: prop.name };
-                    break;
-                }
-            }
-        }
-        if (staffFound) {
-            mobileCurrentUser = staffFound;
-            mobileCurrentUserType = staffFound.role;
-            mobileSelectedProperty = staffFound.propertyId;
-            showMobileEmployeeView();
-            return; // No mostrar login
-        }
+        document.getElementById('userType').value = 'employee';
+        document.getElementById('staffUsername').value = creds.username;
+        document.getElementById('staffPassword').value = creds.password;
+        updateMobileLoginForm();
     }
     
     // Renderizar vistas de empleado cuando se cargan
