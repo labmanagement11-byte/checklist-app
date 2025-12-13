@@ -2200,6 +2200,90 @@ function ensureEpicPropertyExists() {
     return id;
 }
 
+function ensureTorreMagnaPropertyExists() {
+    const existingId = Object.keys(properties).find(pid => {
+        const nm = properties[pid]?.name?.trim?.();
+        return nm && (nm.toLowerCase() === 'torre magna pi' || nm.toLowerCase() === 'torre magna');
+    });
+    if (existingId) return existingId;
+
+    const id = 'prop_torre_magna';
+    const prop = { 
+        id, 
+        name: 'Torre Magna PI', 
+        address: 'Por definir', 
+        staff: [
+            {
+                id: 'staff_jose',
+                name: 'Jose',
+                role: 'manager',
+                username: 'jose',
+                password: 'jose123',
+                lastLoginTime: null
+            },
+            {
+                id: 'staff_alejandra',
+                name: 'Alejandra',
+                role: 'employee',
+                username: 'alejandra',
+                password: 'alejandra123',
+                lastLoginTime: null
+            },
+            {
+                id: 'staff_maria',
+                name: 'Maria',
+                role: 'employee',
+                username: 'maria',
+                password: 'maria123',
+                lastLoginTime: null
+            }
+        ], 
+        inventory: {} 
+    };
+    normalizeInventory(prop);
+    properties[id] = prop;
+    cleaningTasks.push(...createDefaultCleaningTasks(id, prop.name));
+    return id;
+}
+
+function ensureEpicStaffExists() {
+    const epicId = Object.keys(properties).find(pid => {
+        const nm = properties[pid]?.name?.trim?.();
+        return nm && nm.toLowerCase() === 'epic d1';
+    });
+    
+    if (!epicId) return;
+    
+    const prop = properties[epicId];
+    if (!prop.staff) prop.staff = [];
+    
+    // Verificar si Victor ya existe
+    if (!prop.staff.find(s => s.username === 'victor')) {
+        prop.staff.push({
+            id: 'staff_victor',
+            name: 'Victor',
+            role: 'mantenimiento',
+            username: 'victor',
+            password: 'victor123',
+            assignmentType: 'mantenimiento',
+            lastLoginTime: null
+        });
+    }
+    
+    // Verificar si Alejandro ya existe
+    if (!prop.staff.find(s => s.username === 'alejandro')) {
+        prop.staff.push({
+            id: 'staff_alejandro',
+            name: 'Alejandro',
+            role: 'limpieza',
+            username: 'alejandro',
+            password: 'alejandro123',
+            assignmentType: 'limpieza',
+            lastLoginTime: null
+        });
+    }
+}
+
 function toggleScheduleComplete(scheduleId) {
     const item = scheduledDates.find(s => s.id === scheduleId);
     if (item) {
@@ -4233,12 +4317,17 @@ function initializeApp() {
         }
     }
     if (Object.keys(properties).length === 0) {
-        // No crear casas demo - el usuario creará sus propiedades
+        // Crear propiedades iniciales
         ensureEpicPropertyExists();
+        ensureTorreMagnaPropertyExists();
     } else {
         Object.values(properties).forEach(normalizeInventory);
         ensureEpicPropertyExists();
+        ensureTorreMagnaPropertyExists();
     }
+    
+    // Asegurar que los usuarios estén en sus propiedades
+    ensureEpicStaffExists();
 
     if (!selectedProperty) {
         selectedProperty = Object.keys(properties)[0] || null;

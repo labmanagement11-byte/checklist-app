@@ -194,7 +194,7 @@ function renderMobileOwnerDashboard() {
     
     // Properties List
     const propertiesHTML = Object.entries(properties).map(([key, prop]) => `
-        <div class="property-item">
+        <div class="property-item clickable" style="cursor: pointer; transition: all 0.2s;" onclick="switchMobileTab('properties'); selectPropertyMobile('${key}')" ontouchstart="this.style.transform='scale(0.98)'" ontouchend="this.style.transform='scale(1)'">
             <div class="property-name">🏠 ${prop.name}</div>
             <div class="property-info">
                 <span>👥 ${prop.staff ? prop.staff.length : 0} personal</span>
@@ -213,7 +213,7 @@ function loadMobileProperties() {
         mobileSelectedProperty = Object.keys(properties)[0] || null;
     }
     const propertiesHTML = Object.entries(properties).map(([key, prop]) => `
-        <div class="property-item ${mobileSelectedProperty === key ? 'selected' : ''}" onclick="selectPropertyMobile('${key}')">
+        <div class="property-item clickable ${mobileSelectedProperty === key ? 'selected' : ''}" onclick="selectPropertyMobile('${key}')" style="cursor: pointer; transition: all 0.2s;" ontouchstart="if(!this.classList.contains('selected')) this.style.transform='scale(0.98)'" ontouchend="this.style.transform='scale(1)'">
             <div class="property-name">🏠 ${prop.name}</div>
             <div class="property-info">
                 <span>📍 ${prop.address || 'Sin dirección'}</span>
@@ -332,12 +332,15 @@ function loadMobileInventory() {
                     <span class="category-count">${items.length}</span>
                 </div>
                 <div class="category-items">
-                    ${items.map(item => `
-                        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); padding: 0.5rem 0.75rem; border-radius: 8px; margin-bottom: 0.5rem;">
-                            <span style="flex: 1; color: var(--text-primary); font-weight: 600;">✓ ${item.name || item} ${item.qty ? `(${item.qty})` : ''}</span>
-                            <button class="btn-icon" onclick="removeMobileInventoryItem('${catKey}', '${item.id || item}')" style="color: var(--danger); font-size: 1.2rem;">🗑️</button>
+                    ${items.map(item => {
+                        const itemEmoji = getItemEmoji(catKey, item.name || item);
+                        return `
+                        <div class="clickable" style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem; cursor: pointer; transition: transform 0.2s;" ontouchstart="this.style.transform='scale(0.98)'" ontouchend="this.style.transform='scale(1)'">
+                            <span style="flex: 1; color: var(--text-primary); font-weight: 600;">${itemEmoji} ${item.name || item} ${item.qty ? `<span style="color: var(--primary); margin-left: 0.5rem;">(${item.qty})</span>` : ''}</span>
+                            <button class="btn-icon" onclick="event.stopPropagation(); removeMobileInventoryItem('${catKey}', '${item.id || item}')" style="color: var(--danger); font-size: 1.2rem;">🗑️</button>
                         </div>
-                    `).join('')}
+                    `;
+                    }).join('')}
                 </div>
             </div>
         `;
@@ -841,6 +844,66 @@ function showMobileModal(title, content) {
 
 function closeMobileModal() {
     document.getElementById('mobileModal').classList.remove('active');
+}
+
+// ========== HELPER FUNCTIONS ==========
+
+function getItemEmoji(category, itemName) {
+    const name = (itemName || '').toLowerCase();
+    
+    // Emojis por item específico
+    const itemEmojis = {
+        // Cocina
+        'tenedor': '🍴', 'cuchillo': '🔪', 'cuchara': '🥄', 'plato': '🍽️', 'vaso': '🥤', 'copa': '🍷',
+        'sarten': '🍳', 'olla': '🍲', 'cafetera': '☕', 'taza': '☕', 'microondas': '📟', 
+        'licuadora': '🔌', 'bowl': '🥣', 'tabla': '🪵', 'pyrex': '🍱',
+        
+        // Habitaciones
+        'almohada': '🛏️', 'sabana': '🛏️', 'colcha': '🛏️', 'manta': '🧣', 'cobija': '🧣', 
+        'cortina': '🪟', 'lampara': '💡', 'espejo': '🪞', 'perchero': '🪝',
+        
+        // Baños
+        'toalla': '🧻', 'toallon': '🧻', 'jabon': '🧼', 'champu': '🧴', 'shampoo': '🧴',
+        'papel': '🧻', 'tapete': '🛁', 'cepillo': '🪥', 'escobilla': '🚽',
+        
+        // Sala
+        'sofa': '🛋️', 'silla': '🪑', 'mesa': '🪑', 'cuadro': '🖼️', 'alfombra': '🧶',
+        'control': '📺', 'cojin': '🛋️', 'jarron': '🏺', 'planta': '🪴',
+        
+        // Comedor  
+        'mantel': '🍽️', 'servilleta': '🧻', 'individual': '🍽️', 'salero': '🧂',
+        
+        // Lavandería
+        'detergente': '🧴', 'suavizante': '🧴', 'cloro': '🧪', 'cesto': '🧺',
+        'perchas': '👔', 'pinzas': '📎', 'tendedero': '🧺',
+        
+        // Limpieza
+        'escoba': '🧹', 'trapeador': '🧽', 'recogedor': '🪣', 'balde': '🪣', 
+        'spray': '🧴', 'guantes': '🧤', 'esponja': '🧽', 'trapo': '🧻',
+        'desinfectante': '🧴', 'aromatizante': '🌸', 'bolsa': '🛍️', 'limpiador': '🧴'
+    };
+    
+    // Buscar emoji específico
+    for (const [key, emoji] of Object.entries(itemEmojis)) {
+        if (name.includes(key)) return emoji;
+    }
+    
+    // Emoji por categoría por defecto
+    const categoryEmojis = {
+        'cocina': '🍴',
+        'habitaciones': '🛏️',
+        'banos': '🚿',
+        'sala': '🛋️',
+        'comedor': '🍽️',
+        'lavanderia': '🧺',
+        'limpieza': '🧹',
+        'exterior': '🌳',
+        'seguridad': '🔒',
+        'electronica': '📱',
+        'decoracion': '🎨'
+    };
+    
+    return categoryEmojis[category] || '📦';
 }
 
 // ========== INITIALIZATION ==========
