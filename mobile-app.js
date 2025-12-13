@@ -113,6 +113,7 @@ function showMobileOwnerView() {
     }
     renderMobileOwnerDashboard();
     loadMobileProperties();
+    loadMobileStaffInline();
 }
 
 function showMobileEmployeeView() {
@@ -215,16 +216,39 @@ function loadMobileProperties() {
                 <span>📍 ${prop.address || 'Sin dirección'}</span>
                 <span>👥 ${prop.staff ? prop.staff.length : 0} personal</span>
             </div>
+            <button class="btn-icon" onclick="event.stopPropagation(); removePropertyMobile('${key}')" style="color: var(--danger); margin-top: 0.5rem;">🗑️ Eliminar</button>
         </div>
     `).join('');
     
     document.getElementById('propertiesListMobile').innerHTML = propertiesHTML || '<div class="empty-state"><div class="empty-text">No hay casas registradas</div></div>';
 }
 
+function removePropertyMobile(propId) {
+    if (!confirm('¿Eliminar esta propiedad? Se eliminarán todas sus tareas, personal e inventario.')) return;
+    
+    // Eliminar tareas relacionadas
+    cleaningTasks = cleaningTasks.filter(t => t.propertyId !== propId);
+    // Eliminar fechas programadas
+    scheduledDates = scheduledDates.filter(s => s.propertyId !== propId);
+    // Eliminar propiedad
+    delete properties[propId];
+    
+    // Si era la seleccionada, cambiar a otra
+    if (mobileSelectedProperty === propId) {
+        mobileSelectedProperty = Object.keys(properties)[0] || null;
+    }
+    
+    saveData();
+    loadMobileProperties();
+    renderMobileOwnerDashboard();
+    alert('✅ Propiedad eliminada');
+}
+
 function selectPropertyMobile(propId) {
     mobileSelectedProperty = propId;
     loadMobileInventory();
     loadMobileStaff();
+    loadMobileStaffInline();
     renderMobileOwnerDashboard();
     renderMobileEmployeeTasks();
     renderMobileCalendar();
@@ -232,7 +256,41 @@ function selectPropertyMobile(propId) {
 }
 
 function showAddPropertyMobile() {
-    alert('Función para agregar casa - implementar en modal');
+    const modalBody = `
+        <div class="form-group">
+            <label class="form-label">Nombre de la Casa</label>
+            <input type="text" id="mobilePropName" class="form-control" placeholder="Ej: Casa Centro">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Dirección</label>
+            <input type="text" id="mobilePropAddress" class="form-control" placeholder="Calle, número, ciudad">
+        </div>
+        <button class="btn btn-primary btn-block" onclick="saveMobileProperty()">Crear Propiedad</button>
+    `;
+    showMobileModal('➕ Agregar Casa', modalBody);
+}
+
+function saveMobileProperty() {
+    const name = document.getElementById('mobilePropName').value.trim();
+    const address = document.getElementById('mobilePropAddress').value.trim();
+    if (!name || !address) {
+        alert('Completa nombre y dirección');
+        return;
+    }
+    const id = `prop_${Date.now()}`;
+    const prop = { id, name, address, staff: [], inventory: {} };
+    normalizeInventory(prop);
+    properties[id] = prop;
+    cleaningTasks.push(...createDefaultCleaningTasks(id, name));
+    if (name === 'EPIC D1') {
+        scheduleDeepCleanEvery3Months(id, name);
+    }
+    mobileSelectedProperty = id;
+    saveData();
+    closeMobileModal();
+    renderMobileOwnerDashboard();
+    loadMobileProperties();
+    alert('✅ Casa creada exitosamente');
 }
 
 // ========== OWNER INVENTORY ==========
@@ -265,13 +323,18 @@ function loadMobileInventory() {
         const categoryInfo = INVENTORY_CATEGORIES[catKey] || { name: catKey, icon: '📦' };
         inventoryHTML += `
             <div class="category-section">
-                <div class="category-header" onclick="toggleMobileCategory(this)">
+                <div class="category-header clickable" onclick="toggleMobileCategory(this)">
                     <span class="category-icon">${categoryInfo.icon}</span>
                     <span class="category-name">${categoryInfo.name}</span>
                     <span class="category-count">${items.length}</span>
                 </div>
                 <div class="category-items">
-                    ${items.map(item => `<span class="item-chip">✓ ${item}</span>`).join('')}
+                    ${items.map(item => `
+                        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); padding: 0.5rem 0.75rem; border-radius: 8px; margin-bottom: 0.5rem;">
+                            <span style="flex: 1; color: var(--text-primary); font-weight: 600;">✓ ${item.name || item} ${item.qty ? `(${item.qty})` : ''}</span>
+                            <button class="btn-icon" onclick="removeMobileInventoryItem('${catKey}', '${item.id || item}')" style="color: var(--danger); font-size: 1.2rem;">🗑️</button>
+                        </div>
+                    `).join('')}
                 </div>
             </div>
         `;
@@ -286,7 +349,217 @@ function toggleMobileCategory(headerElement) {
     itemsDiv.classList.toggle('expanded');
 }
 
+// ========== ADD INVENTORY ITEM MOBILE ==========
+
+function showAddInventoryItemMobile() {
+    if (!mobileSelectedProperty) {
+        alert('Primero selecciona una casa');
+        return;
+    }
+    
+    const categoryOptions = Object.entries(INVENTORY_CATEGORIES).map(([key, cat]) => 
+        `<option value="${key}">${cat.icon} ${cat.name}</option>`
+    ).join('');
+    
+    const modalBody = `
+        <div class="form-group">
+            <label class="form-label">Categoría</label>
+            <select id="mobileInvCategory" class="form-control">
+                <option value="">Selecciona...</option>
+                ${categoryOptions}
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Nombre del Item</label>
+            <input type="text" id="mobileInvItemName" class="form-control" placeholder="Ej: Toallas grandes">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Cantidad</label>
+            <input type="number" id="mobileInvItemQty" class="form-control" value="1" min="0">
+        </div>
+        <button class="btn btn-primary btn-block" onclick="saveMobileInventoryItem()">Agregar Item</button>
+    `;
+    showMobileModal('📦 Agregar Item al Inventario', modalBody);
+}
+
+function saveMobileInventoryItem() {
+    if (!mobileSelectedProperty) return;
+    const category = document.getElementById('mobileInvCategory').value;
+    const itemName = document.getElementById('mobileInvItemName').value.trim();
+    const qty = parseInt(document.getElementById('mobileInvItemQty').value, 10) || 1;
+    
+    if (!category || !itemName) {
+        alert('Completa categoría y nombre del item');
+        return;
+    }
+    
+    const prop = properties[mobileSelectedProperty];
+    if (!prop.inventory[category]) {
+        prop.inventory[category] = [];
+    }
+    
+    prop.inventory[category].push({
+        id: `inv_${Date.now()}`,
+        name: itemName,
+        qty: qty
+    });
+    
+    saveData();
+    closeMobileModal();
+    loadMobileInventory();
+    alert('✅ Item agregado al inventario');
+}
+
+function removeMobileInventoryItem(catKey, itemId) {
+    if (!confirm('¿Eliminar este item del inventario?')) return;
+    if (!mobileSelectedProperty) return;
+    const prop = properties[mobileSelectedProperty];
+    if (!prop.inventory[catKey]) return;
+    
+    prop.inventory[catKey] = prop.inventory[catKey].filter(item => {
+        const id = item.id || item;
+        return id !== itemId;
+    });
+    
+    saveData();
+    loadMobileInventory();
+    alert('✅ Item eliminado');
+}
+
 // ========== OWNER STAFF ==========
+
+function showAddStaffMobile() {
+    if (!mobileSelectedProperty) {
+        alert('Primero selecciona una casa');
+        return;
+    }
+    const prop = properties[mobileSelectedProperty];
+    const isEpic = prop?.name === 'EPIC D1';
+    
+    const roleOptions = isEpic ? `
+        <option value="manager">👨‍💼 Manager</option>
+        <option value="employee">👷 Empleado - Limpieza</option>
+        <option value="maintenance">🔧 Empleado - Mantenimiento</option>
+    ` : `
+        <option value="manager">👨‍💼 Manager</option>
+        <option value="employee">👷 Empleado</option>
+        <option value="maintenance">🔧 Mantenimiento</option>
+    `;
+    
+    const modalBody = `
+        <div class="form-group">
+            <label class="form-label">Nombre Completo</label>
+            <input type="text" id="mobileStaffName" class="form-control" placeholder="Juan Pérez">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Rol</label>
+            <select id="mobileStaffRole" class="form-control">
+                <option value="">Selecciona...</option>
+                ${roleOptions}
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Usuario</label>
+            <input type="text" id="mobileStaffUsername" class="form-control" placeholder="juan">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Contraseña</label>
+            <input type="password" id="mobileStaffPassword" class="form-control" placeholder="****">
+        </div>
+        <button class="btn btn-primary btn-block" onclick="saveMobileStaff()">Agregar Personal</button>
+    `;
+    showMobileModal('👥 Agregar Personal', modalBody);
+}
+
+function saveMobileStaff() {
+    if (!mobileSelectedProperty) return;
+    const name = document.getElementById('mobileStaffName').value.trim();
+    const role = document.getElementById('mobileStaffRole').value;
+    const username = document.getElementById('mobileStaffUsername').value.trim();
+    const password = document.getElementById('mobileStaffPassword').value.trim();
+    
+    if (!name || !role || !username || !password) {
+        alert('Completa todos los campos');
+        return;
+    }
+    
+    const prop = properties[mobileSelectedProperty];
+    const exists = (prop.staff || []).some(s => s.username === username);
+    if (exists) {
+        alert('Ese usuario ya existe en la propiedad');
+        return;
+    }
+    
+    prop.staff.push({
+        id: `staff_${Date.now()}`,
+        name,
+        role: (prop.name === 'EPIC D1' && role !== 'manager') ? 'employee' : role,
+        username,
+        password,
+        lastLoginTime: null,
+        assignmentType: prop.name === 'EPIC D1' ? (role === 'maintenance' ? 'mantenimiento' : role === 'manager' ? 'ambas' : 'limpieza') : null
+    });
+    
+    saveData();
+    closeMobileModal();
+    loadMobileStaff();
+    loadMobileStaffInline();
+    alert('✅ Personal agregado exitosamente');
+}
+
+function loadMobileStaffInline() {
+    const propertyOptions = Object.entries(properties).map(([key, prop]) => 
+        `<option value="${key}" ${mobileSelectedProperty === key ? 'selected' : ''}>${prop.name}</option>`
+    ).join('');
+    
+    document.getElementById('staffPropertySelectInline').innerHTML = 
+        '<option value="">Selecciona una casa...</option>' + propertyOptions;
+    
+    if (!mobileSelectedProperty) {
+        mobileSelectedProperty = getMobileSelectedProperty();
+    }
+    if (!mobileSelectedProperty) return;
+    
+    const prop = properties[mobileSelectedProperty];
+    if (!prop || !prop.staff || prop.staff.length === 0) {
+        document.getElementById('staffContentMobileInline').innerHTML = 
+            '<div class="empty-state"><div class="empty-text">No hay personal registrado</div></div>';
+        return;
+    }
+    
+    const staffHTML = prop.staff.map(staff => {
+        const roleEmoji = staff.role === 'manager' ? '👨‍💼' : staff.role === 'employee' ? '👷' : '👥';
+        const roleText = {
+            'manager': 'Manager',
+            'employee': 'Empleado',
+            'maintenance': 'Mantenimiento'
+        }[staff.role] || staff.role;
+        
+        return `
+            <div class="staff-item">
+                <div class="staff-avatar">${staff.name.charAt(0).toUpperCase()}</div>
+                <div class="staff-info">
+                    <div class="staff-name">${staff.name}</div>
+                    <div class="staff-role">${roleEmoji} ${roleText}</div>
+                </div>
+                <button class="btn-icon" onclick="removeStaffMobile('${staff.id}')" style="color: var(--danger);">🗑️</button>
+            </div>
+        `;
+    }).join('');
+    
+    document.getElementById('staffContentMobileInline').innerHTML = staffHTML;
+}
+
+function removeStaffMobile(staffId) {
+    if (!confirm('¿Eliminar este miembro del personal?')) return;
+    if (!mobileSelectedProperty) return;
+    const prop = properties[mobileSelectedProperty];
+    prop.staff = (prop.staff || []).filter(s => s.id !== staffId);
+    saveData();
+    loadMobileStaff();
+    loadMobileStaffInline();
+    alert('✅ Personal eliminado');
+}
 
 function loadMobileStaff() {
     // Cargar selector de propiedades

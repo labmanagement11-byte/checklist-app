@@ -4233,21 +4233,7 @@ function initializeApp() {
         }
     }
     if (Object.keys(properties).length === 0) {
-        // Demo property 1 - Casa Demo
-        const id1 = 'prop_demo';
-        const prop1 = { id: id1, name: 'Casa Demo', address: 'Dirección demo', staff: [], inventory: {} };
-        normalizeInventory(prop1);
-        prop1.staff.push({ id: 'staff_manager_demo', name: 'Manager Demo', role: 'manager', username: 'manager', password: '1234', lastLoginTime: null, assignmentType: null });
-        prop1.staff.push({ id: 'staff_emp_demo', name: 'Empleado Demo', role: 'employee', username: 'empleado', password: '1234', lastLoginTime: null, assignmentType: null });
-        properties[id1] = prop1;
-        cleaningTasks.push(...createDefaultCleaningTasks(id1, prop1.name));
-        
-        // Demo property 2 - Torre Magna PI (sin personal, el dueño lo asignará)
-        const id2 = 'prop_torre_magna';
-        const prop2 = { id: id2, name: 'Torre Magna PI', address: 'Torre Magna, Apartamento C08', staff: [], inventory: {} };
-        normalizeInventory(prop2);
-        properties[id2] = prop2;
-        cleaningTasks.push(...createDefaultCleaningTasks(id2, prop2.name));
+        // No crear casas demo - el usuario creará sus propiedades
         ensureEpicPropertyExists();
     } else {
         Object.values(properties).forEach(normalizeInventory);

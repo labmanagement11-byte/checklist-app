@@ -142,6 +142,21 @@
                                 <!-- Contenido dinámico -->
                             </div>
                         </div>
+
+                        <div class="section-card">
+                            <div class="section-header">
+                                <h2 class="section-title">👥 Personal</h2>
+                                <button class="btn btn-sm btn-primary" onclick="showAddStaffMobile()">+ Agregar</button>
+                            </div>
+                            <div id="propertySelectStaffInline" class="form-group">
+                                <select class="form-control" id="staffPropertySelectInline" onchange="mobileSelectedProperty = this.value; loadMobileStaffInline()">
+                                    <option value="">Selecciona una casa...</option>
+                                </select>
+                            </div>
+                            <div id="staffContentMobileInline">
+                                <!-- Contenido dinámico -->
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Inventory Tab -->
@@ -149,10 +164,11 @@
                         <div class="section-card">
                             <h2 class="section-title">📦 Inventario</h2>
                             <div id="propertySelectInventory" class="form-group">
-                                <select class="form-control" id="inventoryPropertySelect" onchange="loadMobileInventory()">
+                                <select class="form-control" id="inventoryPropertySelect" onchange="mobileSelectedProperty = this.value; loadMobileInventory()">
                                     <option value="">Selecciona una casa...</option>
                                 </select>
                             </div>
+                            <button class="btn btn-secondary btn-block" onclick="showAddInventoryItemMobile()" style="margin-bottom: 1rem;">+ Agregar Item</button>
                             <div id="inventoryContentMobile">
                                 <!-- Contenido dinámico -->
                             </div>
