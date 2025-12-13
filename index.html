@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirbnbManager - Gestión de Propiedades</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- LOGIN -->
+        <div id="loginView" class="view">
+            <div class="login-container">
+                <h1>🏠 AirbnbManager</h1>
+                <p>📋 Gestión de Propiedades y Tareas</p>
+                
+                <div class="login-form">
+                    <div class="form-group">
+                        <label>Tipo de Usuario</label>
+                        <select id="userType" onchange="updateLoginForm()">
+                            <option value="">Selecciona...</option>
+                            <option value="owner">Dueño</option>
+                            <option value="manager">Manager</option>
+                            <option value="employee">Empleado</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="ownerUsernameGroup" style="display:none;">
+                        <label>👤 Usuario</label>
+                        <input type="text" id="ownerCode" placeholder="Tu usuario">
+                    </div>
+
+                    <div class="form-group" id="ownerPasswordGroup" style="display:none;">
+                        <label>🔐 Contraseña</label>
+                        <input type="password" id="ownerPassword" placeholder="Tu contraseña">
+                    </div>
+
+                    <div class="form-group" id="ownerRememberGroup" style="display:none; align-items:center; gap:0.5rem;">
+                        <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.9rem;">
+                            <input type="checkbox" id="rememberOwner" style="width:auto;"> Recordar usuario y contraseña
+                        </label>
+                    </div>
+
+                    <div class="form-group" id="staffUsernameGroup" style="display:none;">
+                        <label>👤 Usuario del personal</label>
+                        <input type="text" id="staffUsername" placeholder="Usuario asignado por el dueño">
+                    </div>
+
+                    <div class="form-group" id="staffPasswordGroup" style="display:none;">
+                        <label>🔒 Contraseña del personal</label>
+                        <input type="password" id="staffPassword" placeholder="Contraseña asignada por el dueño">
+                    </div>
+
+                    <div class="form-group" id="staffRememberGroup" style="display:none; align-items:center; gap:0.5rem;">
+                        <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.9rem;">
+                            <input type="checkbox" id="rememberStaff" style="width:auto;"> Recordar usuario y contraseña
+                        </label>
+                    </div>
+
+                    <button class="btn-primary" onclick="login()">Ingresar</button>
+                    
+                    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" style="margin-top: 1.5rem; width: 100%;">🌙 Tema Oscuro</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VISTA DUEÑO -->
+        <div id="ownerView" class="view" style="display:none;">
+            <div class="container">
+                <!-- Header -->
+                <header class="header">
+                    <div>
+                        <h1>👤 <span id="ownerName"></span></h1>
+                        <p style="font-size: 0.9rem; color: #666; margin: 0.25rem 0 0 0;">Dueño del Sistema</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <p style="font-size: 0.9rem; color: var(--accent-color); margin: 0;">AirbnbManager Pro</p>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                            <button class="theme-toggle" onclick="toggleTheme()" style="flex:1;">🌙</button>
+                            <button class="btn-logout" onclick="logout()">Salir</button>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Navegación de Casas -->
+                <div class="properties-nav">
+                    <button class="btn-secondary" onclick="showAddProperty()">+ Agregar Casa</button>
+                    <div id="propertiesList" class="properties-list"></div>
+                </div>
+
+                <!-- Panel Principal -->
+                <div class="owner-panel">
+                    <!-- Inventario -->
+                    <section id="inventorySection" class="section">
+                        <h2>📦 Inventario - 🏠 <span id="propertyNameInventory"></span></h2>
+                        <div class="inventory-controls" style="flex-wrap: wrap; margin-bottom:0.5rem;">
+                            <select id="inventoryCategorySelect" class="input-add" style="min-width:180px;">
+                                <option value="">Categoría</option>
+                            </select>
+                            <input type="text" id="inventoryNewItemName" class="input-add" placeholder="Nuevo ítem (ej: Airfryer)">
+                            <input type="number" min="0" id="inventoryNewItemQty" class="input-add" placeholder="Cantidad" style="max-width:160px;">
+                            <button class="btn-primary" onclick="addInventoryItem()">Agregar ítem</button>
+                        </div>
+
+                        <div class="inventory-controls" style="justify-content:flex-end; margin-bottom:0.75rem;">
+                            <button class="btn-secondary" onclick="resetInventoryChecksForReview()" style="background:#2196f3; color:white;">🧾 Reiniciar verificación de inventario</button>
+                        </div>
+
+                        <ul id="inventoryList" class="item-list"></ul>
+                    </section>
+
+                    <!-- Reportes de Verificación de Inventario -->
+                    <section id="inventoryChecksSection" class="section">
+                        <h2>📋 Reportes de Verificación de Inventario</h2>
+                        <div id="inventoryChecksList" class="item-list"></div>
+                    </section>
+
+                    <!-- Inventario de Compra -->
+                    <section id="purchaseSection" class="section">
+                        <h2>🛒 Lista de Compra</h2>
+                        <div class="inventory-controls" style="flex-wrap: wrap; margin-bottom:0.5rem;">
+                            <input type="text" id="purchaseItemName" class="input-add" placeholder="Artículo a comprar">
+                            <input type="number" min="1" id="purchaseItemQty" class="input-add" placeholder="Cantidad" style="max-width:100px;" value="1">
+                            <button class="btn-primary" onclick="addPurchaseItem()">Agregar a compra</button>
+                        </div>
+                        <ul id="purchaseInventoryList" class="item-list"></ul>
+                    </section>
+
+                    <!-- Historial de Compras -->
+                    <section id="purchaseHistorySection" class="section">
+                        <h2>📜 Historial de Compras de Aseo</h2>
+                        <ul id="purchaseHistoryList" class="item-list"></ul>
+                    </section>
+
+                    <!-- Calendario -->
+                    <section id="scheduleSection" class="section">
+                        <h2>📅 Calendario de Limpieza y Mantenimiento</h2>
+                        <div class="inventory-controls" style="flex-wrap: wrap;">
+                            <input type="date" id="scheduleDate" class="input-add" placeholder="Seleccionar fecha" onclick="this.showPicker()">
+                            <select id="scheduleType" class="input-add">
+                                <option value="limpieza-regular">🧹 Limpieza Regular</option>
+                                <option value="limpieza-profunda">🧽 Limpieza Profunda</option>
+                                <option value="mantenimiento">🔧 Mantenimiento</option>
+                            </select>
+                            <select id="scheduleEmployee" class="input-add">
+                                <option value="">Seleccionar empleado...</option>
+                            </select>
+                            <select id="scheduleTime" class="input-add">
+                                <option value="">Seleccionar turno...</option>
+                                <option value="mañana">🌅 Turno Mañana</option>
+                                <option value="tarde">🌇 Turno Tarde</option>
+                                <option value="noche">🌃 Turno Noche</option>
+                            </select>
+                            <button class="btn-primary" onclick="addScheduledDate()">Agendar</button>
+                        </div>
+                        <ul id="scheduleList" class="item-list"></ul>
+                    </section>
+
+                    <!-- Tareas -->
+                    <section id="tasksSection" class="section">
+                        <h2>📋 Tareas - 🏠 <span id="propertyNameTasks"></span></h2>
+                        <div class="tasks-controls">
+                            <input type="text" id="taskInput" placeholder="Ej: Limpiar cocina" class="input-add">
+                            <select id="employeeSelect" class="input-add">
+                                <option value="">Asignar a...</option>
+                            </select>
+                            <button class="btn-primary" onclick="addTask()">Crear Tarea</button>
+                            <button class="btn-secondary" onclick="reinitializeCleaning()" style="background:#ff9800;">🔄 Reiniciar tareas de limpieza</button>
+                        </div>
+                        <div id="tasksList" class="tasks-list"></div>
+                    </section>
+
+                    <!-- Notificaciones de Días Cerrados con Pendientes -->
+                    <section id="notificationsSection" class="section">
+                        <h2>⚠️ Alertas del Sistema</h2>
+                        <div id="ownerNotificationsContainer" style="min-height:50px;"></div>
+                    </section>
+
+                    <!-- Registro de Empleados -->
+                    <section id="employeesSection" class="section">
+                        <h2>👥 Equipo de la Propiedad</h2>
+                        <div class="inventory-controls" style="flex-wrap: wrap;">
+                            <input type="text" id="staffNameInput" placeholder="Nombre" class="input-add">
+                            <select id="staffRoleSelect" class="input-add" style="min-width: 180px;">
+                                <option value="manager">Manager</option>
+                                <option value="employee">Empleado - Limpieza</option>
+                                <option value="maintenance">Empleado - Mantenimiento</option>
+                            </select>
+                            <input type="text" id="staffUsernameInput" placeholder="Usuario" class="input-add">
+                            <input type="password" id="staffPasswordInput" placeholder="Contraseña" class="input-add">
+                            <button class="btn-primary" onclick="addStaffMember()">Agregar</button>
+                        </div>
+                        <div id="employeesList" class="employees-list"></div>
+                    </section>
+                </div>
+
+                <!-- Modal Agregar Casa -->
+                <div id="addPropertyModal" class="modal" style="display:none;">
+                    <div class="modal-content">
+                        <span class="close" onclick="closeModal()">&times;</span>
+                        <h2>Agregar Nueva Casa</h2>
+                        <div class="form-group">
+                            <label>Nombre de la Propiedad</label>
+                            <input type="text" id="propertyNameInput" placeholder="Ej: Casa Playa">
+                        </div>
+                        <div class="form-group">
+                            <label>Dirección</label>
+                            <input type="text" id="propertyAddressInput" placeholder="Dirección">
+                        </div>
+                        <button class="btn-primary" onclick="saveProperty()">Guardar Casa</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VISTA EMPLEADO -->
+        <div id="employeeView" class="view" style="display:none;">
+            <div class="container">
+                <!-- Header -->
+                <header class="header">
+                    <h1>👤 <span id="employeeName"></span></h1>
+                    <div class="header-info">
+                        <span id="loginTime" class="login-time">Ingreso: --:--</span>
+                        <button class="btn-logout" onclick="logout()">Salir</button>
+                    </div>
+                </header>
+
+                <!-- Propiedad Asignada -->
+                <div class="property-info">
+                    <h2 id="assignedProperty">Casa asignada: Cargando...</h2>
+                    <p id="assignedAddress" class="address">--</p>
+                </div>
+
+                <!-- Calendario (Solo lectura) -->
+                <section class="section">
+                    <h2>📅 Cronograma de Trabajo</h2>
+                    <div id="employeeScheduleList" class="tasks-list"></div>
+                </section>
+
+                <!-- Inventario (Solo lectura) -->
+                <section class="section">
+                    <h2>📦 Inventario de la Casa</h2>
+                    <ul id="employeeInventoryList" class="item-list"></ul>
+                </section>
+
+                <!-- Solicitud de Compra -->
+                <section class="section">
+                    <h2>🛒 Agregar a Lista de Compra</h2>
+                    <div class="inventory-controls" style="flex-wrap: wrap; margin-bottom:0.5rem;">
+                        <input type="text" id="employeePurchaseRequestName" class="input-add" placeholder="Artículo a comprar (ej: Cloro)">
+                        <input type="number" min="1" id="employeePurchaseRequestQty" class="input-add" placeholder="Cantidad" style="max-width:100px;" value="1">
+                        <input type="text" id="employeePurchaseRequestReason" class="input-add" placeholder="Motivo (opcional)">
+                        <button class="btn-primary" onclick="addPurchaseRequest()">➕ Agregar</button>
+                    </div>
+                </section>
+
+                <!-- Tareas Asignadas -->
+                <section class="section">
+                    <h2>📋 Mis Tareas de Limpieza</h2>
+                    <div id="employeeTasksList" class="tasks-list"></div>
+                </section>
+            </div>
+        </div>
+
+        <!-- VISTA MANAGER -->
+        <div id="managerView" class="view" style="display:none;">
+            <div class="container">
+                <header class="header">
+                    <div>
+                        <h1>👨‍💼 <span id="managerName"></span></h1>
+                        <p style="font-size: 0.9rem; color: #666; margin: 0.25rem 0 0 0;">Manager de propiedad</p>
+                    </div>
+                    <div class="header-info">
+                        <span id="managerLoginTime" class="login-time">Ingreso: --:--</span>
+                        <button class="btn-logout" onclick="logout()">Salir</button>
+                    </div>
+                </header>
+
+                <div class="property-info">
+                    <h2 id="managerPropertyName">Casa asignada</h2>
+                    <p id="managerPropertyAddress" class="address">--</p>
+                </div>
+
+                <section class="section">
+                    <h2>📦 Inventario de la Casa</h2>
+                    <p style="margin:0 0 0.75rem 0; color:#555;">Ajusta las cantidades de utensilios. Se guardan automáticamente.</p>
+                    <div class="inventory-controls" style="justify-content:flex-end; margin-bottom:0.75rem;">
+                        <button class="btn-secondary" onclick="resetInventoryChecksForReview(currentUser.propertyId)" style="background:#2196f3; color:white;">🧾 Reiniciar verificación de inventario</button>
+                    </div>
+                    <ul id="managerInventoryList" class="item-list"></ul>
+                </section>
+
+                <section class="section">
+                    <h2>🛒 Lista de Compra</h2>
+                    <div class="tasks-controls">
+                        <input type="text" id="managerPurchaseInput" placeholder="Ej: Detergente" class="input-add">
+                        <input type="number" id="managerPurchaseQty" placeholder="Cantidad" class="input-add" value="1" min="1">
+                        <button class="btn-primary" onclick="addPurchaseItem('manager')">Agregar a compra</button>
+                    </div>
+                    <div id="managerPurchaseInventoryList" class="tasks-list"></div>
+                </section>
+
+                <section class="section">
+                    <h2>📋 Reporte de Verificación de Inventario</h2>
+                    <p style="margin:0 0 0.75rem 0; color:#555;">Revisa las verificaciones de inventario realizadas por el personal.</p>
+                    <div id="managerInventoryChecksList" class="item-list"></div>
+                </section>
+
+                <section class="section">
+                    <h2>📜 Historial de Compras de Aseo</h2>
+                    <p style="margin:0 0 0.75rem 0; color:#555;">Registro de compras anteriores. Puedes agregar artículos del historial a la lista de compra.</p>
+                    <div id="managerPurchaseHistoryList" class="item-list"></div>
+                </section>
+
+                <section class="section">
+                    <h2>📅 Calendario de Limpieza y Mantenimiento</h2>
+                    <div class="inventory-controls" style="flex-wrap: wrap;">
+                        <input type="date" id="managerScheduleDate" class="input-add" placeholder="Seleccionar fecha" onclick="this.showPicker()">
+                        <select id="managerScheduleType" class="input-add">
+                            <option value="limpieza-regular">🧹 Limpieza Regular</option>
+                            <option value="limpieza-profunda">🧽 Limpieza Profunda</option>
+                            <option value="mantenimiento">🔧 Mantenimiento</option>
+                        </select>
+                        <select id="managerScheduleEmployee" class="input-add">
+                            <option value="">Seleccionar empleado...</option>
+                        </select>
+                        <select id="managerScheduleTime" class="input-add">
+                            <option value="">Seleccionar turno...</option>
+                            <option value="mañana">🌅 Turno Mañana</option>
+                            <option value="tarde">🌇 Turno Tarde</option>
+                            <option value="noche">🌃 Turno Noche</option>
+                        </select>
+                        <button class="btn-primary" onclick="addScheduledDate('manager')">Agendar</button>
+                    </div>
+                    <div id="managerScheduleList" class="tasks-list"></div>
+                </section>
+
+                <section class="section">
+                    <h2>📋 Tareas de Limpieza</h2>
+                    <div class="tasks-controls">
+                        <input type="text" id="managerTaskInput" placeholder="Ej: Limpiar cocina" class="input-add">
+                        <select id="managerEmployeeSelect" class="input-add">
+                            <option value="">Asignar a...</option>
+                        </select>
+                        <button class="btn-primary" onclick="managerAddTask()">Crear Tarea</button>
+                            <button class="btn-secondary" onclick="reinitializeCleaning(currentUser.propertyId)" style="background:#ff9800;">🔄 Reiniciar tareas de limpieza</button>
+                    </div>
+                    <div id="managerTasksList" class="tasks-list"></div>
+                </section>
+
+                <!-- Notificaciones para Manager -->
+                <section class="section">
+                    <h2>⚠️ Alertas - Pendientes</h2>
+                    <div id="managerNotificationsContainer" style="min-height:50px;"></div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
