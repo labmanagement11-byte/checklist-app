@@ -278,6 +278,7 @@ function showMobileOwnerView(skipLoad) {
     document.getElementById('mobile-employee-view').style.display = 'none';
     document.getElementById('mobile-manager-view').style.display = 'none';
     document.getElementById('mobile-owner-name').textContent = mobileCurrentUser?.name || 'Propietario';
+    updateUserHeaderDisplay();
     updatePropertySelectors();
     if (!skipLoad) {
         loadDashboardStats();
@@ -994,6 +995,7 @@ function showMobileEmployeeView(skipLoad) {
     document.getElementById('mobile-manager-view').style.display = 'none';
     document.getElementById('mobile-employee-view').style.display = 'flex';
     document.getElementById('mobile-employee-name').textContent = mobileCurrentUser?.name || 'Empleado';
+    updateUserHeaderDisplay();
     document.getElementById('menu-employee-property').textContent = properties[mobileSelectedProperty]?.name || '';
     document.getElementById('emp-login-time').textContent = new Date(mobileCurrentUser.loginTime || Date.now()).toLocaleTimeString('es-ES');
     document.getElementById('menu-login-time').textContent = new Date(mobileCurrentUser.loginTime || Date.now()).toLocaleTimeString('es-ES');
@@ -1416,6 +1418,7 @@ function showMobileManagerView(skipLoad) {
     document.getElementById('mobile-employee-view').style.display = 'none';
     document.getElementById('mobile-manager-view').style.display = 'flex';
     document.getElementById('mobile-manager-name').textContent = mobileCurrentUser?.name || 'Gerente';
+    updateUserHeaderDisplay();
     document.getElementById('menu-manager-property').textContent = properties[mobileCurrentUser.propertyId]?.name || '';
     document.getElementById('mgr-property-name').textContent = properties[mobileCurrentUser.propertyId]?.name || '';
     mobileSelectedProperty = mobileCurrentUser.propertyId;
@@ -2190,3 +2193,192 @@ function dismissTaskNotification(notificationId) {
         loadManagerNotifications();
     }
 }
+
+// ---------- Profile Management ----------
+const PROFILE_PHOTOS_KEY = 'airbnbmanager_profile_photos';
+let currentProfilePhoto = null;
+
+function loadProfilePhotos() {
+    try {
+        const raw = localStorage.getItem(PROFILE_PHOTOS_KEY);
+        return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+        console.error('Error loading profile photos', e);
+        return {};
+    }
+}
+
+function saveProfilePhotos(photos) {
+    try {
+        localStorage.setItem(PROFILE_PHOTOS_KEY, JSON.stringify(photos));
+    } catch (e) {
+        console.error('Error saving profile photos', e);
+    }
+}
+
+function getUserId() {
+    if (mobileCurrentUserType === 'owner') {
+        return 'owner';
+    } else if (mobileCurrentUser?.staffId) {
+        return mobileCurrentUser.staffId;
+    }
+    return null;
+}
+
+function showProfileModal() {
+    if (!mobileCurrentUser) return;
+    
+    const modal = document.getElementById('profile-modal');
+    const nameInput = document.getElementById('profile-name-input');
+    const usernameInput = document.getElementById('profile-username-input');
+    const roleInput = document.getElementById('profile-role-input');
+    const photoPreview = document.getElementById('profile-photo-preview');
+    const propertySection = document.getElementById('profile-property-section');
+    const propertyName = document.getElementById('profile-property-name');
+    const propertyAddress = document.getElementById('profile-property-address');
+    
+    // Load current user data
+    nameInput.value = mobileCurrentUser.name || '';
+    usernameInput.value = mobileCurrentUser.username || '';
+    
+    if (mobileCurrentUserType === 'owner') {
+        roleInput.value = 'Propietario';
+        propertySection.style.display = 'none';
+    } else if (mobileCurrentUserType === 'manager') {
+        roleInput.value = 'Manager';
+        propertySection.style.display = 'block';
+        const prop = properties[mobileCurrentUser.propertyId];
+        if (prop) {
+            propertyName.textContent = prop.name || 'Sin nombre';
+            propertyAddress.textContent = prop.address || 'Sin dirección';
+        }
+    } else {
+        roleInput.value = 'Empleado';
+        propertySection.style.display = 'block';
+        const prop = properties[mobileCurrentUser.propertyId];
+        if (prop) {
+            propertyName.textContent = prop.name || 'Sin nombre';
+            propertyAddress.textContent = prop.address || 'Sin dirección';
+        }
+    }
+    
+    // Load profile photo
+    const photos = loadProfilePhotos();
+    const userId = getUserId();
+    if (userId && photos[userId]) {
+        photoPreview.innerHTML = `<img src="${photos[userId]}" style="width: 100%; height: 100%; object-fit: cover;">`;
+    } else {
+        photoPreview.innerHTML = `
+            <svg width="60" height="60" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="20" cy="20" r="18" fill="#ddd"/>
+                <circle cx="20" cy="12" r="6" fill="#999"/>
+                <path d="M 20 18 Q 10 22 10 30 Q 10 32 12 34 L 28 34 Q 30 32 30 30 Q 30 22 20 18 Z" fill="#999"/>
+            </svg>
+        `;
+    }
+    
+    modal.style.display = 'flex';
+    toggleMobileMenu(); // Close side menu
+}
+
+function closeProfileModal() {
+    document.getElementById('profile-modal').style.display = 'none';
+    currentProfilePhoto = null;
+}
+
+function handleProfilePhotoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+        showToast('Por favor selecciona una imagen válida', true);
+        return;
+    }
+    
+    if (file.size > 2 * 1024 * 1024) {
+        showToast('La imagen es muy grande. Máximo 2MB', true);
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        currentProfilePhoto = e.target.result;
+        document.getElementById('profile-photo-preview').innerHTML = 
+            `<img src="${currentProfilePhoto}" style="width: 100%; height: 100%; object-fit: cover;">`;
+    };
+    reader.readAsDataURL(file);
+}
+
+function saveProfile() {
+    const newName = document.getElementById('profile-name-input').value.trim();
+    
+    if (!newName) {
+        showToast('El nombre no puede estar vacío', true);
+        return;
+    }
+    
+    // Update user name
+    mobileCurrentUser.name = newName;
+    
+    // Save profile photo if changed
+    if (currentProfilePhoto) {
+        const photos = loadProfilePhotos();
+        const userId = getUserId();
+        if (userId) {
+            photos[userId] = currentProfilePhoto;
+            saveProfilePhotos(photos);
+        }
+    }
+    
+    // Update staff data in properties if not owner
+    if (mobileCurrentUserType !== 'owner' && mobileCurrentUser.propertyId && mobileCurrentUser.staffId) {
+        const prop = properties[mobileCurrentUser.propertyId];
+        if (prop && prop.staff) {
+            const staffMember = prop.staff.find(s => s.id === mobileCurrentUser.staffId);
+            if (staffMember) {
+                staffMember.name = newName;
+                saveData();
+            }
+        }
+    }
+    
+    // Update session
+    persistMobileSession(true);
+    
+    // Update header display
+    updateUserHeaderDisplay();
+    
+    showToast('Perfil actualizado correctamente');
+    closeProfileModal();
+}
+
+function updateUserHeaderDisplay() {
+    const photos = loadProfilePhotos();
+    const userId = getUserId();
+    const photoUrl = (userId && photos[userId]) ? photos[userId] : null;
+    
+    // Update name in header
+    if (mobileCurrentUserType === 'owner') {
+        const nameSpan = document.getElementById('mobile-owner-name');
+        if (nameSpan) {
+            nameSpan.textContent = mobileCurrentUser.name;
+        }
+    } else if (mobileCurrentUserType === 'manager') {
+        const nameSpan = document.getElementById('mobile-manager-name');
+        if (nameSpan) {
+            nameSpan.textContent = mobileCurrentUser.name;
+        }
+    } else if (mobileCurrentUserType === 'employee') {
+        const nameSpan = document.getElementById('mobile-employee-name');
+        if (nameSpan) {
+            nameSpan.textContent = mobileCurrentUser.name;
+        }
+    }
+    
+    // Update photo in menu header
+    const menuHeader = document.querySelector('#mobile-side-menu .menu-header svg');
+    if (menuHeader && photoUrl) {
+        menuHeader.outerHTML = `<img src="${photoUrl}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid white; flex-shrink: 0;">`;
+    }
+}
+
