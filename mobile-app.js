@@ -963,7 +963,7 @@ function loadEmployeeSchedule() {
         const epicLabel = hasEpic ? formatEpicType(epicValue) : '';
         const typeLabel = s.type === 'descanso' ? 'descanso' : hasEpic ? `EPIC D1 · ${epicLabel}` : s.type;
         return `
-            <div class="schedule-entry clickable" data-sid="${s.id}">
+            <div class="schedule-entry clickable" data-sid="${s.id}" style="cursor:pointer;">
                 <div class="entry-info">
                     <div class="entry-date">${formatDateShort(s.date)}</div>
                     <div class="entry-details">${typeLabel} · ${s.shift || 'turno'}</div>
@@ -971,13 +971,19 @@ function loadEmployeeSchedule() {
                 <span class="entry-type ${s.type === 'descanso' ? 'type-descanso' : 'type-trabajo'}">${typeLabel}</span>
             </div>`;
     }).join('');
-    // Attach delegated click listener
     setTimeout(() => {
         const cards = list.querySelectorAll('.schedule-entry.clickable[data-sid]');
         cards.forEach(card => {
-            card.addEventListener('click', () => handleEmployeeScheduleClick(card.dataset.sid));
+            card.style.cursor = 'pointer';
+            const handleClick = (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                handleEmployeeScheduleClick(card.dataset.sid);
+            };
+            card.addEventListener('click', handleClick);
+            card.addEventListener('touchend', handleClick);
         });
-    }, 50);
+    }, 100);
 }
 
 function loadEmployeeInventory() {
