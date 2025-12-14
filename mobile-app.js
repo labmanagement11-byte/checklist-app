@@ -705,6 +705,11 @@ function renderMobileEmployeeTasks() {
         };
     });
 
+    // Conteo de tareas de la propiedad asignada al empleado
+    const staffTasks = cleaningTasks.filter(t => t.propertyId === propId && (!t.assignedTo || t.assignedTo === mobileCurrentUser.staffId));
+    const pendingStaffTasks = staffTasks.filter(t => !t.completed);
+    const completedStaffTasks = staffTasks.length - pendingStaffTasks.length;
+
     let hasTasks = false;
     let html = '<h2 class="section-title">✓ Mis Tareas</h2>';
 
@@ -756,6 +761,17 @@ function renderMobileEmployeeTasks() {
             </div>`;
     }
 
+    html += `
+        <div class="section-card" style="margin-top: 1rem;">
+            <div class="section-title">⏱️ Cierre de jornada</div>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin:0.5rem 0 0.75rem 0;">
+                <span class="badge" style="background: var(--warning);">Pendientes: ${pendingStaffTasks.length}</span>
+                <span class="badge" style="background: var(--success);">Completadas: ${completedStaffTasks}</span>
+            </div>
+            <button class="btn btn-primary btn-block" onclick="finalizeMobileWorkDay()" ${staffTasks.length === 0 ? 'disabled' : ''}>Finalizar jornada</button>
+        </div>
+    `;
+
     document.getElementById('employeeTasksContent').innerHTML = html;
 }
 
@@ -766,6 +782,49 @@ function toggleMobileTask(taskId) {
     cleaningTasks[idx].completed = !cleaningTasks[idx].completed;
     saveData();
     renderMobileEmployeeTasks();
+}
+
+// Registrar cierre de jornada desde empleado
+function finalizeMobileWorkDay() {
+    const propId = getMobileSelectedProperty();
+    const staff = getMobileCurrentStaff();
+
+    if (!propId || !staff) {
+        alert('Selecciona una propiedad para cerrar tu jornada.');
+        return;
+    }
+
+    const tasksForStaff = cleaningTasks.filter(t => t.propertyId === propId && (!t.assignedTo || t.assignedTo === staff.id));
+    const pendingTasks = tasksForStaff.filter(t => !t.completed);
+    const completedTasks = tasksForStaff.length - pendingTasks.length;
+    const pendingInventory = inventoryChecks.filter(c => c.propertyId === propId && !c.approved);
+
+    const summary = {
+        id: `notif_${Date.now()}`,
+        propertyId: propId,
+        employeeId: staff.id,
+        employeeName: staff.name,
+        date: new Date().toLocaleDateString('es-ES'),
+        time: new Date().toLocaleTimeString('es-ES'),
+        pendingTasks: pendingTasks.map(t => t.task || t.taskText || 'Tarea'),
+        pendingInventoryCount: pendingInventory.length,
+        completedTasksCount: completedTasks,
+        totalTasksCount: tasksForStaff.length,
+        read: false,
+        createdAt: new Date().toISOString()
+    };
+
+    workDayNotifications.push(summary);
+    saveData();
+
+    renderMobileEmployeeTasks();
+    loadMobileNotifications();
+
+    if (pendingTasks.length > 0 || pendingInventory.length > 0) {
+        alert('Cierre registrado con pendientes. Dueño/Manager verán el detalle.');
+    } else {
+        alert('¡Buen trabajo! Cierre registrado sin pendientes.');
+    }
 }
 
 // ========== EMPLOYEE CALENDAR ==========
@@ -949,53 +1008,92 @@ function getItemEmoji(category, itemName) {
 // ========== OWNER TASKS MOBILE ==========
 
 function loadMobileTasks() {
-    const propId = getMobileSelectedProperty();
-    if (!propId) {
-        const contentDiv = document.getElementById('tasksContentMobile');
-        if (contentDiv) {
-            contentDiv.innerHTML = '<div class="empty-state"><div class="empty-text">Selecciona una casa</div></div>';
-        }
-        return;
-    }
-    
-    // Cargar selector de propiedades
-    const selectElement = document.getElementById('tasksPropertySelect');
-    if (selectElement) {
-        const propertyOptions = Object.entries(properties).map(([key, prop]) => 
-            `<option value="${key}" ${key === propId ? 'selected' : ''}>${prop.name}</option>`
-        ).join('');
-        selectElement.innerHTML = '<option value="">Selecciona una casa...</option>' + propertyOptions;
-    }
-    
-    const tasks = cleaningTasks.filter(t => t.propertyId === propId);
-    
+    const defaultPropId = getMobileSelectedProperty();
     const contentDiv = document.getElementById('tasksContentMobile');
+
     if (!contentDiv) return;
-    
-    if (tasks.length === 0) {
-        contentDiv.innerHTML = '<div class="empty-state"><div class="empty-text">No hay tareas creadas.<br><br><button class="btn btn-primary" onclick="showAddTaskMobile()">Crear Primera Tarea</button></div></div>';
+
+    // Selector con opcion Todas las propiedades
+    const selectElement = document.getElementById('tasksPropertySelect');
+    const propertyEntries = Object.entries(properties || {});
+    const selectedValue = selectElement?.value || defaultPropId || '';
+    const viewAll = selectedValue === 'all';
+    const activePropId = viewAll ? null : (selectedValue || defaultPropId);
+
+    if (selectElement) {
+        const propertyOptions = propertyEntries.map(([key, prop]) => 
+            `<option value="${key}" ${key === activePropId ? 'selected' : ''}>${prop.name}</option>`
+        ).join('');
+        selectElement.innerHTML = '<option value="">Selecciona una casa...</option><option value="all" ' + (viewAll ? 'selected' : '') + '>Todas las propiedades</option>' + propertyOptions;
+    }
+
+    if (!activePropId && !viewAll) {
+        contentDiv.innerHTML = '<div class="empty-state"><div class="empty-text">Selecciona una casa</div></div>';
         return;
     }
-    
+
+    const tasks = cleaningTasks.filter(t => viewAll ? true : t.propertyId === activePropId);
+    const pendingCount = tasks.filter(t => !t.completed).length;
+    const completedCount = tasks.length - pendingCount;
+
+    // Resumen de inventario e informes de cierre
+    const inventoryPending = inventoryChecks.filter(c => (viewAll ? true : c.propertyId === activePropId) && !c.approved).length;
+    const inventoryDone = inventoryChecks.filter(c => (viewAll ? true : c.propertyId === activePropId) && c.approved).length;
+    const lastNotification = [...workDayNotifications]
+        .filter(n => viewAll ? true : n.propertyId === activePropId)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0] || null;
+
+    const summaryHTML = `
+        <div class="section-card" style="margin-bottom: 1rem;">
+            <div class="section-title">📊 Resumen</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                <span class="badge" style="background: var(--warning);">Pendientes: ${pendingCount}</span>
+                <span class="badge" style="background: var(--success);">Completadas: ${completedCount}</span>
+                <span class="badge" style="background: var(--primary);">Inventario ok: ${inventoryDone}</span>
+                <span class="badge" style="background: var(--danger);">Inventario pendientes: ${inventoryPending}</span>
+            </div>
+            ${lastNotification ? `
+            <div style="margin-top: 0.75rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: 10px;">
+                <div style="font-weight: 700; margin-bottom: 0.35rem;">Último cierre de jornada</div>
+                <div style="font-size: 0.9rem; color: var(--text-secondary);">${lastNotification.date} ${lastNotification.time || ''} · ${lastNotification.employeeName || 'Empleado'}</div>
+                <div style="margin-top: 0.35rem; font-size: 0.9rem;">
+                    Tareas pendientes: ${lastNotification.pendingTasks?.length || 0}${lastNotification.pendingInventoryCount ? ` · Inventario pendiente: ${lastNotification.pendingInventoryCount}` : ''}
+                </div>
+            </div>` : ''}
+        </div>
+    `;
+
+    if (tasks.length === 0) {
+        contentDiv.innerHTML = summaryHTML + '<div class="empty-state"><div class="empty-text">No hay tareas creadas.<br><br><button class="btn btn-primary" onclick="showAddTaskMobile()">Crear Primera Tarea</button></div></div>';
+        return;
+    }
+
+    const canComplete = mobileCurrentUserType === 'employee';
+
     const tasksHTML = tasks.map(task => {
         const prop = properties[task.propertyId];
         const assignedStaff = prop?.staff?.find(s => s.id === task.assignedTo);
+        const itemClick = canComplete ? `onclick="toggleMobileTask('${task.id}')"` : '';
+        const checkboxAttrs = canComplete
+            ? `onclick="event.stopPropagation(); toggleMobileTask('${task.id}')"`
+            : 'onclick="event.stopPropagation();" disabled';
         return `
-            <div class="task-item clickable ${task.completed ? 'completed' : ''}" onclick="toggleMobileTask('${task.id}')" style="cursor: pointer;">
-                <input type="checkbox" ${task.completed ? 'checked' : ''} onclick="event.stopPropagation(); toggleMobileTask('${task.id}')">
+            <div class="task-item clickable ${task.completed ? 'completed' : ''}" ${itemClick} style="cursor: ${canComplete ? 'pointer' : 'default'};">
+                <input type="checkbox" ${task.completed ? 'checked' : ''} ${checkboxAttrs}>
                 <div class="task-content">
                     <div class="task-title">${task.task}</div>
                     <div class="task-meta">
                         ${getPriorityBadge(task.priority)}
                         ${assignedStaff ? `<span class="badge" style="background: var(--primary);">👤 ${assignedStaff.name}</span>` : '<span class="badge" style="background: var(--warning);">Sin asignar</span>'}
+                        ${prop ? `<span class="badge" style="background: var(--secondary);">🏠 ${prop.name}</span>` : ''}
                     </div>
                 </div>
                 <button class="btn-icon" onclick="event.stopPropagation(); deleteMobileTask('${task.id}')" style="color: var(--danger);">🗑️</button>
             </div>
         `;
     }).join('');
-    
-    contentDiv.innerHTML = tasksHTML;
+
+    contentDiv.innerHTML = summaryHTML + tasksHTML;
 }
 
 function showAddTaskMobile() {
@@ -1085,8 +1183,20 @@ function loadMobileSchedule() {
         `<option value="${key}" ${key === propId ? 'selected' : ''}>${prop.name}</option>`
     ).join('');
     document.getElementById('schedulePropertySelect').innerHTML = '<option value="">Selecciona una casa...</option>' + propertyOptions;
+
+    // Staff filter / assignment select
+    const staffSelect = document.getElementById('scheduleStaffFilter');
+    const prop = properties[propId];
+    const staffOptions = (prop?.staff || []).map(s => `<option value="${s.id}">${s.name} - ${getRoleName(s.role)}</option>`).join('');
+    if (staffSelect) {
+        staffSelect.innerHTML = '<option value="">Todos los empleados</option>' + staffOptions;
+    }
+    const selectedStaff = staffSelect ? staffSelect.value : '';
     
-    const schedules = scheduledDates.filter(s => s.propertyId === propId).sort((a, b) => new Date(a.date) - new Date(b.date));
+    const schedules = scheduledDates
+        .filter(s => s.propertyId === propId)
+        .filter(s => !selectedStaff || s.assignedTo === selectedStaff)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
     
     if (schedules.length === 0) {
         document.getElementById('scheduleContentMobile').innerHTML = '<div class="empty-state"><div class="empty-text">No hay fechas agendadas</div></div>';
@@ -1127,8 +1237,10 @@ function showAddScheduleMobile() {
     }
     
     const prop = properties[propId];
+    const staffSelect = document.getElementById('scheduleStaffFilter');
+    const presetStaffId = staffSelect ? staffSelect.value : '';
     const staffOptions = (prop?.staff || []).map(s => 
-        `<option value="${s.id}">${s.name} - ${getRoleName(s.role)}</option>`
+        `<option value="${s.id}" ${presetStaffId === s.id ? 'selected' : ''}>${s.name} - ${getRoleName(s.role)}</option>`
     ).join('');
     
     const today = new Date().toISOString().split('T')[0];
