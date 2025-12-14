@@ -97,8 +97,27 @@ function mobileLogout() {
         // Limpiar credenciales guardadas
         localStorage.removeItem('airbnbmanager_mobile_owner_creds');
         localStorage.removeItem('airbnbmanager_mobile_staff_creds');
+        localStorage.removeItem('airbnbmanager_mobile_session_temp');
         showMobileLoginView();
     }
+}
+
+// Refrescar manteniendo sesión
+function refreshMobileApp() {
+    try {
+        const activeTabBtn = document.querySelector('#ownerMobileView .nav-tab.active, #employeeMobileView .nav-tab.active');
+        const activeTab = activeTabBtn ? activeTabBtn.getAttribute('data-tab') : null;
+        const session = {
+            type: mobileCurrentUserType,
+            user: mobileCurrentUser,
+            selectedProperty: mobileSelectedProperty,
+            activeTab
+        };
+        localStorage.setItem('airbnbmanager_mobile_session_temp', JSON.stringify(session));
+    } catch (e) {
+        console.error('No se pudo guardar sesión temporal', e);
+    }
+    window.location.reload();
 }
 
 // ========== VIEW SWITCHING ==========
@@ -1539,6 +1558,30 @@ function showNotificationsMobile() {
 document.addEventListener('DOMContentLoaded', () => {
     // Cargar datos
     loadData();
+
+    // Restaurar sesión si viene de un refresh manual
+    const tempSessionRaw = localStorage.getItem('airbnbmanager_mobile_session_temp');
+    if (tempSessionRaw) {
+        localStorage.removeItem('airbnbmanager_mobile_session_temp');
+        try {
+            const temp = JSON.parse(tempSessionRaw);
+            if (temp?.type && temp?.user) {
+                mobileCurrentUserType = temp.type;
+                mobileCurrentUser = temp.user;
+                mobileSelectedProperty = temp.selectedProperty || getMobileSelectedProperty();
+                if (temp.type === 'owner') {
+                    showMobileOwnerView();
+                    if (temp.activeTab) switchMobileTab(temp.activeTab);
+                } else {
+                    showMobileEmployeeView();
+                    if (temp.activeTab) switchEmployeeMobileTab(temp.activeTab);
+                }
+                return; // Saltar prefills si restauramos sesión
+            }
+        } catch (e) {
+            console.error('No se pudo restaurar sesión temporal', e);
+        }
+    }
     
     // Prellenar credenciales guardadas pero NO hacer auto-login
     const savedOwnerCreds = localStorage.getItem('airbnbmanager_mobile_owner_creds');
