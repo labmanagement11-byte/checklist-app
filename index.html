@@ -10,7 +10,7 @@
     <div id="app">
         <!-- WELCOME VIDEO SPLASH SCREEN -->
         <div id="welcomeVideoView" class="view" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: #000; position: relative; overflow: hidden;">
-            <video id="welcomeVideo" width="100%" height="100%" autoplay style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;">
+            <video id="welcomeVideo" width="100%" height="100%" autoplay muted style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;">
                 <source src="welcome-video.mp4" type="video/mp4">
                 Tu navegador no soporta video HTML5.
             </video>
@@ -20,7 +20,7 @@
             
             <!-- Logo y botón superpuestos -->
             <div style="position: relative; z-index: 2; text-align: center; color: white;">
-                <img src="logo.svg" alt="LIMPIEZA-360PRO-APP" width="220" height="220" style="margin-bottom: 2rem; animation: pulse 2s ease-in-out infinite;">
+                <img src="logo.png" alt="LIMPIEZA-360PRO-APP" width="280" height="280" style="margin-bottom: 2rem; animation: pulse 2s ease-in-out infinite;">
                 <h1 style="font-size: 3rem; margin: 0 0 1rem 0; font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.7);">LIMPIEZA-360PRO-APP</h1>
                 <p style="font-size: 1.2rem; margin: 0 0 2rem 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.7);">Gestión de Propiedades y Limpieza</p>
                 <button onclick="skipToLogin()" style="padding: 12px 30px; font-size: 1rem; background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); box-shadow: 0 4px 15px rgba(0,0,0,0.4); transition: all 0.3s ease;">Continuar</button>
@@ -33,7 +33,7 @@
                 <style>
                 </style>
                 <div style="display: flex; align-items: center; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem;">
-                    <img src="logo.svg" alt="LIMPIEZA-360PRO-APP" width="120" height="120" style="flex-shrink: 0;">
+                    <img src="logo.png" alt="LIMPIEZA-360PRO-APP" width="160" height="160" style="flex-shrink: 0;">
                     <h1 style="margin: 0; color: #1E3A8A; font-size: 2rem;">LIMPIEZA-360PRO-APP</h1>
                 </div>
                 <p>✨ Gestión de Propiedades y Limpieza</p>
@@ -401,23 +401,32 @@
             loginView.style.display = 'block';
         }
         
-        // Auto-advance to login after video ends (5-10 seconds based on video)
+        // Auto-advance to login after video ends
         window.addEventListener('load', function() {
             const video = document.getElementById('welcomeVideo');
             if (video) {
+                // Intentar reproducir con sonido
+                video.muted = false;
+                
+                // Si el navegador bloquea el autoplay con sonido, intentar reproducir manualmente
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(function(error) {
+                        // Si falla, reproducir sin sonido y mostrar botón para activar audio
+                        console.log('Autoplay con sonido bloqueado, reproduciendo sin sonido');
+                        video.muted = true;
+                        video.play();
+                    });
+                }
+                
+                // Cuando el video termine, ir automáticamente al login
                 video.addEventListener('ended', function() {
                     if (!videoSkipped) {
                         skipToLogin();
                     }
                 });
                 
-                // Safety timeout - go to login after 15 seconds max
-                setTimeout(function() {
-                    const welcomeView = document.getElementById('welcomeVideoView');
-                    if (welcomeView && welcomeView.style.display !== 'none' && !videoSkipped) {
-                        skipToLogin();
-                    }
-                }, 15000);
+                // Remover el timeout de seguridad - solo avanzar cuando termine el video
             }
         });
     </script>

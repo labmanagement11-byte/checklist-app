@@ -21,7 +21,7 @@
 <body>
     <!-- Welcome Video Splash Screen -->
     <div id="mobile-welcome-video" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: #000; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; overflow: hidden;">
-        <video id="welcomeVideoMobile" width="100%" height="100%" autoplay style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;">
+        <video id="welcomeVideoMobile" width="100%" height="100%" autoplay muted playsinline style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;">
             <source src="welcome-video.mp4" type="video/mp4">
         </video>
         
@@ -38,7 +38,7 @@
     <div id="mobile-login-view" class="mobile-view" style="display: none;">
         <div class="login-container">
             <div class="login-logo">
-                <img src="logo.svg" alt="LIMPIEZA-360PRO-APP" width="160" height="160" style="margin-bottom: 1rem;">
+                <img src="logo.png" alt="LIMPIEZA-360PRO-APP" width="200" height="200" style="margin-bottom: 1rem;">
                 <h1>LIMPIEZA-360PRO-APP</h1>
                 <p class="login-subtitle">Gestión de Propiedades</p>
             </div>
@@ -1189,19 +1189,28 @@
         window.addEventListener('load', function() {
             const video = document.getElementById('welcomeVideoMobile');
             if (video) {
+                // Intentar reproducir con sonido
+                video.muted = false;
+                
+                // Si el navegador bloquea el autoplay con sonido, intentar reproducir manualmente
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(function(error) {
+                        // Si falla, reproducir sin sonido
+                        console.log('Autoplay con sonido bloqueado en mobile, reproduciendo sin sonido');
+                        video.muted = true;
+                        video.play();
+                    });
+                }
+                
+                // Cuando el video termine, ir automáticamente al login
                 video.addEventListener('ended', function() {
                     if (!mobileVideoSkipped) {
                         skipToLoginMobile();
                     }
                 });
                 
-                // Safety timeout - go to login after 15 seconds max
-                setTimeout(function() {
-                    const welcomeView = document.getElementById('mobile-welcome-video');
-                    if (welcomeView && welcomeView.style.display !== 'none' && !mobileVideoSkipped) {
-                        skipToLoginMobile();
-                    }
-                }, 15000);
+                // Remover el timeout de seguridad - solo avanzar cuando termine el video
             }
         });
     </script>
