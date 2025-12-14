@@ -1135,28 +1135,55 @@ function loadMobileTasks() {
 
     const canComplete = mobileCurrentUserType === 'employee';
 
-    const tasksHTML = tasks.map(task => {
-        const prop = properties[task.propertyId];
-        const assignedStaff = prop?.staff?.find(s => s.id === task.assignedTo);
-        const itemClick = canComplete ? `onclick="toggleMobileTask('${task.id}')"` : '';
-        const checkboxAttrs = canComplete
-            ? `onclick="event.stopPropagation(); toggleMobileTask('${task.id}')"`
-            : 'onclick="event.stopPropagation();" disabled';
+    // Separar limpieza vs mantenimiento
+    const grouped = {
+        limpieza: tasks.filter(t => !isMaintenanceSection(t.sectionKey || '')),
+        mantenimiento: tasks.filter(t => isMaintenanceSection(t.sectionKey || ''))
+    };
+
+    const renderGroup = (title, list, emoji) => {
+        if (!list.length) return '';
         return `
-            <div class="task-item clickable ${task.completed ? 'completed' : ''}" ${itemClick} style="cursor: ${canComplete ? 'pointer' : 'default'};">
-                <input type="checkbox" ${task.completed ? 'checked' : ''} ${checkboxAttrs}>
-                <div class="task-content">
-                    <div class="task-title">${task.task}</div>
-                    <div class="task-meta">
-                        ${getPriorityBadge(task.priority)}
-                        ${assignedStaff ? `<span class="badge" style="background: var(--primary);">👤 ${assignedStaff.name}</span>` : '<span class="badge" style="background: var(--warning);">Sin asignar</span>'}
-                        ${prop ? `<span class="badge" style="background: var(--secondary);">🏠 ${prop.name}</span>` : ''}
-                    </div>
+            <div class="section-card" style="margin-bottom: 0.75rem;">
+                <div class="section-header clickable" onclick="this.nextElementSibling.classList.toggle('collapsed')" style="align-items:center;">
+                    <div class="section-title">${emoji} ${title}</div>
+                    <span class="badge" style="background: var(--bg-secondary);">${list.length}</span>
                 </div>
-                <button class="btn-icon" onclick="event.stopPropagation(); deleteMobileTask('${task.id}')" style="color: var(--danger);">🗑️</button>
+                <div class="task-group-items">
+                    ${list.map(task => {
+                        const prop = properties[task.propertyId];
+                        const assignedStaff = prop?.staff?.find(s => s.id === task.assignedTo);
+                        const itemClick = canComplete ? `onclick="toggleMobileTask('${task.id}')"` : `onclick="toggleTaskDetailsMobile('${task.id}')"`;
+                        const checkboxAttrs = canComplete
+                            ? `onclick="event.stopPropagation(); toggleMobileTask('${task.id}')"`
+                            : 'onclick="event.stopPropagation();" disabled';
+                        const detailId = `task-detail-${task.id}`;
+                        return `
+                            <div class="task-item clickable ${task.completed ? 'completed' : ''}" ${itemClick} style="cursor: pointer;">
+                                <input type="checkbox" ${task.completed ? 'checked' : ''} ${checkboxAttrs}>
+                                <div class="task-content">
+                                    <div class="task-title">${task.task || task.taskText || 'Tarea'}</div>
+                                    <div class="task-meta">
+                                        ${getPriorityBadge(task.priority)}
+                                        ${assignedStaff ? `<span class="badge" style="background: var(--primary);">👤 ${assignedStaff.name}</span>` : '<span class="badge" style="background: var(--warning);">Sin asignar</span>'}
+                                        ${prop ? `<span class="badge" style="background: var(--secondary);">🏠 ${prop.name}</span>` : ''}
+                                    </div>
+                                </div>
+                                <button class="btn-icon" onclick="event.stopPropagation(); deleteMobileTask('${task.id}')" style="color: var(--danger);">🗑️</button>
+                            </div>
+                            <div id="${detailId}" class="task-detail" style="display:none; padding:0.5rem 0.75rem 0.75rem 2.25rem; color: var(--text-secondary); font-size: 0.9rem;">
+                                <div>Subsección: ${task.subsectionTitle || 'N/A'}</div>
+                                <div>Creada: ${task.createdAt ? new Date(task.createdAt).toLocaleString('es-ES') : '—'}</div>
+                                <div>Estado: ${task.completed ? 'Completada' : 'Pendiente'}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
             </div>
         `;
-    }).join('');
+    };
+
+    const tasksHTML = renderGroup('Limpieza', grouped.limpieza, '🧹') + renderGroup('Mantenimiento', grouped.mantenimiento, '🔧');
 
     contentDiv.innerHTML = summaryHTML + tasksHTML;
 }
@@ -1253,6 +1280,14 @@ function deleteMobileTask(taskId) {
     cleaningTasks = cleaningTasks.filter(t => t.id !== taskId);
     saveData();
     loadMobileTasks();
+}
+
+// Mostrar/ocultar detalle de tarea (owner/manager)
+function toggleTaskDetailsMobile(taskId) {
+    const detail = document.getElementById(`task-detail-${taskId}`);
+    if (detail) {
+        detail.style.display = detail.style.display === 'none' ? 'block' : 'none';
+    }
 }
 
 // ========== OWNER SCHEDULE MOBILE ==========
