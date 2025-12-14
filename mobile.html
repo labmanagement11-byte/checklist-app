@@ -540,6 +540,7 @@
             <!-- Employee Inventory (Read-only with verification) -->
             <section id="section-emp-inventory" class="content-section">
                 <h2 class="section-title">Inventario</h2>
+                <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Verifica las cantidades y marca si está completo o falta algo.</p>
                 <div class="section-controls">
                     <select id="emp-inventory-category" onchange="loadEmployeeInventory()">
                         <option value="">Todas las categorías</option>
@@ -552,8 +553,8 @@
                         <option value="Exterior">Exterior</option>
                     </select>
                 </div>
-                <div id="emp-inventory-list" class="inventory-grid">
-                    <!-- Inventory items -->
+                <div id="emp-inventory-list" class="emp-inventory-verification">
+                    <!-- Inventory items with verification -->
                 </div>
             </section>
 

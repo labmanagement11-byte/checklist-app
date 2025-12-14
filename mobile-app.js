@@ -993,44 +993,175 @@ function loadEmployeeSchedule() {
 
 function loadEmployeeInventory() {
     const propId = mobileSelectedProperty;
-    const rawCategory = document.getElementById('emp-inventory-category')?.value || '';
-    const category = normalizeCategoryFilter(rawCategory);
     const container = document.getElementById('emp-inventory-list');
     if (!container) return;
+    
     const prop = properties[propId];
     if (!prop) {
         container.innerHTML = '<div class="empty-state"><p>Sin propiedad</p></div>';
         return;
     }
+    
     const inventory = prop.inventory || {};
-    const groups = Object.keys(inventory)
-        .filter(catKey => {
-            if (!category) return true;
-            return catKey === category;
-        })
-        .map(catKey => {
-            const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
-            const itemsHtml = (inventory[catKey] || []).map(it => `
-                <div class="inventory-item">
-                    <div class="item-info">
-                        <div class="item-name">${it.name}</div>
-                        <div class="item-details">${catName}</div>
+    const categoryFilter = document.getElementById('emp-inventory-category')?.value || '';
+    
+    let html = '';
+    
+    Object.keys(INVENTORY_CATEGORIES).forEach(catKey => {
+        const items = inventory[catKey] || [];
+        if (items.length === 0) return;
+        if (categoryFilter && catKey !== categoryFilter) return;
+        
+        const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
+        const catIcon = INVENTORY_CATEGORIES[catKey]?.icon || '📦';
+        
+        html += `<div class="inventory-zone"><h3 class="zone-title">${catIcon} ${catName}</h3>`;
+        
+        items.forEach(item => {
+            const check = inventoryChecks.find(c => 
+                c.propertyId === propId && 
+                c.categoryKey === catKey && 
+                c.itemId === item.id && 
+                c.employeeId === mobileCurrentUser.staffId
+            );
+            
+            const realQty = check?.realQty ?? item.qty;
+            const status = check?.status || '';
+            const comment = check?.comment || '';
+            
+            html += `
+                <div class="inventory-item-verification">
+                    <div class="item-header">
+                        <span class="item-name">${item.name}</span>
+                        <span class="item-expected">Esperado: ${item.qty}</span>
                     </div>
-                    <div class="item-qty">${it.qty ?? 0}</div>
-                </div>
-            `).join('');
-            return `
-                <div class="inventory-zone">
-                    <h3 class="zone-title">${catName}</h3>
-                    <div class="inventory-grid">${itemsHtml || '<div class="empty-state"><p>Sin items</p></div>'}</div>
+                    <div class="item-verification">
+                        <div class="real-qty-group">
+                            <label>Real:</label>
+                            <input type="number" 
+                                   id="real_${catKey}_${item.id}" 
+                                   class="inventory-input" 
+                                   min="0" 
+                                   value="${realQty}"
+                                   onchange="setMobileInventoryCheck('${catKey}', '${item.id}', this.value)">
+                        </div>
+                        <div class="status-buttons">
+                            <button class="btn-status ${status === 'ok' ? 'active' : ''}" 
+                                    onclick="setMobileInventoryStatus('${catKey}', '${item.id}', 'ok')"
+                                    title="Completado"
+                                    style="background: ${status === 'ok' ? '#4CAF50' : '#ddd'}; color: ${status === 'ok' ? 'white' : '#666'};">
+                                ✓
+                            </button>
+                            <button class="btn-status ${status === 'missing' ? 'active' : ''}" 
+                                    onclick="setMobileInventoryStatus('${catKey}', '${item.id}', 'missing')"
+                                    title="Falta algo"
+                                    style="background: ${status === 'missing' ? '#f44336' : '#ddd'}; color: ${status === 'missing' ? 'white' : '#666'};">
+                                ✗
+                            </button>
+                        </div>
+                    </div>
+                    ${status === 'missing' ? `
+                        <div class="item-comment">
+                            <textarea id="comment_${catKey}_${item.id}" 
+                                      placeholder="¿Qué falta o está dañado?"
+                                      class="comment-input"
+                                      onchange="setMobileInventoryComment('${catKey}', '${item.id}', this.value)">${comment}</textarea>
+                        </div>
+                    ` : ''}
                 </div>
             `;
         });
-    if (!groups.length) {
+        
+        html += '</div>';
+    });
+    
+    if (!html) {
         container.innerHTML = '<div class="empty-state"><p>Sin items</p></div>';
-        return;
+    } else {
+        container.innerHTML = html;
     }
-    container.innerHTML = groups.join('');
+}
+
+function setMobileInventoryCheck(catKey, itemId, realQty) {
+    const propId = mobileSelectedProperty;
+    const checkIndex = inventoryChecks.findIndex(c => 
+        c.propertyId === propId && 
+        c.categoryKey === catKey && 
+        c.itemId === itemId &&
+        c.employeeId === mobileCurrentUser.staffId
+    );
+    
+    const checkData = {
+        id: checkIndex >= 0 ? inventoryChecks[checkIndex].id : `check_${Date.now()}`,
+        propertyId: propId,
+        categoryKey: catKey,
+        itemId: itemId,
+        employeeId: mobileCurrentUser.staffId,
+        employeeName: mobileCurrentUser.name,
+        realQty: parseInt(realQty, 10) || 0,
+        status: inventoryChecks[checkIndex]?.status || 'pending',
+        comment: inventoryChecks[checkIndex]?.comment || '',
+        checkDate: new Date().toISOString()
+    };
+    
+    if (checkIndex >= 0) {
+        inventoryChecks[checkIndex] = checkData;
+    } else {
+        inventoryChecks.push(checkData);
+    }
+    
+    saveData();
+}
+
+function setMobileInventoryStatus(catKey, itemId, status) {
+    const propId = mobileSelectedProperty;
+    const checkIndex = inventoryChecks.findIndex(c => 
+        c.propertyId === propId && 
+        c.categoryKey === catKey && 
+        c.itemId === itemId &&
+        c.employeeId === mobileCurrentUser.staffId
+    );
+    
+    const realQtyInput = document.getElementById(`real_${catKey}_${itemId}`);
+    const realQty = realQtyInput ? parseInt(realQtyInput.value, 10) || 0 : 0;
+    
+    const checkData = {
+        id: checkIndex >= 0 ? inventoryChecks[checkIndex].id : `check_${Date.now()}`,
+        propertyId: propId,
+        categoryKey: catKey,
+        itemId: itemId,
+        employeeId: mobileCurrentUser.staffId,
+        employeeName: mobileCurrentUser.name,
+        realQty: realQty,
+        status: status,
+        comment: inventoryChecks[checkIndex]?.comment || '',
+        checkDate: new Date().toISOString()
+    };
+    
+    if (checkIndex >= 0) {
+        inventoryChecks[checkIndex] = checkData;
+    } else {
+        inventoryChecks.push(checkData);
+    }
+    
+    saveData();
+    loadEmployeeInventory();
+}
+
+function setMobileInventoryComment(catKey, itemId, comment) {
+    const propId = mobileSelectedProperty;
+    const checkIndex = inventoryChecks.findIndex(c => 
+        c.propertyId === propId && 
+        c.categoryKey === catKey && 
+        c.itemId === itemId &&
+        c.employeeId === mobileCurrentUser.staffId
+    );
+    
+    if (checkIndex >= 0) {
+        inventoryChecks[checkIndex].comment = comment;
+        inventoryChecks[checkIndex].checkDate = new Date().toISOString();
+        saveData();
+    }
 }
 
 function submitPurchaseRequest() {
