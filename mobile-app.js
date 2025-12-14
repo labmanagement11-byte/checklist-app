@@ -215,19 +215,19 @@ function renderMobileOwnerDashboard() {
     const totalTasks = cleaningTasks.length;
     
     const statsHTML = `
-        <div class="stat-card">
+        <div class="stat-card clickable" style="cursor:pointer;" onclick="switchMobileTab('properties')">
             <div class="stat-value">${totalProperties}</div>
             <div class="stat-label">Casas</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card clickable" style="cursor:pointer;" onclick="switchMobileTab('staff')">
             <div class="stat-value">${totalStaff}</div>
             <div class="stat-label">Personal</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card clickable" style="cursor:pointer;" onclick="switchMobileTab('tasks')">
             <div class="stat-value">${totalTasks}</div>
             <div class="stat-label">Tareas</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card clickable" style="cursor:pointer;" onclick="switchMobileTab('schedule')">
             <div class="stat-value">${scheduledDates.length}</div>
             <div class="stat-label">Programadas</div>
         </div>
