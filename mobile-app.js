@@ -148,6 +148,14 @@ function showMobileOwnerView() {
     loadMobileSchedule();
 }
 
+// Cambio de propiedad en calendario (selector de la vista)
+function onSchedulePropertySelectChange(val) {
+    if (val) {
+        mobileSelectedProperty = val;
+    }
+    loadMobileSchedule();
+}
+
 function showMobileEmployeeView() {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById('employeeMobileView').classList.add('active');
@@ -1250,7 +1258,11 @@ function deleteMobileTask(taskId) {
 // ========== OWNER SCHEDULE MOBILE ==========
 
 function loadMobileSchedule() {
-    const propId = getMobileSelectedProperty();
+    // Asegurar propiedad activa
+    if (!mobileSelectedProperty) {
+        mobileSelectedProperty = getMobileSelectedProperty();
+    }
+    const propId = mobileSelectedProperty || getMobileSelectedProperty();
     const content = document.getElementById('scheduleContentMobile');
     const propSelect = document.getElementById('schedulePropertySelect');
     const staffFilter = document.getElementById('scheduleStaffFilter');
@@ -1290,7 +1302,8 @@ function loadMobileSchedule() {
         .sort((a, b) => new Date(a.date) - new Date(b.date));
     
     if (schedules.length === 0) {
-        if (content) content.innerHTML = '<div class="empty-state"><div class="empty-text">No hay fechas agendadas<br><br><button class="btn btn-primary" onclick="showAddScheduleMobile()">Agendar ahora</button></div></div>';
+        const noStaffWarning = (prop?.staff || []).length === 0 ? '<div style="margin-top:0.5rem; color: var(--danger); font-size: 0.9rem;">No hay personal en esta casa. Agrega personal para asignar turnos.</div>' : '';
+        if (content) content.innerHTML = `<div class="empty-state"><div class="empty-text">No hay fechas agendadas<br><br><button class="btn btn-primary" onclick="showAddScheduleMobile()">Agendar ahora</button>${noStaffWarning}</div></div>`;
         return;
     }
     
@@ -1322,7 +1335,9 @@ function loadMobileSchedule() {
 
 function showAddScheduleMobile() {
     const propSelect = document.getElementById('schedulePropertySelect');
-    const currentProp = propSelect ? propSelect.value || getMobileSelectedProperty() : getMobileSelectedProperty();
+    const fallbackProp = Object.keys(properties || {})[0] || '';
+    const currentProp = propSelect ? (propSelect.value || mobileSelectedProperty || fallbackProp) : (mobileSelectedProperty || fallbackProp);
+    mobileSelectedProperty = currentProp;
     const propertyOptions = Object.entries(properties || {}).map(([key, prop]) => `<option value="${key}" ${currentProp === key ? 'selected' : ''}>${prop.name}</option>`).join('');
     const prop = currentProp ? properties[currentProp] : null;
     const staffSelect = document.getElementById('scheduleStaffFilter');

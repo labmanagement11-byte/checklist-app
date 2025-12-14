@@ -244,7 +244,7 @@
                                 <button class="btn btn-sm btn-primary" onclick="showAddScheduleMobile()">+ Agendar</button>
                             </div>
                             <div id="propertySelectSchedule" class="form-group">
-                                <select class="form-control" id="schedulePropertySelect" onchange="mobileSelectedProperty = this.value; loadMobileSchedule()">
+                                <select class="form-control" id="schedulePropertySelect" onchange="onSchedulePropertySelectChange(this.value)">
                                     <option value="">Selecciona una casa...</option>
                                 </select>
                             </div>
