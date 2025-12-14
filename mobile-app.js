@@ -215,19 +215,19 @@ function renderMobileOwnerDashboard() {
     const totalTasks = cleaningTasks.length;
     
     const statsHTML = `
-        <div class="stat-card clickable" style="cursor:pointer;" onclick="switchMobileTab('properties')">
+        <div class="stat-card clickable" style="cursor:pointer;" onclick="dashboardNavigate('properties')">
             <div class="stat-value">${totalProperties}</div>
             <div class="stat-label">Casas</div>
         </div>
-        <div class="stat-card clickable" style="cursor:pointer;" onclick="switchMobileTab('staff')">
+        <div class="stat-card clickable" style="cursor:pointer;" onclick="dashboardNavigate('staff')">
             <div class="stat-value">${totalStaff}</div>
             <div class="stat-label">Personal</div>
         </div>
-        <div class="stat-card clickable" style="cursor:pointer;" onclick="switchMobileTab('tasks')">
+        <div class="stat-card clickable" style="cursor:pointer;" onclick="dashboardNavigate('tasks')">
             <div class="stat-value">${totalTasks}</div>
             <div class="stat-label">Tareas</div>
         </div>
-        <div class="stat-card clickable" style="cursor:pointer;" onclick="switchMobileTab('schedule')">
+        <div class="stat-card clickable" style="cursor:pointer;" onclick="dashboardNavigate('schedule')">
             <div class="stat-value">${scheduledDates.length}</div>
             <div class="stat-label">Programadas</div>
         </div>
@@ -246,6 +246,26 @@ function renderMobileOwnerDashboard() {
     `).join('');
     
     document.getElementById('dashboardProperties').innerHTML = propertiesHTML || '<div class="empty-state"><div class="empty-text">No hay casas registradas</div></div>';
+}
+
+// Navegación rápida desde el dashboard
+function dashboardNavigate(target) {
+    if (target === 'properties') {
+        switchMobileTab('properties');
+        setTimeout(() => {
+            const list = document.getElementById('propertiesListMobile');
+            if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 150);
+    } else if (target === 'staff') {
+        switchMobileTab('staff');
+    } else if (target === 'tasks') {
+        switchMobileTab('tasks');
+    } else if (target === 'schedule') {
+        switchMobileTab('schedule');
+        setTimeout(() => {
+            showAddScheduleMobile();
+        }, 250);
+    }
 }
 
 // ========== OWNER PROPERTIES ==========
