@@ -1710,9 +1710,18 @@ function showAddStaffModalManager() { showAddStaffModal(); }
 
 // ---------- Helpers ----------
 function formatDateShort(dateStr) {
-    const d = new Date(dateStr);
-    if (isNaN(d)) return dateStr;
-    return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+    // Parsear la fecha en formato YYYY-MM-DD sin convertir zona horaria
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+        const year = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1;
+        const day = parseInt(parts[2]);
+        const d = new Date(year, month, day);
+        const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        return `${String(d.getDate()).padStart(2, '0')} ${months[d.getMonth()]}`;
+    }
+    return dateStr;
 }
 
 function getRoleName(role) {
