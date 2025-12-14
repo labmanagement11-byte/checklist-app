@@ -2285,6 +2285,45 @@ function ensureEpicStaffExists() {
     }
 }
 
+// Asegurar que Torre Magna tenga siempre staff base (manager + empleados)
+function ensureTorreMagnaStaffExists() {
+    const propId = Object.keys(properties).find(pid => {
+        const nm = properties[pid]?.name?.trim?.();
+        return nm && (nm.toLowerCase() === 'torre magna pi' || nm.toLowerCase() === 'torre magna');
+    });
+    if (!propId) return;
+
+    const prop = properties[propId];
+    if (!prop.staff) prop.staff = [];
+
+    const requiredStaff = [
+        { id: 'staff_jose', name: 'Jose', role: 'manager', username: 'jose', password: 'jose123' },
+        { id: 'staff_alejandra', name: 'Alejandra', role: 'employee', username: 'alejandra', password: 'alejandra123' },
+        { id: 'staff_maria', name: 'Maria', role: 'employee', username: 'maria', password: 'maria123' }
+    ];
+
+    requiredStaff.forEach(req => {
+        const exists = prop.staff.find(s => s.username === req.username);
+        if (!exists) {
+            prop.staff.push({ ...req, lastLoginTime: null });
+        } else {
+            // Asegurar que las credenciales se mantengan en caso de datos incompletos
+            exists.password = req.password;
+            exists.role = req.role;
+            exists.name = req.name;
+            exists.id = exists.id || req.id;
+        }
+    });
+}
+
+// Garantiza que cada propiedad tenga sus tareas semilla si están vacías
+function ensureCleaningTasksSeededForProperty(propId, propName) {
+    const hasTasks = cleaningTasks.some(t => t.propertyId === propId);
+    if (!hasTasks) {
+        cleaningTasks.push(...createDefaultCleaningTasks(propId, propName));
+    }
+}
+
 // Asegurar que Torre Magna tenga tareas de mantenimiento semilladas
 function ensureTorreMagnaMaintenanceTasks() {
     const propId = Object.keys(properties).find(pid => {
@@ -4366,7 +4405,13 @@ function initializeApp() {
     
     // Asegurar que los usuarios estén en sus propiedades
     ensureEpicStaffExists();
+    ensureTorreMagnaStaffExists();
     ensureTorreMagnaMaintenanceTasks();
+
+    // Re-sembrar tareas si alguna propiedad quedó sin tareas luego de limpiar datos
+    Object.values(properties).forEach(prop => {
+        ensureCleaningTasksSeededForProperty(prop.id, prop.name);
+    });
 
     if (!selectedProperty) {
         selectedProperty = Object.keys(properties)[0] || null;
