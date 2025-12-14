@@ -1186,6 +1186,45 @@ body {
     cursor: pointer;
 }
 
+/* User Management */
+.users-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.user-card {
+    background: var(--surface);
+    padding: 16px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-card .user-info {
+    flex: 1;
+}
+
+.user-card .user-info h4 {
+    margin: 0 0 6px 0;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.user-card .user-info p {
+    margin: 3px 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.user-card .btn-danger {
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
 /* Employee View Specific */
 .employee-info-card {
     background: var(--surface);

@@ -153,6 +153,10 @@
                     <span class="menu-icon">👥</span>
                     <span>Personal</span>
                 </li>
+                <li class="menu-item" data-section="users" onclick="showMobileSection('users')">
+                    <span class="menu-icon">👤</span>
+                    <span>Usuarios</span>
+                </li>
                 <li class="menu-divider"></li>
                 <li class="menu-item logout" onclick="mobileLogout()">
                     <span class="menu-icon">🚪</span>
@@ -407,6 +411,17 @@
                 </div>
                 <div id="staff-list" class="staff-grid">
                     <!-- Staff will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Users Section -->
+            <section id="section-users" class="content-section">
+                <h2 class="section-title">Usuarios</h2>
+                <button class="btn-primary btn-add" onclick="showAddUserModal()">
+                    <span>+</span> Agregar Usuario
+                </button>
+                <div id="users-list" class="users-grid">
+                    <!-- Users will be loaded here -->
                 </div>
             </section>
         </main>
@@ -709,6 +724,10 @@
                     <span class="menu-icon">👥</span>
                     <span>Personal</span>
                 </li>
+                <li class="menu-item" data-section="mgr-users" onclick="showManagerSection('mgr-users')">
+                    <span class="menu-icon">👤</span>
+                    <span>Usuarios</span>
+                </li>
                 <li class="menu-divider"></li>
                 <li class="menu-item logout" onclick="mobileLogout()">
                     <span class="menu-icon">🚪</span>
@@ -900,6 +919,17 @@
                     <!-- Staff list -->
                 </div>
             </section>
+
+            <!-- Manager Users -->
+            <section id="section-mgr-users" class="content-section">
+                <h2 class="section-title">Usuarios</h2>
+                <button class="btn-primary btn-add" onclick="showAddUserModalManager()">
+                    <span>+</span> Agregar Usuario
+                </button>
+                <div id="mgr-users-list" class="users-grid">
+                    <!-- Users list -->
+                </div>
+            </section>
         </main>
     </div>
 
@@ -1075,6 +1105,48 @@
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeModal('modal-edit-schedule')">Cancelar</button>
                 <button class="btn-primary" onclick="saveEditedSchedule()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div id="modal-add-user" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Agregar Usuario</h3>
+                <button class="modal-close" onclick="closeModal('modal-add-user')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nombre Completo:</label>
+                    <input type="text" id="new-user-name" placeholder="Nombre del usuario">
+                </div>
+                <div class="form-group">
+                    <label>Usuario:</label>
+                    <input type="text" id="new-user-username" placeholder="Usuario para login">
+                </div>
+                <div class="form-group">
+                    <label>Contraseña:</label>
+                    <input type="password" id="new-user-password" placeholder="Contraseña">
+                </div>
+                <div class="form-group">
+                    <label>Rol:</label>
+                    <select id="new-user-role" onchange="toggleUserPropertyField()">
+                        <option value="employee">Empleado</option>
+                        <option value="manager">Gerente</option>
+                        <option value="owner">Dueño</option>
+                    </select>
+                </div>
+                <div class="form-group" id="user-property-group">
+                    <label>Propiedad Asignada:</label>
+                    <select id="new-user-property">
+                        <!-- Properties loaded dynamically -->
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('modal-add-user')">Cancelar</button>
+                <button class="btn-primary" onclick="addNewUser()">Agregar</button>
             </div>
         </div>
     </div>

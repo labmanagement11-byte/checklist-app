@@ -222,6 +222,9 @@ function showMobileSection(section) {
         case 'staff':
             loadMobileStaff();
             break;
+        case 'users':
+            loadMobileUsers();
+            break;
     }
 }
 
@@ -244,6 +247,7 @@ function showEmployeeSection(section) {
         loadEmployeeTasks();
     }
     if (section === 'emp-purchase') loadEmployeePurchaseRequests();
+    if (section === 'emp-end-day') loadEndDaySummary();
 }
 
 function showManagerSection(section) {
@@ -262,6 +266,7 @@ function showManagerSection(section) {
     if (section === 'mgr-tasks') loadManagerTasks();
     if (section === 'mgr-notifications') loadManagerNotifications();
     if (section === 'mgr-staff') loadManagerStaff();
+    if (section === 'mgr-users') loadManagerUsers();
 }
 
 // ---------- Owner View ----------
@@ -1098,6 +1103,20 @@ function finishWorkDay() {
     showToast('Jornada finalizada');
 }
 
+function loadEndDaySummary() {
+    const propId = mobileSelectedProperty;
+    const tasks = cleaningTasks.filter(t => t.propertyId === propId && (!t.assignedTo || t.assignedTo === mobileCurrentUser.staffId));
+    const completed = tasks.filter(t => t.completed).length;
+    const pending = tasks.filter(t => !t.completed).length;
+    const totalInventory = Object.values(properties[propId]?.inventory || {}).reduce((acc, arr) => acc + arr.length, 0);
+    const verifiedInventory = inventoryChecks.filter(c => c.propertyId === propId && c.employeeId === mobileCurrentUser.staffId).length;
+    const inventoryPercent = totalInventory > 0 ? Math.round((verifiedInventory / totalInventory) * 100) : 0;
+    
+    document.getElementById('end-day-tasks-done').textContent = completed;
+    document.getElementById('end-day-tasks-pending').textContent = pending;
+    document.getElementById('end-day-inventory').textContent = `${inventoryPercent}%`;
+}
+
 // ---------- Manager View ----------
 function showMobileManagerView(skipLoad) {
     document.getElementById('mobile-login-view').style.display = 'none';
@@ -1475,6 +1494,179 @@ function sendMobileNotification() {
     loadMobileNotifications();
     showToast('Notificación enviada');
 }
+
+// ---------- User Management ----------
+function loadMobileUsers() {
+    const container = document.getElementById('users-list');
+    if (!container) return;
+    const allUsers = [];
+    Object.values(properties).forEach(prop => {
+        if (prop.staff) {
+            prop.staff.forEach(user => {
+                allUsers.push({ ...user, propertyName: prop.name, propertyId: prop.id });
+            });
+        }
+    });
+    if (!allUsers.length) {
+        container.innerHTML = '<div class="empty-state"><p>No hay usuarios</p></div>';
+        return;
+    }
+    container.innerHTML = allUsers.map(u => `
+        <div class="user-card">
+            <div class="user-info">
+                <h4>${u.name}</h4>
+                <p>Usuario: ${u.username}</p>
+                <p>Rol: ${u.role === 'owner' ? 'Dueño' : u.role === 'manager' ? 'Gerente' : 'Empleado'}</p>
+                <p>Propiedad: ${u.propertyName}</p>
+            </div>
+            <button class="btn-danger btn-sm" onclick="confirmDeleteUser('${u.id}', '${u.propertyId}')">Eliminar</button>
+        </div>
+    `).join('');
+}
+
+function loadManagerUsers() {
+    const propId = mobileSelectedProperty;
+    const container = document.getElementById('mgr-users-list');
+    if (!container) return;
+    const prop = properties[propId];
+    if (!prop || !prop.staff || !prop.staff.length) {
+        container.innerHTML = '<div class="empty-state"><p>No hay usuarios</p></div>';
+        return;
+    }
+    container.innerHTML = prop.staff.map(u => `
+        <div class="user-card">
+            <div class="user-info">
+                <h4>${u.name}</h4>
+                <p>Usuario: ${u.username}</p>
+                <p>Rol: ${u.role === 'owner' ? 'Dueño' : u.role === 'manager' ? 'Gerente' : 'Empleado'}</p>
+            </div>
+            <button class="btn-danger btn-sm" onclick="confirmDeleteUser('${u.id}', '${propId}')">Eliminar</button>
+        </div>
+    `).join('');
+}
+
+function showAddUserModal() {
+    fillPropertyOptions('new-user-property');
+    toggleUserPropertyField();
+    document.getElementById('modal-add-user').classList.add('open');
+}
+
+function showAddUserModalManager() {
+    const propId = mobileSelectedProperty;
+    const select = document.getElementById('new-user-property');
+    select.innerHTML = `<option value="${propId}">${properties[propId]?.name || 'Propiedad'}</option>`;
+    document.getElementById('new-user-role').value = 'employee';
+    toggleUserPropertyField();
+    document.getElementById('modal-add-user').classList.add('open');
+}
+
+function toggleUserPropertyField() {
+    const role = document.getElementById('new-user-role').value;
+    const propGroup = document.getElementById('user-property-group');
+    if (role === 'owner') {
+        propGroup.style.display = 'none';
+    } else {
+        propGroup.style.display = 'block';
+    }
+}
+
+function addNewUser() {
+    const name = document.getElementById('new-user-name').value.trim();
+    const username = document.getElementById('new-user-username').value.trim();
+    const password = document.getElementById('new-user-password').value.trim();
+    const role = document.getElementById('new-user-role').value;
+    const propId = role === 'owner' ? Object.keys(properties)[0] : document.getElementById('new-user-property').value;
+    
+    if (!name || !username || !password) return showToast('Completa todos los campos', true);
+    if (role !== 'owner' && !propId) return showToast('Selecciona una propiedad', true);
+    
+    // Check if username already exists
+    const exists = Object.values(properties).some(prop => 
+        prop.staff && prop.staff.some(s => s.username === username)
+    );
+    if (exists) return showToast('El usuario ya existe', true);
+    
+    const newUser = { 
+        id: `user_${Date.now()}`, 
+        name, 
+        username, 
+        password, 
+        role,
+        staffId: `staff_${Date.now()}`
+    };
+    
+    if (role === 'owner') {
+        // Add owner to all properties
+        Object.values(properties).forEach(prop => {
+            if (!prop.staff) prop.staff = [];
+            prop.staff.push({ ...newUser });
+        });
+    } else {
+        // Add to specific property
+        const prop = properties[propId];
+        if (!prop.staff) prop.staff = [];
+        prop.staff.push(newUser);
+    }
+    
+    saveData();
+    closeModal('modal-add-user');
+    
+    // Reload appropriate view
+    if (mobileCurrentUser.role === 'owner') {
+        loadMobileUsers();
+    } else {
+        loadManagerUsers();
+    }
+    
+    showToast('Usuario agregado');
+    
+    // Clear form
+    document.getElementById('new-user-name').value = '';
+    document.getElementById('new-user-username').value = '';
+    document.getElementById('new-user-password').value = '';
+}
+
+function confirmDeleteUser(userId, propId) {
+    const prop = properties[propId];
+    const user = prop?.staff?.find(s => s.id === userId);
+    if (!user) return showToast('Usuario no encontrado', true);
+    
+    if (confirm(`¿Eliminar usuario ${user.name}?`)) {
+        deleteUser(userId, propId);
+    }
+}
+
+function deleteUser(userId, propId) {
+    const prop = properties[propId];
+    if (!prop || !prop.staff) return;
+    
+    const user = prop.staff.find(s => s.id === userId);
+    if (!user) return showToast('Usuario no encontrado', true);
+    
+    // If owner, remove from all properties
+    if (user.role === 'owner') {
+        Object.values(properties).forEach(p => {
+            if (p.staff) {
+                p.staff = p.staff.filter(s => s.id !== userId);
+            }
+        });
+    } else {
+        // Remove from specific property
+        prop.staff = prop.staff.filter(s => s.id !== userId);
+    }
+    
+    saveData();
+    
+    // Reload appropriate view
+    if (mobileCurrentUser.role === 'owner') {
+        loadMobileUsers();
+    } else {
+        loadManagerUsers();
+    }
+    
+    showToast('Usuario eliminado');
+}
+
 // ---------- Init ----------
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
