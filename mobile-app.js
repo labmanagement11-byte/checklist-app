@@ -747,7 +747,10 @@ function showMobileEmployeeView(skipLoad) {
     document.getElementById('menu-employee-property').textContent = properties[mobileSelectedProperty]?.name || '';
     document.getElementById('emp-login-time').textContent = new Date(mobileCurrentUser.loginTime || Date.now()).toLocaleTimeString('es-ES');
     document.getElementById('menu-login-time').textContent = new Date(mobileCurrentUser.loginTime || Date.now()).toLocaleTimeString('es-ES');
+    document.getElementById('emp-assigned-property').textContent = properties[mobileSelectedProperty]?.name || '';
+    document.getElementById('emp-shift-info').textContent = 'Completo';
     if (!skipLoad) {
+        loadEmployeeDashboard();
         loadEmployeeSchedule();
         loadEmployeeInventory();
         loadEmployeeTasks();
@@ -868,9 +871,12 @@ function showMobileManagerView(skipLoad) {
     document.getElementById('mobile-employee-view').style.display = 'none';
     document.getElementById('mobile-manager-view').style.display = 'flex';
     document.getElementById('mobile-manager-name').textContent = mobileCurrentUser?.name || 'Gerente';
+    document.getElementById('menu-manager-property').textContent = properties[mobileCurrentUser.propertyId]?.name || '';
+    document.getElementById('mgr-property-name').textContent = properties[mobileCurrentUser.propertyId]?.name || '';
     mobileSelectedProperty = mobileCurrentUser.propertyId;
     updatePropertySelectors();
     if (!skipLoad) {
+        loadManagerDashboard();
         loadManagerInventory();
         loadManagerInventoryChecks();
         loadManagerPurchase();
@@ -880,6 +886,37 @@ function showMobileManagerView(skipLoad) {
         loadManagerNotifications();
         loadManagerStaff();
     }
+}
+
+function loadManagerDashboard() {
+    const container = document.getElementById('mgr-dashboard-stats');
+    if (!container) return;
+    const tasks = cleaningTasks.filter(t => t.propertyId === mobileSelectedProperty);
+    const completed = tasks.filter(t => t.completed).length;
+    const pending = tasks.filter(t => !t.completed).length;
+    const staff = properties[mobileSelectedProperty]?.staff || [];
+    container.innerHTML = `
+        <div class="stat-card">
+            <div class="stat-icon">✅</div>
+            <div class="stat-value">${completed}</div>
+            <div class="stat-label">Tareas completadas</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📋</div>
+            <div class="stat-value">${pending}</div>
+            <div class="stat-label">Tareas pendientes</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-value">${staff.length}</div>
+            <div class="stat-label">Personal asignado</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📦</div>
+            <div class="stat-value">${purchaseInventory.filter(p => p.propertyId === mobileSelectedProperty).length}</div>
+            <div class="stat-label">Items en compra</div>
+        </div>
+    `;
 }
 
 function loadManagerInventory() {
@@ -913,6 +950,15 @@ function loadManagerPurchase() {
     if (!container) return;
     const items = purchaseInventory.filter(p => p.propertyId === mobileSelectedProperty);
     container.innerHTML = items.map(item => `<div class="purchase-item"><input type="checkbox" class="purchase-checkbox" ${item.purchased?'checked':''} onclick="togglePurchaseStatus('${item.id}')"><div class="purchase-info"><div class="purchase-name">${item.name||item.item}</div><div class="purchase-details">x${item.qty||1}</div></div></div>`).join('') || '<div class="empty-state"><p>Lista vacía</p></div>';
+}
+
+function togglePurchaseStatus(itemId) {
+    const item = purchaseInventory.find(p => p.id === itemId);
+    if (item) {
+        item.purchased = !item.purchased;
+        saveData();
+        loadManagerPurchase();
+    }
 }
 
 function loadManagerPurchaseHistory() {
