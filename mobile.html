@@ -2,403 +2,944 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#1877f2">
-    <title>AirbnbManager Mobile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LIMPIEZA360 - Mobile App</title>
     <link rel="stylesheet" href="mobile-styles.css">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>🏠</text></svg>">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>🏠</text></svg>">
 </head>
 <body>
-    <div id="app" class="mobile-app">
-        <!-- STATUS BAR SIMULATOR -->
-        <div class="mobile-status-bar"></div>
-
-        <!-- LOGIN VIEW -->
-        <div id="loginView" class="view active">
-            <div class="mobile-login">
-                <div class="login-header">
-                    <div class="logo-circle">🏠</div>
-                    <h1>AirbnbManager</h1>
-                    <p>Gestión profesional de propiedades</p>
-                </div>
-
-                <div class="login-form">
-                    <div class="form-group">
-                        <label class="form-label">Tipo de Usuario</label>
-                        <select id="userType" class="form-control" onchange="updateMobileLoginForm()">
-                            <option value="">Selecciona...</option>
-                            <option value="owner">👤 Dueño</option>
-                            <option value="manager">👨‍💼 Manager</option>
-                            <option value="employee">👷 Empleado</option>
-                        </select>
-                    </div>
-
-                    <div id="ownerLoginGroup" style="display:none;">
-                        <div class="form-group">
-                            <label class="form-label">Usuario</label>
-                            <input type="text" id="ownerUsername" class="form-control" placeholder="Tu usuario">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Contraseña</label>
-                            <input type="password" id="ownerPassword" class="form-control" placeholder="Tu contraseña">
-                        </div>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="rememberOwnerMobile">
-                            <span>Recordar credenciales</span>
-                        </label>
-                    </div>
-
-                    <div id="staffLoginGroup" style="display:none;">
-                        <div class="form-group">
-                            <label class="form-label">Usuario</label>
-                            <input type="text" id="staffUsername" class="form-control" placeholder="Usuario asignado">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Contraseña</label>
-                            <input type="password" id="staffPassword" class="form-control" placeholder="Contraseña asignada">
-                        </div>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="rememberStaffMobile">
-                            <span>Recordar credenciales</span>
-                        </label>
-                    </div>
-
-                    <button class="btn btn-primary btn-block" onclick="mobileLogin()" style="margin-top: 1.5rem;">
-                        <span>Ingresar</span>
-                        <span class="btn-arrow">→</span>
-                    </button>
-                </div>
-
-                <div class="login-footer">
-                    <button class="btn-icon" id="themeMobileToggle" onclick="toggleMobileTheme()" title="Cambiar tema">🌙</button>
-                </div>
+    <!-- Login View -->
+    <div id="mobile-login-view" class="mobile-view">
+        <div class="login-container">
+            <div class="login-logo">
+                <svg width="80" height="80" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 1rem;">
+                    <circle cx="20" cy="20" r="18" fill="#FF6B6B" stroke="#C92A2A" stroke-width="2"/>
+                    <circle cx="20" cy="12" r="6" fill="white"/>
+                    <path d="M 20 18 Q 10 22 10 30 Q 10 32 12 34 L 28 34 Q 30 32 30 30 Q 30 22 20 18 Z" fill="white"/>
+                    <path d="M 24 24 L 28 28" stroke="#FF6B6B" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <h1>LIMPIEZA360</h1>
+                <p class="login-subtitle">Gestión de Propiedades</p>
             </div>
-        </div>
-
-        <!-- OWNER MOBILE VIEW -->
-        <div id="ownerMobileView" class="view">
-            <div class="mobile-container">
-                <!-- Top Navigation -->
-                <div class="mobile-header">
-                    <div class="header-top">
-                        <h1 id="ownerMobileName" class="header-title">AirbnbManager</h1>
-                        <div class="header-controls">
-                            <button class="btn-icon" onclick="refreshMobileApp()" title="Actualizar sin cerrar sesión">🔄</button>
-                            <button class="btn-icon" onclick="toggleMobileTheme()">🌙</button>
-                            <button class="btn-icon" onclick="mobileLogout()">🚪</button>
-                        </div>
-                    </div>
-                    <div class="header-subtitle" id="ownerRoleLabel">Dueño del Sistema</div>
+            <div class="login-form">
+                <div class="form-group">
+                    <label>Tipo de Usuario</label>
+                    <select id="mobile-login-type">
+                        <option value="owner">Propietario</option>
+                        <option value="manager">Gerente</option>
+                        <option value="employee">Empleado</option>
+                    </select>
                 </div>
-
-                <!-- Bottom Navigation Tabs -->
-                <div class="mobile-nav-tabs">
-                    <button class="nav-tab active" data-tab="dashboard" onclick="switchMobileTab('dashboard')">
-                        <span class="tab-icon">📊</span>
-                        <span class="tab-label">Inicio</span>
-                    </button>
-                    <button class="nav-tab" data-tab="properties" onclick="switchMobileTab('properties')">
-                        <span class="tab-icon">🏠</span>
-                        <span class="tab-label">Casas</span>
-                    </button>
-                    <button class="nav-tab" data-tab="tasks" onclick="switchMobileTab('tasks')">
-                        <span class="tab-icon">📋</span>
-                        <span class="tab-label">Tareas</span>
-                    </button>
-                    <button class="nav-tab" data-tab="schedule" onclick="switchMobileTab('schedule')">
-                        <span class="tab-icon">📅</span>
-                        <span class="tab-label">Agenda</span>
-                    </button>
-                    <button class="nav-tab" data-tab="inventory" onclick="switchMobileTab('inventory')">
-                        <span class="tab-icon">📦</span>
-                        <span class="tab-label">Inventario</span>
-                    </button>
-                    <button class="nav-tab" data-tab="staff" onclick="switchMobileTab('staff')">
-                        <span class="tab-icon">👥</span>
-                        <span class="tab-label">Personal</span>
-                    </button>
-                    <button class="nav-tab" data-tab="purchase" onclick="switchMobileTab('purchase')">
-                        <span class="tab-icon">🛒</span>
-                        <span class="tab-label">Compras</span>
-                    </button>
-                    <button class="nav-tab" data-tab="checks" onclick="switchMobileTab('checks')">
-                        <span class="tab-icon">📋</span>
-                        <span class="tab-label">Verificar</span>
-                    </button>
-                    <button class="nav-tab" data-tab="requests" onclick="switchMobileTab('requests')">
-                        <span class="tab-icon">📝</span>
-                        <span class="tab-label">Solicitudes</span>
-                    </button>
-                    <button class="nav-tab" data-tab="alerts" onclick="switchMobileTab('alerts')">
-                        <span class="tab-icon">⚠️</span>
-                        <span class="tab-label">Alertas</span>
-                    </button>
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <input type="text" id="mobile-username" placeholder="Ingrese su usuario">
                 </div>
-
-                <!-- Content Area -->
-                <div class="mobile-content">
-                    <!-- Dashboard Tab -->
-                    <div id="tab-dashboard" class="tab-content active">
-                        <div class="section-card">
-                            <h2 class="section-title">📊 Dashboard</h2>
-                            <div id="dashboardStats" class="stats-grid">
-                                <!-- Contenido dinámico -->
-                            </div>
-                        </div>
-
-                        <div class="section-card">
-                            <h2 class="section-title">🏠 Propiedades Activas</h2>
-                            <div id="dashboardProperties" class="properties-list">
-                                <!-- Contenido dinámico -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Properties Tab -->
-                    <div id="tab-properties" class="tab-content">
-                        <div class="section-card">
-                            <div class="section-header">
-                                <h2 class="section-title">🏠 Mis Propiedades</h2>
-                                <button class="btn btn-sm btn-primary" onclick="showAddPropertyMobile()">+ Agregar</button>
-                            </div>
-                            <div id="propertiesListMobile" class="properties-list">
-                                <!-- Contenido dinámico -->
-                            </div>
-                        </div>
-
-                        <div class="section-card">
-                            <div class="section-header">
-                                <h2 class="section-title">👥 Personal</h2>
-                                <button class="btn btn-sm btn-primary" onclick="showAddStaffMobile()">+ Agregar</button>
-                            </div>
-                            <div id="propertySelectStaffInline" class="form-group">
-                                <select class="form-control" id="staffPropertySelectInline" onchange="mobileSelectedProperty = this.value; loadMobileStaffInline()">
-                                    <option value="">Selecciona una casa...</option>
-                                </select>
-                            </div>
-                            <div id="staffContentMobileInline">
-                                <!-- Contenido dinámico -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Inventory Tab -->
-                    <div id="tab-inventory" class="tab-content">
-                        <div class="section-card">
-                            <h2 class="section-title">📦 Inventario</h2>
-                            <div id="propertySelectInventory" class="form-group">
-                                <select class="form-control" id="inventoryPropertySelect" onchange="mobileSelectedProperty = this.value; loadMobileInventory()">
-                                    <option value="">Selecciona una casa...</option>
-                                </select>
-                            </div>
-                            <button class="btn btn-secondary btn-block" onclick="showAddInventoryItemMobile()" style="margin-bottom: 1rem;">+ Agregar Item</button>
-                            <div id="inventoryContentMobile">
-                                <!-- Contenido dinámico -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Staff Tab -->
-                    <div id="tab-staff" class="tab-content">
-                        <div class="section-card">
-                            <h2 class="section-title">👥 Personal</h2>
-                            <div id="propertySelectStaff" class="form-group">
-                                <select class="form-control" id="staffPropertySelect" onchange="loadMobileStaff()">
-                                    <option value="">Selecciona una casa...</option>
-                                </select>
-                            </div>
-                            <button class="btn btn-secondary btn-block" onclick="showAddStaffMobile()" style="margin-bottom: 1rem;">+ Agregar Personal</button>
-                            <div id="staffContentMobile">
-                                <!-- Contenido dinámico -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Tasks Tab (Owner) -->
-                    <div id="tab-tasks" class="tab-content">
-                        <div class="section-card">
-                            <div class="section-header">
-                                <h2 class="section-title">📋 Tareas</h2>
-                                <button class="btn btn-sm btn-secondary" onclick="showAddTaskMobile()">+ Nueva</button>
-                            </div>
-                            <div id="propertySelectTasks" class="form-group">
-                                <select class="form-control" id="tasksPropertySelect" onchange="mobileSelectedProperty = this.value; loadMobileTasks()">
-                                    <option value="">Selecciona una casa...</option>
-                                </select>
-                            </div>
-                            <div id="tasksContentMobile">
-                                <!-- Contenido dinámico -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Schedule Tab (Owner) -->
-                    <div id="tab-schedule" class="tab-content">
-                        <div class="section-card">
-                            <div class="section-header">
-                                <h2 class="section-title">📅 Calendario</h2>
-                                <button class="btn btn-sm btn-primary" onclick="showAddScheduleMobile()">+ Agendar</button>
-                            </div>
-                            <div id="propertySelectSchedule" class="form-group">
-                                <select class="form-control" id="schedulePropertySelect" onchange="onSchedulePropertySelectChange(this.value)">
-                                    <option value="">Selecciona una casa...</option>
-                                </select>
-                            </div>
-                            <div id="staffSelectSchedule" class="form-group">
-                                <select class="form-control" id="scheduleStaffFilter" onchange="loadMobileSchedule()">
-                                    <option value="">Todos los empleados</option>
-                                </select>
-                            </div>
-                            <div id="scheduleContentMobile">
-                                <!-- Contenido dinámico -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- More Tab -->
-                    <div id="tab-purchase" class="tab-content">
-                        <div class="section-card">
-                            <div class="section-header">
-                                <h2 class="section-title">🛒 Lista de Compras</h2>
-                                <button class="btn btn-sm btn-primary" onclick="showAddPurchaseItemMobile()">+ Agregar</button>
-                            </div>
-                            <div id="purchaseContentMobile">
-                                <!-- Contenido dinámico -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Checks Tab -->
-                    <div id="tab-checks" class="tab-content">
-                        <div class="section-card">
-                            <h2 class="section-title">📋 Verificación de Inventario</h2>
-                            <div id="checksContentMobile">
-                                <!-- Contenido dinámico -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Requests Tab -->
-                    <div id="tab-requests" class="tab-content">
-                        <div class="section-card">
-                            <h2 class="section-title">📝 Solicitudes de Compra</h2>
-                            <div id="requestsContentMobile">
-                                <!-- Contenido dinámico -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Alerts Tab -->
-                    <div id="tab-alerts" class="tab-content">
-                        <div class="section-card">
-                            <h2 class="section-title">⚠️ Alertas del Sistema</h2>
-                            <div id="alertsContentMobile">
-                                <!-- Contenido dinámico -->
-                            </div>
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="mobile-password" placeholder="Ingrese su contraseña">
                 </div>
-            </div>
-        </div>
-
-        <!-- EMPLOYEE MOBILE VIEW -->
-        <div id="employeeMobileView" class="view">
-            <div class="mobile-container">
-                <!-- Top Navigation -->
-                <div class="mobile-header">
-                    <div class="header-top">
-                        <h1 class="header-title">Mis Tareas</h1>
-                        <div class="header-controls">
-                            <button class="btn-icon" onclick="refreshMobileApp()" title="Actualizar sin cerrar sesión">🔄</button>
-                            <button class="btn-icon" onclick="toggleMobileTheme()">🌙</button>
-                            <button class="btn-icon" onclick="mobileLogout()">🚪</button>
-                        </div>
-                    </div>
-                    <div id="employeeSubtitle" class="header-subtitle">Empleado</div>
+                <div class="form-group remember-group">
+                    <input type="checkbox" id="mobile-remember">
+                    <label for="mobile-remember">Recordar sesión</label>
                 </div>
-
-                <!-- Bottom Navigation Tabs -->
-                <div class="mobile-nav-tabs">
-                    <button class="nav-tab active" data-tab="tasks" onclick="switchEmployeeMobileTab('tasks')">
-                        <span class="tab-icon">✓</span>
-                        <span class="tab-label">Tareas</span>
-                    </button>
-                    <button class="nav-tab" data-tab="schedule" onclick="switchEmployeeMobileTab('schedule')">
-                        <span class="tab-icon">📅</span>
-                        <span class="tab-label">Calendario</span>
-                    </button>
-                    <button class="nav-tab" data-tab="requests" onclick="switchEmployeeMobileTab('requests')">
-                        <span class="tab-icon">📝</span>
-                        <span class="tab-label">Solicitudes</span>
-                    </button>
-                    <button class="nav-tab" data-tab="profile" onclick="switchEmployeeMobileTab('profile')">
-                        <span class="tab-icon">👤</span>
-                        <span class="tab-label">Perfil</span>
-                    </button>
-                </div>
-
-                <!-- Content Area -->
-                <div class="mobile-content">
-                    <!-- Tasks Tab -->
-                    <div id="emp-tab-tasks" class="tab-content active">
-                        <div class="section-card">
-                            <div id="employeeTasksContent">
-                                <!-- Contenido dinámico -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Schedule Tab -->
-                    <div id="emp-tab-schedule" class="tab-content">
-                        <div class="section-card">
-                            <h2 class="section-title">📅 Calendario</h2>
-                            <div id="employeeCalendarContent">
-                                <!-- Contenido dinámico -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Requests Tab -->
-                    <div id="emp-tab-requests" class="tab-content">
-                        <div class="section-card">
-                            <h2 class="section-title">📝 Solicitudes</h2>
-                            <div id="employeeRequestsContent">
-                                <!-- Contenido dinámico -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Profile Tab -->
-                    <div id="emp-tab-profile" class="tab-content">
-                        <div class="section-card">
-                            <h2 class="section-title">👤 Mi Perfil</h2>
-                            <div id="employeeProfileContent">
-                                <!-- Contenido dinámico -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- MODALS -->
-        <div id="mobileModal" class="mobile-modal">
-            <div class="modal-overlay" onclick="closeMobileModal()"></div>
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 id="modalTitle">Modal</h2>
-                    <button class="btn-close" onclick="closeMobileModal()">✕</button>
-                </div>
-                <div id="modalBody" class="modal-body">
-                    <!-- Contenido dinámico -->
-                </div>
+                <button class="btn-primary login-btn" onclick="mobileLogin()">Iniciar Sesión</button>
             </div>
         </div>
     </div>
+
+    <!-- Owner View -->
+    <div id="mobile-owner-view" class="mobile-view" style="display: none;">
+        <!-- Header with Hamburger Menu -->
+        <header class="mobile-header">
+            <button class="hamburger-btn" onclick="toggleMobileMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <h1 class="header-title">LIMPIEZA360</h1>
+            <div class="header-actions">
+                <button class="refresh-btn" onclick="refreshMobileApp()">🔄</button>
+                <span id="mobile-owner-name" class="user-name"></span>
+            </div>
+        </header>
+
+        <!-- Side Menu -->
+        <nav id="mobile-side-menu" class="side-menu">
+            <div class="menu-header">
+                <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
+                    <circle cx="20" cy="20" r="18" fill="white" stroke="white" stroke-width="2"/>
+                    <circle cx="20" cy="12" r="6" fill="#FF6B6B"/>
+                    <path d="M 20 18 Q 10 22 10 30 Q 10 32 12 34 L 28 34 Q 30 32 30 30 Q 30 22 20 18 Z" fill="#FF6B6B"/>
+                    <path d="M 24 24 L 28 28" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <span>Menú Principal</span>
+                <button class="close-menu-btn" onclick="toggleMobileMenu()">✕</button>
+            </div>
+            <ul class="menu-list">
+                <li class="menu-item active" data-section="dashboard" onclick="showMobileSection('dashboard')">
+                    <span class="menu-icon">📊</span>
+                    <span>Dashboard</span>
+                </li>
+                <li class="menu-item" data-section="properties" onclick="showMobileSection('properties')">
+                    <span class="menu-icon">🏠</span>
+                    <span>Propiedades</span>
+                </li>
+                <li class="menu-item" data-section="inventory" onclick="showMobileSection('inventory')">
+                    <span class="menu-icon">📦</span>
+                    <span>Inventario</span>
+                </li>
+                <li class="menu-item" data-section="inventory-checks" onclick="showMobileSection('inventory-checks')">
+                    <span class="menu-icon">✅</span>
+                    <span>Verificación Inventario</span>
+                </li>
+                <li class="menu-item" data-section="purchase" onclick="showMobileSection('purchase')">
+                    <span class="menu-icon">🛒</span>
+                    <span>Compras</span>
+                </li>
+                <li class="menu-item" data-section="purchase-history" onclick="showMobileSection('purchase-history')">
+                    <span class="menu-icon">📜</span>
+                    <span>Historial Compras</span>
+                </li>
+                <li class="menu-item" data-section="schedule" onclick="showMobileSection('schedule')">
+                    <span class="menu-icon">📅</span>
+                    <span>Calendario</span>
+                </li>
+                <li class="menu-item" data-section="tasks" onclick="showMobileSection('tasks')">
+                    <span class="menu-icon">📝</span>
+                    <span>Tareas</span>
+                </li>
+                <li class="menu-item" data-section="notifications" onclick="showMobileSection('notifications')">
+                    <span class="menu-icon">🔔</span>
+                    <span>Notificaciones</span>
+                </li>
+                <li class="menu-item" data-section="staff" onclick="showMobileSection('staff')">
+                    <span class="menu-icon">👥</span>
+                    <span>Personal</span>
+                </li>
+                <li class="menu-divider"></li>
+                <li class="menu-item logout" onclick="mobileLogout()">
+                    <span class="menu-icon">🚪</span>
+                    <span>Cerrar Sesión</span>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Overlay for menu -->
+        <div id="menu-overlay" class="menu-overlay" onclick="toggleMobileMenu()"></div>
+
+        <!-- Main Content -->
+        <main class="mobile-main-content">
+            <!-- Dashboard Section -->
+            <section id="section-dashboard" class="content-section active">
+                <h2 class="section-title">Dashboard</h2>
+                <div class="property-selector">
+                    <label>Propiedad:</label>
+                    <select id="dashboard-property-select" onchange="loadDashboardStats()">
+                        <option value="">Todas las propiedades</option>
+                    </select>
+                </div>
+                <div id="dashboard-stats" class="dashboard-grid">
+                    <!-- Stats cards will be loaded here -->
+                </div>
+                <div id="dashboard-charts" class="charts-container">
+                    <!-- Charts will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Properties Section -->
+            <section id="section-properties" class="content-section">
+                <h2 class="section-title">Propiedades</h2>
+                <button class="btn-primary btn-add" onclick="showAddPropertyModal()">
+                    <span>+</span> Agregar Propiedad
+                </button>
+                <div id="properties-list" class="cards-list">
+                    <!-- Properties will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Inventory Section -->
+            <section id="section-inventory" class="content-section">
+                <h2 class="section-title">Inventario</h2>
+                <div class="section-controls">
+                    <select id="inventory-property-select" onchange="loadMobileInventory()">
+                        <option value="">Seleccione propiedad</option>
+                    </select>
+                    <select id="inventory-category-select" onchange="loadMobileInventory()">
+                        <option value="">Todas las categorías</option>
+                        <option value="Habitación">Habitación</option>
+                        <option value="Baño">Baño</option>
+                        <option value="Cocina">Cocina</option>
+                        <option value="Sala">Sala</option>
+                        <option value="Terraza">Terraza</option>
+                        <option value="Limpieza">Limpieza</option>
+                        <option value="Exterior">Exterior</option>
+                    </select>
+                </div>
+                <div class="inventory-actions">
+                    <button class="btn-secondary" onclick="showAddInventoryModal()">+ Agregar Artículo</button>
+                    <button class="btn-warning" onclick="resetInventoryVerification()">🔄 Reset Verificación</button>
+                </div>
+                <div id="inventory-list" class="inventory-grid">
+                    <!-- Inventory items will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Inventory Checks Section -->
+            <section id="section-inventory-checks" class="content-section">
+                <h2 class="section-title">Verificación de Inventario</h2>
+                <div class="section-controls">
+                    <select id="inventory-checks-property-select" onchange="loadInventoryChecks()">
+                        <option value="">Seleccione propiedad</option>
+                    </select>
+                </div>
+                <div id="inventory-checks-list" class="checks-list">
+                    <!-- Inventory checks will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Purchase Section -->
+            <section id="section-purchase" class="content-section">
+                <h2 class="section-title">Lista de Compras</h2>
+                <div class="section-controls">
+                    <select id="purchase-property-select" onchange="loadMobilePurchaseList()">
+                        <option value="">Seleccione propiedad</option>
+                    </select>
+                </div>
+                <div id="purchase-list" class="purchase-grid">
+                    <!-- Purchase items will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Purchase History Section -->
+            <section id="section-purchase-history" class="content-section">
+                <h2 class="section-title">Historial de Compras</h2>
+                <div class="section-controls">
+                    <select id="purchase-history-property-select" onchange="loadPurchaseHistory()">
+                        <option value="">Seleccione propiedad</option>
+                    </select>
+                </div>
+                <div id="purchase-history-list" class="history-list">
+                    <!-- Purchase history will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Schedule/Calendar Section -->
+            <section id="section-schedule" class="content-section">
+                <h2 class="section-title">Calendario de Trabajo</h2>
+                <div class="section-controls">
+                    <select id="schedule-property-select" onchange="loadMobileSchedule()">
+                        <option value="">Seleccione propiedad</option>
+                    </select>
+                </div>
+                <div class="calendar-controls">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Fecha:</label>
+                            <input type="date" id="schedule-date">
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo:</label>
+                            <select id="schedule-type">
+                                <option value="trabajo">Trabajo</option>
+                                <option value="descanso">Descanso</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Empleado:</label>
+                            <select id="schedule-employee">
+                                <option value="">Seleccione empleado</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Turno:</label>
+                            <select id="schedule-shift">
+                                <option value="mañana">Mañana</option>
+                                <option value="tarde">Tarde</option>
+                                <option value="noche">Noche</option>
+                                <option value="completo">Completo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn-primary" onclick="addMobileSchedule()">Agregar al Calendario</button>
+                </div>
+                <div id="schedule-calendar" class="calendar-grid">
+                    <!-- Calendar will be loaded here -->
+                </div>
+                <div id="schedule-list" class="schedule-entries">
+                    <!-- Schedule entries will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Tasks Section -->
+            <section id="section-tasks" class="content-section">
+                <h2 class="section-title">Tareas</h2>
+                <div class="section-controls">
+                    <select id="tasks-property-select" onchange="loadMobileTasks()">
+                        <option value="">Seleccione propiedad</option>
+                    </select>
+                    <select id="tasks-type-filter" onchange="loadMobileTasks()">
+                        <option value="">Todos los tipos</option>
+                        <option value="limpieza">Limpieza</option>
+                        <option value="mantenimiento">Mantenimiento</option>
+                    </select>
+                </div>
+                <div class="task-form">
+                    <div class="form-row">
+                        <div class="form-group flex-grow">
+                            <input type="text" id="new-task-input" placeholder="Nueva tarea...">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <select id="new-task-type">
+                                <option value="limpieza">Limpieza</option>
+                                <option value="mantenimiento">Mantenimiento</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <select id="new-task-assignee">
+                                <option value="">Sin asignar</option>
+                            </select>
+                        </div>
+                        <button class="btn-primary" onclick="addMobileTask()">+ Crear</button>
+                    </div>
+                </div>
+                <div class="tasks-actions">
+                    <button class="btn-warning" onclick="reinitializeTasks()">🔄 Reiniciar Tareas</button>
+                </div>
+                <div id="tasks-container">
+                    <!-- Tasks grouped by type -->
+                    <div class="task-group" id="tasks-limpieza">
+                        <div class="task-group-header" onclick="toggleTaskGroup('limpieza')">
+                            <span>🧹 Tareas de Limpieza</span>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+                        <div class="task-group-content" id="tasks-limpieza-list">
+                            <!-- Cleaning tasks -->
+                        </div>
+                    </div>
+                    <div class="task-group" id="tasks-mantenimiento">
+                        <div class="task-group-header" onclick="toggleTaskGroup('mantenimiento')">
+                            <span>🔧 Tareas de Mantenimiento</span>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+                        <div class="task-group-content" id="tasks-mantenimiento-list">
+                            <!-- Maintenance tasks -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Notifications Section -->
+            <section id="section-notifications" class="content-section">
+                <h2 class="section-title">Notificaciones</h2>
+                <div class="section-controls">
+                    <select id="notifications-property-select" onchange="loadMobileNotifications()">
+                        <option value="">Seleccione propiedad</option>
+                    </select>
+                </div>
+                <div class="notification-form">
+                    <textarea id="new-notification" placeholder="Escribir notificación..." rows="3"></textarea>
+                    <button class="btn-primary" onclick="sendMobileNotification()">Enviar</button>
+                </div>
+                <div id="notifications-list" class="notifications-container">
+                    <!-- Notifications will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Staff Section -->
+            <section id="section-staff" class="content-section">
+                <h2 class="section-title">Personal</h2>
+                <button class="btn-primary btn-add" onclick="showAddStaffModal()">
+                    <span>+</span> Agregar Empleado
+                </button>
+                <div class="section-controls">
+                    <select id="staff-property-filter" onchange="loadMobileStaff()">
+                        <option value="">Todas las propiedades</option>
+                    </select>
+                </div>
+                <div id="staff-list" class="staff-grid">
+                    <!-- Staff will be loaded here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Employee View -->
+    <div id="mobile-employee-view" class="mobile-view" style="display: none;">
+        <!-- Header -->
+        <header class="mobile-header employee-header">
+            <button class="hamburger-btn" onclick="toggleEmployeeMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <h1 class="header-title">LIMPIEZA360</h1>
+            <div class="header-actions">
+                <button class="refresh-btn" onclick="refreshMobileApp()">🔄</button>
+                <span id="mobile-employee-name" class="user-name"></span>
+            </div>
+        </header>
+
+        <!-- Employee Side Menu -->
+        <nav id="employee-side-menu" class="side-menu">
+            <div class="menu-header">
+                <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
+                    <circle cx="20" cy="20" r="18" fill="white" stroke="white" stroke-width="2"/>
+                    <circle cx="20" cy="12" r="6" fill="#FF6B6B"/>
+                    <path d="M 20 18 Q 10 22 10 30 Q 10 32 12 34 L 28 34 Q 30 32 30 30 Q 30 22 20 18 Z" fill="#FF6B6B"/>
+                    <path d="M 24 24 L 28 28" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <span>Menú</span>
+                <button class="close-menu-btn" onclick="toggleEmployeeMenu()">✕</button>
+            </div>
+            <div class="employee-info-menu">
+                <p><strong>Propiedad:</strong> <span id="menu-employee-property"></span></p>
+                <p><strong>Hora entrada:</strong> <span id="menu-login-time"></span></p>
+            </div>
+            <ul class="menu-list">
+                <li class="menu-item active" data-section="emp-dashboard" onclick="showEmployeeSection('emp-dashboard')">
+                    <span class="menu-icon">📊</span>
+                    <span>Inicio</span>
+                </li>
+                <li class="menu-item" data-section="emp-schedule" onclick="showEmployeeSection('emp-schedule')">
+                    <span class="menu-icon">📅</span>
+                    <span>Mi Horario</span>
+                </li>
+                <li class="menu-item" data-section="emp-inventory" onclick="showEmployeeSection('emp-inventory')">
+                    <span class="menu-icon">📦</span>
+                    <span>Inventario</span>
+                </li>
+                <li class="menu-item" data-section="emp-purchase" onclick="showEmployeeSection('emp-purchase')">
+                    <span class="menu-icon">🛒</span>
+                    <span>Solicitar Compra</span>
+                </li>
+                <li class="menu-item" data-section="emp-tasks" onclick="showEmployeeSection('emp-tasks')">
+                    <span class="menu-icon">📝</span>
+                    <span>Mis Tareas</span>
+                </li>
+                <li class="menu-item" data-section="emp-end-day" onclick="showEmployeeSection('emp-end-day')">
+                    <span class="menu-icon">🏁</span>
+                    <span>Finalizar Jornada</span>
+                </li>
+                <li class="menu-divider"></li>
+                <li class="menu-item logout" onclick="mobileLogout()">
+                    <span class="menu-icon">🚪</span>
+                    <span>Cerrar Sesión</span>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Overlay for employee menu -->
+        <div id="employee-menu-overlay" class="menu-overlay" onclick="toggleEmployeeMenu()"></div>
+
+        <!-- Employee Main Content -->
+        <main class="mobile-main-content">
+            <!-- Employee Dashboard -->
+            <section id="section-emp-dashboard" class="content-section active">
+                <h2 class="section-title">Bienvenido</h2>
+                <div class="employee-info-card">
+                    <p><strong>Propiedad asignada:</strong> <span id="emp-assigned-property"></span></p>
+                    <p><strong>Hora de entrada:</strong> <span id="emp-login-time"></span></p>
+                    <p><strong>Turno:</strong> <span id="emp-shift-info"></span></p>
+                </div>
+                <div id="emp-dashboard-stats" class="dashboard-grid">
+                    <!-- Employee stats -->
+                </div>
+            </section>
+
+            <!-- Employee Schedule (Read-only) -->
+            <section id="section-emp-schedule" class="content-section">
+                <h2 class="section-title">Mi Horario</h2>
+                <div id="emp-schedule-calendar" class="calendar-grid">
+                    <!-- Read-only calendar -->
+                </div>
+                <div id="emp-schedule-list" class="schedule-entries">
+                    <!-- Schedule entries -->
+                </div>
+            </section>
+
+            <!-- Employee Inventory (Read-only with verification) -->
+            <section id="section-emp-inventory" class="content-section">
+                <h2 class="section-title">Inventario</h2>
+                <div class="section-controls">
+                    <select id="emp-inventory-category" onchange="loadEmployeeInventory()">
+                        <option value="">Todas las categorías</option>
+                        <option value="Habitación">Habitación</option>
+                        <option value="Baño">Baño</option>
+                        <option value="Cocina">Cocina</option>
+                        <option value="Sala">Sala</option>
+                        <option value="Terraza">Terraza</option>
+                        <option value="Limpieza">Limpieza</option>
+                        <option value="Exterior">Exterior</option>
+                    </select>
+                </div>
+                <div id="emp-inventory-list" class="inventory-grid">
+                    <!-- Inventory items -->
+                </div>
+            </section>
+
+            <!-- Employee Purchase Request -->
+            <section id="section-emp-purchase" class="content-section">
+                <h2 class="section-title">Solicitar Compra</h2>
+                <div class="purchase-request-form">
+                    <div class="form-group">
+                        <label>Artículo:</label>
+                        <input type="text" id="emp-purchase-item" placeholder="Nombre del artículo">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Cantidad:</label>
+                            <input type="number" id="emp-purchase-qty" value="1" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Urgencia:</label>
+                            <select id="emp-purchase-urgency">
+                                <option value="normal">Normal</option>
+                                <option value="urgente">Urgente</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Motivo:</label>
+                        <textarea id="emp-purchase-reason" placeholder="¿Por qué se necesita?" rows="2"></textarea>
+                    </div>
+                    <button class="btn-primary" onclick="submitPurchaseRequest()">Enviar Solicitud</button>
+                </div>
+                <h3>Mis Solicitudes</h3>
+                <div id="emp-purchase-requests" class="requests-list">
+                    <!-- Purchase requests -->
+                </div>
+            </section>
+
+            <!-- Employee Tasks -->
+            <section id="section-emp-tasks" class="content-section">
+                <h2 class="section-title">Mis Tareas</h2>
+                <div id="emp-tasks-stats" class="tasks-progress">
+                    <!-- Progress info -->
+                </div>
+                <div id="emp-tasks-container">
+                    <div class="task-group" id="emp-tasks-limpieza">
+                        <div class="task-group-header" onclick="toggleTaskGroup('emp-limpieza')">
+                            <span>🧹 Tareas de Limpieza</span>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+                        <div class="task-group-content" id="emp-tasks-limpieza-list">
+                            <!-- Cleaning tasks -->
+                        </div>
+                    </div>
+                    <div class="task-group" id="emp-tasks-mantenimiento">
+                        <div class="task-group-header" onclick="toggleTaskGroup('emp-mantenimiento')">
+                            <span>🔧 Tareas de Mantenimiento</span>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+                        <div class="task-group-content" id="emp-tasks-mantenimiento-list">
+                            <!-- Maintenance tasks -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- End Work Day -->
+            <section id="section-emp-end-day" class="content-section">
+                <h2 class="section-title">Finalizar Jornada</h2>
+                <div class="end-day-summary">
+                    <div class="summary-card">
+                        <h3>Resumen del Día</h3>
+                        <p><strong>Tareas completadas:</strong> <span id="end-day-tasks-done">0</span></p>
+                        <p><strong>Tareas pendientes:</strong> <span id="end-day-tasks-pending">0</span></p>
+                        <p><strong>Inventario verificado:</strong> <span id="end-day-inventory">0%</span></p>
+                    </div>
+                    <div class="form-group">
+                        <label>Notas del día (opcional):</label>
+                        <textarea id="end-day-notes" placeholder="Observaciones o comentarios..." rows="3"></textarea>
+                    </div>
+                    <button class="btn-primary btn-large" onclick="finishWorkDay()">
+                        🏁 Finalizar Jornada
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Manager View (Same as Owner but property-scoped) -->
+    <div id="mobile-manager-view" class="mobile-view" style="display: none;">
+        <!-- Header -->
+        <header class="mobile-header manager-header">
+            <button class="hamburger-btn" onclick="toggleManagerMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <h1 class="header-title">LIMPIEZA360</h1>
+            <div class="header-actions">
+                <button class="refresh-btn" onclick="refreshMobileApp()">🔄</button>
+                <span id="mobile-manager-name" class="user-name"></span>
+            </div>
+        </header>
+
+        <!-- Manager Side Menu -->
+        <nav id="manager-side-menu" class="side-menu">
+            <div class="menu-header">
+                <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
+                    <circle cx="20" cy="20" r="18" fill="white" stroke="white" stroke-width="2"/>
+                    <circle cx="20" cy="12" r="6" fill="#FF6B6B"/>
+                    <path d="M 20 18 Q 10 22 10 30 Q 10 32 12 34 L 28 34 Q 30 32 30 30 Q 30 22 20 18 Z" fill="#FF6B6B"/>
+                    <path d="M 24 24 L 28 28" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <span>Gerente</span>
+                <button class="close-menu-btn" onclick="toggleManagerMenu()">✕</button>
+            </div>
+            <div class="manager-property-info">
+                <p><strong>Propiedad:</strong> <span id="menu-manager-property"></span></p>
+            </div>
+            <ul class="menu-list">
+                <li class="menu-item active" data-section="mgr-dashboard" onclick="showManagerSection('mgr-dashboard')">
+                    <span class="menu-icon">📊</span>
+                    <span>Dashboard</span>
+                </li>
+                <li class="menu-item" data-section="mgr-inventory" onclick="showManagerSection('mgr-inventory')">
+                    <span class="menu-icon">📦</span>
+                    <span>Inventario</span>
+                </li>
+                <li class="menu-item" data-section="mgr-inventory-checks" onclick="showManagerSection('mgr-inventory-checks')">
+                    <span class="menu-icon">✅</span>
+                    <span>Verificación</span>
+                </li>
+                <li class="menu-item" data-section="mgr-purchase" onclick="showManagerSection('mgr-purchase')">
+                    <span class="menu-icon">🛒</span>
+                    <span>Compras</span>
+                </li>
+                <li class="menu-item" data-section="mgr-purchase-history" onclick="showManagerSection('mgr-purchase-history')">
+                    <span class="menu-icon">📜</span>
+                    <span>Historial</span>
+                </li>
+                <li class="menu-item" data-section="mgr-schedule" onclick="showManagerSection('mgr-schedule')">
+                    <span class="menu-icon">📅</span>
+                    <span>Calendario</span>
+                </li>
+                <li class="menu-item" data-section="mgr-tasks" onclick="showManagerSection('mgr-tasks')">
+                    <span class="menu-icon">📝</span>
+                    <span>Tareas</span>
+                </li>
+                <li class="menu-item" data-section="mgr-notifications" onclick="showManagerSection('mgr-notifications')">
+                    <span class="menu-icon">🔔</span>
+                    <span>Notificaciones</span>
+                </li>
+                <li class="menu-item" data-section="mgr-staff" onclick="showManagerSection('mgr-staff')">
+                    <span class="menu-icon">👥</span>
+                    <span>Personal</span>
+                </li>
+                <li class="menu-divider"></li>
+                <li class="menu-item logout" onclick="mobileLogout()">
+                    <span class="menu-icon">🚪</span>
+                    <span>Cerrar Sesión</span>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Overlay for manager menu -->
+        <div id="manager-menu-overlay" class="menu-overlay" onclick="toggleManagerMenu()"></div>
+
+        <!-- Manager Main Content -->
+        <main class="mobile-main-content">
+            <!-- Manager Dashboard -->
+            <section id="section-mgr-dashboard" class="content-section active">
+                <h2 class="section-title">Dashboard</h2>
+                <div class="manager-property-badge">
+                    <span id="mgr-property-name"></span>
+                </div>
+                <div id="mgr-dashboard-stats" class="dashboard-grid">
+                    <!-- Manager stats -->
+                </div>
+            </section>
+
+            <!-- Manager Inventory -->
+            <section id="section-mgr-inventory" class="content-section">
+                <h2 class="section-title">Inventario</h2>
+                <div class="section-controls">
+                    <select id="mgr-inventory-category" onchange="loadManagerInventory()">
+                        <option value="">Todas las categorías</option>
+                        <option value="Habitación">Habitación</option>
+                        <option value="Baño">Baño</option>
+                        <option value="Cocina">Cocina</option>
+                        <option value="Sala">Sala</option>
+                        <option value="Terraza">Terraza</option>
+                        <option value="Limpieza">Limpieza</option>
+                        <option value="Exterior">Exterior</option>
+                    </select>
+                </div>
+                <div class="inventory-actions">
+                    <button class="btn-secondary" onclick="showAddInventoryModalManager()">+ Agregar</button>
+                    <button class="btn-warning" onclick="resetManagerInventoryVerification()">🔄 Reset</button>
+                </div>
+                <div id="mgr-inventory-list" class="inventory-grid">
+                    <!-- Inventory -->
+                </div>
+            </section>
+
+            <!-- Manager Inventory Checks -->
+            <section id="section-mgr-inventory-checks" class="content-section">
+                <h2 class="section-title">Verificación de Inventario</h2>
+                <div id="mgr-inventory-checks-list" class="checks-list">
+                    <!-- Checks -->
+                </div>
+            </section>
+
+            <!-- Manager Purchase -->
+            <section id="section-mgr-purchase" class="content-section">
+                <h2 class="section-title">Lista de Compras</h2>
+                <div id="mgr-purchase-list" class="purchase-grid">
+                    <!-- Purchase items -->
+                </div>
+            </section>
+
+            <!-- Manager Purchase History -->
+            <section id="section-mgr-purchase-history" class="content-section">
+                <h2 class="section-title">Historial de Compras</h2>
+                <div id="mgr-purchase-history-list" class="history-list">
+                    <!-- History -->
+                </div>
+            </section>
+
+            <!-- Manager Schedule -->
+            <section id="section-mgr-schedule" class="content-section">
+                <h2 class="section-title">Calendario de Trabajo</h2>
+                <div class="calendar-controls">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Fecha:</label>
+                            <input type="date" id="mgr-schedule-date">
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo:</label>
+                            <select id="mgr-schedule-type">
+                                <option value="trabajo">Trabajo</option>
+                                <option value="descanso">Descanso</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Empleado:</label>
+                            <select id="mgr-schedule-employee">
+                                <option value="">Seleccione</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Turno:</label>
+                            <select id="mgr-schedule-shift">
+                                <option value="mañana">Mañana</option>
+                                <option value="tarde">Tarde</option>
+                                <option value="noche">Noche</option>
+                                <option value="completo">Completo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn-primary" onclick="addManagerSchedule()">Agregar</button>
+                </div>
+                <div id="mgr-schedule-calendar" class="calendar-grid">
+                    <!-- Calendar -->
+                </div>
+                <div id="mgr-schedule-list" class="schedule-entries">
+                    <!-- Schedule entries -->
+                </div>
+            </section>
+
+            <!-- Manager Tasks -->
+            <section id="section-mgr-tasks" class="content-section">
+                <h2 class="section-title">Tareas</h2>
+                <div class="task-form">
+                    <div class="form-row">
+                        <div class="form-group flex-grow">
+                            <input type="text" id="mgr-new-task-input" placeholder="Nueva tarea...">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <select id="mgr-new-task-type">
+                                <option value="limpieza">Limpieza</option>
+                                <option value="mantenimiento">Mantenimiento</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <select id="mgr-new-task-assignee">
+                                <option value="">Sin asignar</option>
+                            </select>
+                        </div>
+                        <button class="btn-primary" onclick="addManagerTask()">+ Crear</button>
+                    </div>
+                </div>
+                <div class="tasks-actions">
+                    <button class="btn-warning" onclick="reinitializeManagerTasks()">🔄 Reiniciar</button>
+                </div>
+                <div id="mgr-tasks-container">
+                    <div class="task-group">
+                        <div class="task-group-header" onclick="toggleTaskGroup('mgr-limpieza')">
+                            <span>🧹 Limpieza</span>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+                        <div class="task-group-content" id="mgr-tasks-limpieza-list"></div>
+                    </div>
+                    <div class="task-group">
+                        <div class="task-group-header" onclick="toggleTaskGroup('mgr-mantenimiento')">
+                            <span>🔧 Mantenimiento</span>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+                        <div class="task-group-content" id="mgr-tasks-mantenimiento-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Manager Notifications -->
+            <section id="section-mgr-notifications" class="content-section">
+                <h2 class="section-title">Notificaciones</h2>
+                <div class="notification-form">
+                    <textarea id="mgr-new-notification" placeholder="Escribir notificación..." rows="3"></textarea>
+                    <button class="btn-primary" onclick="sendManagerNotification()">Enviar</button>
+                </div>
+                <div id="mgr-notifications-list" class="notifications-container">
+                    <!-- Notifications -->
+                </div>
+            </section>
+
+            <!-- Manager Staff -->
+            <section id="section-mgr-staff" class="content-section">
+                <h2 class="section-title">Personal</h2>
+                <button class="btn-primary btn-add" onclick="showAddStaffModalManager()">
+                    <span>+</span> Agregar
+                </button>
+                <div id="mgr-staff-list" class="staff-grid">
+                    <!-- Staff list -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add Property Modal -->
+    <div id="modal-add-property" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Agregar Propiedad</h3>
+                <button class="modal-close" onclick="closeModal('modal-add-property')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nombre de la Propiedad:</label>
+                    <input type="text" id="new-property-name" placeholder="Ej: Casa de Playa">
+                </div>
+                <div class="form-group">
+                    <label>Dirección:</label>
+                    <input type="text" id="new-property-address" placeholder="Dirección completa">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('modal-add-property')">Cancelar</button>
+                <button class="btn-primary" onclick="addNewProperty()">Agregar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Inventory Item Modal -->
+    <div id="modal-add-inventory" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Agregar Artículo</h3>
+                <button class="modal-close" onclick="closeModal('modal-add-inventory')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Artículo:</label>
+                    <input type="text" id="new-item-name" placeholder="Nombre del artículo">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Cantidad:</label>
+                        <input type="number" id="new-item-qty" value="1" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría:</label>
+                        <select id="new-item-category">
+                            <option value="Habitación">Habitación</option>
+                            <option value="Baño">Baño</option>
+                            <option value="Cocina">Cocina</option>
+                            <option value="Sala">Sala</option>
+                            <option value="Terraza">Terraza</option>
+                            <option value="Limpieza">Limpieza</option>
+                            <option value="Exterior">Exterior</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('modal-add-inventory')">Cancelar</button>
+                <button class="btn-primary" onclick="addInventoryItem()">Agregar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Staff Modal -->
+    <div id="modal-add-staff" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Agregar Empleado</h3>
+                <button class="modal-close" onclick="closeModal('modal-add-staff')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nombre Completo:</label>
+                    <input type="text" id="new-staff-name" placeholder="Nombre del empleado">
+                </div>
+                <div class="form-group">
+                    <label>Usuario:</label>
+                    <input type="text" id="new-staff-username" placeholder="Usuario para login">
+                </div>
+                <div class="form-group">
+                    <label>Contraseña:</label>
+                    <input type="password" id="new-staff-password" placeholder="Contraseña">
+                </div>
+                <div class="form-group">
+                    <label>Rol:</label>
+                    <select id="new-staff-role">
+                        <option value="employee">Empleado</option>
+                        <option value="manager">Gerente</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Propiedad Asignada:</label>
+                    <select id="new-staff-property">
+                        <!-- Properties loaded dynamically -->
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('modal-add-staff')">Cancelar</button>
+                <button class="btn-primary" onclick="addNewStaff()">Agregar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="modal-confirm" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3 id="confirm-title">Confirmar</h3>
+                <button class="modal-close" onclick="closeModal('modal-confirm')">✕</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('modal-confirm')">Cancelar</button>
+                <button class="btn-primary" id="confirm-action-btn">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
 
     <script src="app.js"></script>
     <script src="mobile-app.js"></script>
