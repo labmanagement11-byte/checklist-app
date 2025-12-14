@@ -497,7 +497,10 @@ function loadMobileInventory() {
                         <div class="item-name">${it.name}</div>
                         <div class="item-details">${catName}</div>
                     </div>
-                    <div class="item-qty">${it.qty ?? 0}</div>
+                    <div class="item-qty-edit">
+                        <input type="number" min="0" value="${it.qty ?? 0}" onchange="updateInventoryItemQtyMobile('${propId}','${catKey}','${it.id}', this.value)" style="width: 60px; padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                        <button class="btn-icon" onclick="deleteInventoryItemMobile('${propId}','${catKey}','${it.id}')" style="background: #ff4444; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; margin-left: 0.5rem;">🗑️</button>
+                    </div>
                 </div>
             `).join('');
             return `
@@ -1458,7 +1461,10 @@ function loadManagerInventory() {
                         <div class="item-name">${it.name}</div>
                         <div class="item-details">${catName}</div>
                     </div>
-                    <div class="item-qty">${it.qty ?? 0}</div>
+                    <div class="item-qty-edit">
+                        <input type="number" min="0" value="${it.qty ?? 0}" onchange="updateInventoryItemQtyMobile('${prop.id}','${catKey}','${it.id}', this.value)" style="width: 60px; padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                        <button class="btn-icon" onclick="deleteInventoryItemMobile('${prop.id}','${catKey}','${it.id}')" style="background: #ff4444; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; margin-left: 0.5rem;">🗑️</button>
+                    </div>
                 </div>
             `).join('');
             return `
@@ -1469,7 +1475,7 @@ function loadManagerInventory() {
             `;
         });
     container.innerHTML = groups.join('');
-}
+}}
 
 // Map UI labels to internal category keys
 function normalizeCategoryFilter(val) {
@@ -1959,3 +1965,38 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// Actualizar cantidad de artículo de inventario
+function updateInventoryItemQtyMobile(propId, catKey, itemId, newQty) {
+    const prop = properties[propId];
+    if (!prop) return;
+    const items = prop.inventory[catKey];
+    if (!items) return;
+    const item = items.find(i => i.id === itemId);
+    if (item) {
+        item.qty = parseInt(newQty) || 0;
+        saveToLocalStorage();
+        if (currentUserType === 'owner') {
+            loadMobileInventory();
+        } else if (currentUserType === 'manager') {
+            loadManagerInventory();
+        }
+    }
+}
+
+// Eliminar artículo de inventario
+function deleteInventoryItemMobile(propId, catKey, itemId) {
+    const prop = properties[propId];
+    if (!prop) return;
+    const items = prop.inventory[catKey];
+    if (!items) return;
+    const idx = items.findIndex(i => i.id === itemId);
+    if (idx >= 0) {
+        items.splice(idx, 1);
+        saveToLocalStorage();
+        if (currentUserType === 'owner') {\n            loadMobileInventory();
+        } else if (currentUserType === 'manager') {
+            loadManagerInventory();
+        }
+    }
+}
