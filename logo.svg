@@ -1,166 +1,187 @@
 <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <!-- Advanced Gradients and Filters -->
   <defs>
-    <!-- Main gradient backgrounds -->
-    <linearGradient id="bgGradientMain" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0F172A;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#1E3A8A;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#312E81;stop-opacity:1" />
+    <!-- Luxury Gradients -->
+    <linearGradient id="luxuryBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0A0E27;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#1a1f3a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f1424;stop-opacity:1" />
     </linearGradient>
     
-    <!-- Radial gradient for depth -->
-    <radialGradient id="radialGlow" cx="40%" cy="40%">
-      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:0.3" />
-      <stop offset="100%" style="stop-color:#0F172A;stop-opacity:0" />
+    <radialGradient id="luxuryGlow" cx="50%" cy="30%">
+      <stop offset="0%" style="stop-color:#4F46E5;stop-opacity:0.4" />
+      <stop offset="100%" style="stop-color:#0A0E27;stop-opacity:0" />
     </radialGradient>
     
-    <!-- Primary accent gradient (blue) -->
-    <linearGradient id="accentBlue" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#2563EB;stop-opacity:1" />
+    <!-- Gold accent gradient (luxury) -->
+    <linearGradient id="goldLuxury" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F4D03F;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#D4AF37;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#AA8C2C;stop-opacity:1" />
     </linearGradient>
     
-    <!-- Emerald green accent -->
-    <linearGradient id="emeraldAccent" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#34D399;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    <!-- Platinum gradient -->
+    <linearGradient id="platinum" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8E8E8;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#D0D0D0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A8A9AD;stop-opacity:1" />
     </linearGradient>
     
-    <!-- Orange/amber accent -->
-    <linearGradient id="amberAccent" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#FBBF24;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#D97706;stop-opacity:1" />
+    <!-- Deep blue accent -->
+    <linearGradient id="deepBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4338CA;stop-opacity:1" />
     </linearGradient>
     
-    <!-- Cyan accent for modern touch -->
-    <linearGradient id="cyanAccent" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#0891B2;stop-opacity:1" />
-    </linearGradient>
-    
-    <!-- Glass effect filter -->
-    <filter id="glassEffect">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="1.5"/>
-      <feColorMatrix type="saturate" values="1.2"/>
+    <!-- Marble effect -->
+    <filter id="marble">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="3" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.5"/>
     </filter>
     
-    <!-- Strong glow effect -->
-    <filter id="strongGlow">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="coloredBlur"/>
+    <!-- Luxury glow -->
+    <filter id="luxuryGlowFilter">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="coloredBlur"/>
       <feMerge>
         <feMergeNode in="coloredBlur"/>
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
     
-    <!-- Soft shadow -->
-    <filter id="softShadow">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.3" flood-color="#000000"/>
+    <!-- Deep shadow -->
+    <filter id="luxuryShadow">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-opacity="0.4" flood-color="#000000"/>
+    </filter>
+    
+    <!-- Gold light -->
+    <filter id="goldLight">
+      <feDropShadow dx="2" dy="2" stdDeviation="4" flood-opacity="0.3" flood-color="#D4AF37"/>
     </filter>
   </defs>
   
-  <!-- Background circles - decorative -->
-  <circle cx="100" cy="100" r="100" fill="url(#bgGradientMain)"/>
-  <circle cx="100" cy="100" r="95" fill="url(#radialGlow)"/>
+  <!-- Luxury background -->
+  <rect width="200" height="200" fill="url(#luxuryBg)"/>
+  <circle cx="100" cy="100" r="95" fill="url(#luxuryGlow)"/>
   
-  <!-- Decorative rings -->
-  <circle cx="100" cy="100" r="88" fill="none" stroke="url(#accentBlue)" stroke-width="0.5" opacity="0.3"/>
-  <circle cx="100" cy="100" r="82" fill="none" stroke="url(#emeraldAccent)" stroke-width="0.5" opacity="0.2"/>
+  <!-- Decorative frame - architectural -->
+  <circle cx="100" cy="100" r="92" fill="none" stroke="url(#goldLuxury)" stroke-width="1.5" opacity="0.6"/>
+  <circle cx="100" cy="100" r="88" fill="none" stroke="url(#platinum)" stroke-width="0.8" opacity="0.4"/>
   
-  <!-- Main house group with enhanced design -->
-  <g filter="url(#softShadow)">
-    <!-- Outer house structure with modern angles -->
-    <defs>
-      <linearGradient id="roofGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:1" />
-        <stop offset="50%" style="stop-color:#3B82F6;stop-opacity:1" />
-        <stop offset="100%" style="stop-color:#1E40AF;stop-opacity:1" />
-      </linearGradient>
-    </defs>
+  <!-- Corner ornaments (architectural style) -->
+  <g opacity="0.7">
+    <!-- Top left -->
+    <path d="M 15 15 L 15 25 L 25 25" fill="none" stroke="url(#goldLuxury)" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M 18 18 L 18 22 L 22 22" fill="none" stroke="url(#goldLuxury)" stroke-width="0.8"/>
     
-    <!-- Modern roof with two-color gradient - chevron style -->
-    <path d="M 50 118 L 75 65 L 100 55 L 125 65 L 150 118 Z" fill="url(#roofGradient)" filter="url(#glassEffect)"/>
+    <!-- Top right -->
+    <path d="M 185 15 L 185 25 L 175 25" fill="none" stroke="url(#goldLuxury)" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M 182 18 L 182 22 L 178 22" fill="none" stroke="url(#goldLuxury)" stroke-width="0.8"/>
     
-    <!-- Roof highlight edge -->
-    <path d="M 50 118 L 75 65 L 100 55" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.4"/>
+    <!-- Bottom left -->
+    <path d="M 15 185 L 15 175 L 25 175" fill="none" stroke="url(#goldLuxury)" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M 18 182 L 18 178 L 22 178" fill="none" stroke="url(#goldLuxury)" stroke-width="0.8"/>
     
-    <!-- Main house walls - Modern clean design -->
-    <rect x="58" y="115" width="84" height="68" rx="5" fill="url(#accentBlue)" filter="url(#glassEffect)"/>
-    
-    <!-- Wall highlight for 3D effect -->
-    <rect x="60" y="118" width="80" height="2" fill="#ffffff" opacity="0.3" rx="1"/>
-    
-    <!-- Door - modern style with gradient -->
-    <g filter="url(#strongGlow)">
-      <rect x="85" y="142" width="30" height="38" rx="3" fill="url(#emeraldAccent)"/>
-      <circle cx="112" cy="161" r="2.5" fill="#ffffff" opacity="0.9"/>
-    </g>
-    
-    <!-- Left window group -->
-    <g filter="url(#glassEffect)">
-      <rect x="64" y="128" width="20" height="20" rx="3" fill="url(#amberAccent)"/>
-      <!-- Window panes -->
-      <line x1="74" y1="128" x2="74" y2="148" stroke="#1E3A8A" stroke-width="1.2" opacity="0.5"/>
-      <line x1="64" y1="138" x2="84" y2="138" stroke="#1E3A8A" stroke-width="1.2" opacity="0.5"/>
-      <!-- Light reflection -->
-      <rect x="66" y="130" width="6" height="6" fill="#ffffff" opacity="0.4" rx="1"/>
-    </g>
-    
-    <!-- Right window group -->
-    <g filter="url(#glassEffect)">
-      <rect x="116" y="128" width="20" height="20" rx="3" fill="url(#cyanAccent)"/>
-      <!-- Window panes -->
-      <line x1="126" y1="128" x2="126" y2="148" stroke="#0F172A" stroke-width="1.2" opacity="0.5"/>
-      <line x1="116" y1="138" x2="136" y2="138" stroke="#0F172A" stroke-width="1.2" opacity="0.5"/>
-      <!-- Light reflection -->
-      <rect x="118" y="130" width="6" height="6" fill="#ffffff" opacity="0.4" rx="1"/>
-    </g>
-    
-    <!-- Basement/lower section detail -->
-    <rect x="60" y="183" width="80" height="3" fill="#ffffff" opacity="0.15" rx="1"/>
+    <!-- Bottom right -->
+    <path d="M 185 185 L 185 175 L 175 175" fill="none" stroke="url(#goldLuxury)" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M 182 182 L 182 178 L 178 178" fill="none" stroke="url(#goldLuxury)" stroke-width="0.8"/>
   </g>
   
-  <!-- Cleaning sparkles and shine effects -->
-  <g filter="url(#strongGlow)">
-    <!-- Top right premium sparkle cluster -->
-    <g>
-      <!-- Main star -->
-      <circle cx="135" cy="75" r="4" fill="url(#amberAccent)"/>
-      <!-- Star rays -->
-      <line x1="135" y1="65" x2="135" y2="55" stroke="url(#amberAccent)" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="147" y1="75" x2="155" y2="75" stroke="url(#amberAccent)" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="143" y1="67" x2="150" y2="60" stroke="url(#amberAccent)" stroke-width="2" stroke-linecap="round"/>
-      <line x1="143" y1="83" x2="150" y2="90" stroke="url(#amberAccent)" stroke-width="2" stroke-linecap="round"/>
+  <!-- Main architectural building -->
+  <g filter="url(#luxuryShadow)">
+    <!-- Base foundation line -->
+    <line x1="50" y1="150" x2="150" y2="150" stroke="url(#goldLuxury)" stroke-width="2" opacity="0.8"/>
+    <line x1="52" y1="155" x2="148" y2="155" stroke="url(#platinum)" stroke-width="0.8" opacity="0.5"/>
+    
+    <!-- Main structure - modern geometric -->
+    <!-- Left wing -->
+    <polygon points="50,150 70,80 80,80 80,150" fill="url(#deepBlue)" opacity="0.9" filter="url(#luxuryGlowFilter)"/>
+    <line x1="70" y1="80" x2="80" y2="80" stroke="url(#goldLuxury)" stroke-width="1.5"/>
+    <line x1="75" y1="80" x2="75" y2="150" stroke="url(#platinum)" stroke-width="0.8" opacity="0.4"/>
+    
+    <!-- Center tower - main feature -->
+    <polygon points="80,70 100,50 120,70 120,150" fill="url(#deepBlue)" opacity="1" filter="url(#luxuryGlowFilter)"/>
+    <polygon points="80,70 100,50 120,70" fill="url(#goldLuxury)" opacity="0.4"/>
+    <line x1="100" y1="50" x2="100" y2="70" stroke="url(#goldLuxury)" stroke-width="2" opacity="0.8"/>
+    
+    <!-- Right wing -->
+    <polygon points="120,80 120,150 130,150 150,150 150,80 120,80" fill="url(#deepBlue)" opacity="0.9" filter="url(#luxuryGlowFilter)"/>
+    <line x1="125" y1="80" x2="125" y2="150" stroke="url(#platinum)" stroke-width="0.8" opacity="0.4"/>
+    
+    <!-- Architectural windows - left section -->
+    <g filter="url(#goldLight)">
+      <!-- Row 1 -->
+      <rect x="58" y="95" width="8" height="8" fill="url(#goldLuxury)" opacity="0.7"/>
+      <rect x="68" y="95" width="8" height="8" fill="url(#goldLuxury)" opacity="0.7"/>
+      <!-- Row 2 -->
+      <rect x="58" y="110" width="8" height="8" fill="url(#goldLuxury)" opacity="0.7"/>
+      <rect x="68" y="110" width="8" height="8" fill="url(#goldLuxury)" opacity="0.7"/>
+      <!-- Row 3 -->
+      <rect x="58" y="125" width="8" height="8" fill="url(#goldLuxury)" opacity="0.6"/>
+      <rect x="68" y="125" width="8" height="8" fill="url(#goldLuxury)" opacity="0.6"/>
     </g>
     
-    <!-- Bottom left emerald sparkle -->
-    <g>
-      <circle cx="68" cy="158" r="3.5" fill="url(#emeraldAccent)"/>
-      <line x1="68" y1="148" x2="68" y2="140" stroke="url(#emeraldAccent)" stroke-width="2" stroke-linecap="round"/>
-      <line x1="78" y1="158" x2="85" y2="158" stroke="url(#emeraldAccent)" stroke-width="2" stroke-linecap="round"/>
-      <line x1="75" y1="151" x2="80" y2="146" stroke="url(#emeraldAccent)" stroke-width="1.5" stroke-linecap="round"/>
+    <!-- Center tower windows - signature feature -->
+    <g filter="url(#goldLight)">
+      <!-- Upper section -->
+      <rect x="94" y="65" width="12" height="12" fill="url(#goldLuxury)" opacity="0.9"/>
+      <line x1="100" y1="65" x2="100" y2="77" stroke="#0A0E27" stroke-width="0.5"/>
+      <line x1="94" y1="71" x2="106" y2="71" stroke="#0A0E27" stroke-width="0.5"/>
+      
+      <!-- Middle section -->
+      <rect x="92" y="90" width="16" height="14" fill="url(#goldLuxury)" opacity="0.8"/>
+      <line x1="100" y1="90" x2="100" y2="104" stroke="#0A0E27" stroke-width="0.5"/>
+      <line x1="92" y1="97" x2="108" y2="97" stroke="#0A0E27" stroke-width="0.5"/>
+      
+      <!-- Lower section -->
+      <rect x="92" y="120" width="16" height="12" fill="url(#goldLuxury)" opacity="0.7"/>
+      <line x1="100" y1="120" x2="100" y2="132" stroke="#0A0E27" stroke-width="0.5"/>
+      <line x1="92" y1="126" x2="108" y2="126" stroke="#0A0E27" stroke-width="0.5"/>
     </g>
     
-    <!-- Top left cyan accent -->
-    <g>
-      <circle cx="50" cy="95" r="2.5" fill="url(#cyanAccent)"/>
-      <line x1="50" y1="88" x2="50" y2="82" stroke="url(#cyanAccent)" stroke-width="1.5" stroke-linecap="round"/>
-      <line x1="57" y1="95" x2="62" y2="95" stroke="url(#cyanAccent)" stroke-width="1.5" stroke-linecap="round"/>
+    <!-- Right section windows -->
+    <g filter="url(#goldLight)">
+      <!-- Row 1 -->
+      <rect x="128" y="95" width="8" height="8" fill="url(#goldLuxury)" opacity="0.7"/>
+      <rect x="138" y="95" width="8" height="8" fill="url(#goldLuxury)" opacity="0.7"/>
+      <!-- Row 2 -->
+      <rect x="128" y="110" width="8" height="8" fill="url(#goldLuxury)" opacity="0.7"/>
+      <rect x="138" y="110" width="8" height="8" fill="url(#goldLuxury)" opacity="0.7"/>
+      <!-- Row 3 -->
+      <rect x="128" y="125" width="8" height="8" fill="url(#goldLuxury)" opacity="0.6"/>
+      <rect x="138" y="125" width="8" height="8" fill="url(#goldLuxury)" opacity="0.6"/>
     </g>
+    
+    <!-- Architectural entrance - door -->
+    <rect x="94" y="137" width="12" height="13" fill="url(#platinum)" opacity="0.8" filter="url(#luxuryGlowFilter)"/>
+    <line x1="100" y1="137" x2="100" y2="150" stroke="url(#goldLuxury)" stroke-width="1.5" opacity="0.7"/>
+    <circle cx="104.5" cy="144" r="1.2" fill="url(#goldLuxury)"/>
+    
+    <!-- Architectural details - columns -->
+    <line x1="75" y1="75" x2="75" y2="150" stroke="url(#goldLuxury)" stroke-width="1" opacity="0.5"/>
+    <line x1="125" y1="85" x2="125" y2="150" stroke="url(#goldLuxury)" stroke-width="1" opacity="0.5"/>
   </g>
   
-  <!-- Modern 360° rotation indicator circle -->
-  <circle cx="100" cy="100" r="91" fill="none" stroke="url(#cyanAccent)" stroke-width="1.2" opacity="0.25" stroke-dasharray="8,4" stroke-linecap="round"/>
-  
-  <!-- Corner accent elements for premium feel -->
-  <g opacity="0.4">
-    <circle cx="20" cy="25" r="12" fill="url(#amberAccent)"/>
-    <circle cx="180" cy="175" r="10" fill="url(#emeraldAccent)"/>
+  <!-- Cleaning shine elements - luxurious sparkles -->
+  <g filter="url(#luxuryGlowFilter)">
+    <!-- Top shine -->
+    <circle cx="100" cy="45" r="2.5" fill="url(#goldLuxury)"/>
+    <line x1="100" y1="38" x2="100" y2="32" stroke="url(#goldLuxury)" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="106" y1="45" x2="111" y2="45" stroke="url(#goldLuxury)" stroke-width="1.5" stroke-linecap="round"/>
+    
+    <!-- Left accent shine -->
+    <circle cx="45" cy="100" r="2" fill="url(#platinum)"/>
+    <line x1="40" y1="100" x2="35" y2="100" stroke="url(#platinum)" stroke-width="1" stroke-linecap="round"/>
+    
+    <!-- Right accent shine -->
+    <circle cx="155" cy="110" r="1.8" fill="url(#platinum)"/>
+    <line x1="160" y1="110" x2="165" y2="110" stroke="url(#platinum)" stroke-width="1" stroke-linecap="round"/>
   </g>
   
-  <!-- Center brand mark -->
+  <!-- Luxury brand text -->
   <g>
-    <text x="100" y="195" font-family="Arial, sans-serif" font-size="16" font-weight="900" text-anchor="middle" fill="url(#accentBlue)" letter-spacing="1">360PRO</text>
-    <line x1="65" y1="197" x2="135" y2="197" stroke="url(#cyanAccent)" stroke-width="1" opacity="0.6"/>
+    <text x="100" y="172" font-family="Georgia, serif" font-size="10" font-weight="300" text-anchor="middle" fill="url(#goldLuxury)" letter-spacing="1.5" opacity="0.9">360PRO</text>
+    <text x="100" y="182" font-family="Georgia, serif" font-size="5" font-weight="300" text-anchor="middle" fill="url(#platinum)" letter-spacing="2" opacity="0.6">LUXURY CLEANING</text>
   </g>
+  
+  <!-- Decorative lines -->
+  <line x1="75" y1="168" x2="125" y2="168" stroke="url(#goldLuxury)" stroke-width="0.5" opacity="0.4"/>
 </svg>
