@@ -1248,12 +1248,18 @@ function loadEmployeeInventorySummary() {
         const catIcon = INVENTORY_CATEGORIES[catKey]?.icon || '📦';
         
         html += `
-            <div class="summary-category">
-                <div class="summary-category-header">
-                    <h3>${catIcon} ${catName}</h3>
-                    <span class="summary-stats">✓${okCount} | ✗${missingCount}</span>
+            <div class="inv-summary-section">
+                <div class="inv-summary-header">
+                    <div class="inv-header-title">${catIcon} ${catName}</div>
+                    <div class="inv-header-stats">✓${okCount} | ✗${missingCount}</div>
                 </div>
-                <div class="summary-items">
+                <div class="inv-summary-table">
+                    <div class="inv-table-header">
+                        <div class="inv-col-item">Artículo</div>
+                        <div class="inv-col-qty">Esperado</div>
+                        <div class="inv-col-qty">Real</div>
+                        <div class="inv-col-status">Estado</div>
+                    </div>
         `;
         
         categoryChecks.forEach(check => {
@@ -1265,22 +1271,19 @@ function loadEmployeeInventorySummary() {
             const dateStr = date.toLocaleDateString('es-ES', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
             const statusIcon = check.status === 'ok' ? '✓' : check.status === 'resolved' ? '🔧' : '✗';
             const statusColor = check.status === 'ok' ? '#4CAF50' : check.status === 'resolved' ? '#2196F3' : '#f44336';
-            const statusBg = check.status === 'ok' ? 'rgba(76, 175, 80, 0.1)' : check.status === 'resolved' ? 'rgba(33, 150, 243, 0.1)' : 'rgba(244, 67, 54, 0.1)';
+            const bgColor = check.status === 'ok' ? 'rgba(76, 175, 80, 0.08)' : check.status === 'resolved' ? 'rgba(33, 150, 243, 0.08)' : 'rgba(244, 67, 54, 0.08)';
             
             html += `
-                <div class="summary-item" style="background-color: ${statusBg}; border-left: 4px solid ${statusColor};">
-                    <div class="summary-item-left">
-                        <div class="summary-item-name">${item.name}</div>
-                        <div class="summary-item-details">
-                            <span>Esperado: ${item.qty} | Real: ${check.realQty}</span>
-                        </div>
-                        ${check.comment ? `<div class="summary-item-comment">💬 ${check.comment}</div>` : ''}
+                <div class="inv-table-row" style="background-color: ${bgColor};">
+                    <div class="inv-col-item">
+                        <div class="inv-item-name">${item.name}</div>
+                        ${check.comment ? `<div class="inv-item-comment">💬 ${check.comment}</div>` : ''}
                     </div>
-                    <div class="summary-item-right">
-                        <div class="summary-item-status" style="color: ${statusColor}; font-size: 20px; font-weight: 600;">
-                            ${statusIcon}
-                        </div>
-                        <div class="summary-item-date">${dateStr}</div>
+                    <div class="inv-col-qty">${item.qty}</div>
+                    <div class="inv-col-qty">${check.realQty}</div>
+                    <div class="inv-col-status">
+                        <div style="font-size: 18px; color: ${statusColor}; font-weight: 700;">${statusIcon}</div>
+                        <div class="inv-item-date">${dateStr}</div>
                     </div>
                 </div>
             `;
