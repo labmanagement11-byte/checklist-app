@@ -82,7 +82,11 @@ function mobileLogin() {
                 localStorage.setItem('airbnbmanager_mobile_staff_creds', JSON.stringify({ username, password }));
             }
             
-            showMobileEmployeeView();
+            if (staffFound.role === 'manager') {
+                showMobileOwnerView();
+            } else {
+                showMobileEmployeeView();
+            }
         } else {
             alert('❌ Usuario o contraseña incorrectos');
         }
@@ -132,6 +136,10 @@ function showMobileOwnerView() {
     document.getElementById('ownerMobileView').classList.add('active');
     if (!mobileSelectedProperty) {
         mobileSelectedProperty = Object.keys(properties)[0] || null;
+    }
+    const roleLabel = document.getElementById('ownerRoleLabel');
+    if (roleLabel) {
+        roleLabel.textContent = mobileCurrentUserType === 'manager' ? 'Manager' : 'Dueño del Sistema';
     }
     renderMobileOwnerDashboard();
     loadMobileProperties();
