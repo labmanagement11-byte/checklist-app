@@ -8,8 +8,27 @@
 </head>
 <body>
     <div id="app">
+        <!-- WELCOME VIDEO SPLASH SCREEN -->
+        <div id="welcomeVideoView" class="view" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: #000; position: relative; overflow: hidden;">
+            <video id="welcomeVideo" width="100%" height="100%" autoplay style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;">
+                <source src="welcome-video.mp4" type="video/mp4">
+                Tu navegador no soporta video HTML5.
+            </video>
+            
+            <!-- Overlay oscuro semi-transparente -->
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.3); z-index: 1;"></div>
+            
+            <!-- Logo y botón superpuestos -->
+            <div style="position: relative; z-index: 2; text-align: center; color: white;">
+                <img src="logo.svg" alt="LIMPIEZA-360PRO-APP" width="120" height="120" style="margin-bottom: 2rem; animation: pulse 2s ease-in-out infinite;">
+                <h1 style="font-size: 3rem; margin: 0 0 1rem 0; font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.7);">LIMPIEZA-360PRO-APP</h1>
+                <p style="font-size: 1.2rem; margin: 0 0 2rem 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.7);">Gestión de Propiedades y Limpieza</p>
+                <button onclick="skipToLogin()" style="padding: 12px 30px; font-size: 1rem; background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); box-shadow: 0 4px 15px rgba(0,0,0,0.4); transition: all 0.3s ease;">Continuar</button>
+            </div>
+        </div>
+        
         <!-- LOGIN -->
-        <div id="loginView" class="view">
+        <div id="loginView" class="view" style="display: none;">
             <div class="login-container">
                 <style>
                 </style>
@@ -367,6 +386,42 @@
         </div>
     </div>
 
+    <script>
+        // Welcome video handler
+        let videoSkipped = false;
+        
+        function skipToLogin() {
+            videoSkipped = true;
+            const welcomeView = document.getElementById('welcomeVideoView');
+            const loginView = document.getElementById('loginView');
+            const video = document.getElementById('welcomeVideo');
+            
+            video.pause();
+            welcomeView.style.display = 'none';
+            loginView.style.display = 'block';
+        }
+        
+        // Auto-advance to login after video ends (5-10 seconds based on video)
+        window.addEventListener('load', function() {
+            const video = document.getElementById('welcomeVideo');
+            if (video) {
+                video.addEventListener('ended', function() {
+                    if (!videoSkipped) {
+                        skipToLogin();
+                    }
+                });
+                
+                // Safety timeout - go to login after 15 seconds max
+                setTimeout(function() {
+                    const welcomeView = document.getElementById('welcomeVideoView');
+                    if (welcomeView && welcomeView.style.display !== 'none' && !videoSkipped) {
+                        skipToLogin();
+                    }
+                }, 15000);
+            }
+        });
+    </script>
+    
     <script src="app.js"></script>
 </body>
 </html>

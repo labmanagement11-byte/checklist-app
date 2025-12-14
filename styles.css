@@ -49,6 +49,32 @@ img[src*="logo.svg"] {
     transform-origin: center center;
 }
 
+/* Welcome Video Styles */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0.9;
+    }
+}
+
+#welcomeVideoView video {
+    display: block;
+}
+
+#welcomeVideoView button:hover {
+    background: linear-gradient(135deg, #2563EB, #1D4ED8) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5) !important;
+}
+
+#welcomeVideoView button:active {
+    transform: translateY(0);
+}
+
 :root {
     /* Tema claro (por defecto) */
     --bg-primary: #ffffff;
