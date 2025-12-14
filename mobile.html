@@ -21,15 +21,12 @@
 <body>
     <!-- Welcome Video Splash Screen -->
     <div id="mobile-welcome-video" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: #000; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; overflow: hidden;">
-        <video id="welcomeVideoMobile" width="100%" height="100%" autoplay muted playsinline loop style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain;">
+        <video id="welcomeVideoMobile" width="100%" height="100%" autoplay muted playsinline loop style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; animation: videoZoom 15s ease-in-out infinite;">
             <source src="welcome-video.mp4" type="video/mp4">
         </video>
         
-        <!-- Overlay oscuro -->
-        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.3); z-index: 1;"></div>
-        
         <!-- Botón de continuar -->
-        <div style="position: absolute; bottom: 40px; left: 0; right: 0; text-align: center; z-index: 2;">
+        <div style="position: absolute; bottom: 40px; left: 0; right: 0; text-align: center; z-index: 10;">
             <button onclick="skipToLoginMobile()" style="padding: 12px 30px; font-size: 1rem; background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.4); transition: all 0.3s ease;">Continuar</button>
         </div>
     </div>
