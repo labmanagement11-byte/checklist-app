@@ -1173,6 +1173,27 @@
         </div>
     </div>
 
+    <!-- Modal - Tarea No Completada -->
+    <div id="modal-task-not-completed" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>¿Por qué no se completó?</h3>
+                <button class="modal-close" onclick="closeModal('modal-task-not-completed')">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="task-not-completed-id">
+                <div class="form-group">
+                    <label>Explica el motivo por el cual no pudiste completar esta tarea:</label>
+                    <textarea id="task-not-completed-reason" placeholder="Ej: No tenía los materiales, hubo una emergencia, etc." rows="4" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('modal-task-not-completed')">Cancelar</button>
+                <button class="btn-primary" onclick="submitTaskNotCompleted()" style="background: #ff9800;">Guardar Razón</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
 

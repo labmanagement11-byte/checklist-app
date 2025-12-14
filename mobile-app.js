@@ -2,12 +2,14 @@
 // Relies on shared data/state from app.js
 
 const MOBILE_SESSION_KEY = 'airbnbmanager_mobile_session';
+const TASK_NOTIFICATIONS_KEY = 'airbnbmanager_task_notifications';
 let mobileCurrentUserType = null; // owner | manager | employee
 let mobileCurrentUser = null;
 let mobileSelectedProperty = null;
 let mobileActiveSection = 'dashboard';
 let mobileActiveScheduleId = null; // track focused schedule for task filtering
 let mobilePendingScheduleId = null; // temp holder when navigating from schedule to tasks
+let taskNotifications = []; // Notificaciones de tareas completadas por empleados
 
 // Base task templates for EPIC jobs so employees can see concrete steps
 const EPIC_TASK_TEMPLATES = {
@@ -288,6 +290,7 @@ function showMobileOwnerView(skipLoad) {
         loadMobileTasks();
         loadMobileNotifications();
         loadMobileStaff();
+        loadOwnerNotifications();
     }
 }
 
@@ -804,12 +807,33 @@ function loadMobileTasks() {
 
 function renderTaskList(list) {
     if (!list.length) return '<div class="empty-state"><p>Sin tareas</p></div>';
+    // Para empleados, mostrar botones de Completado/No Completado
+    if (mobileCurrentUserType === 'employee') {
+        return list.map(t => `
+            <div class="task-item">
+                <div class="task-content">
+                    <div class="task-name ${t.completed ? 'completed' : ''}">${t.taskText || t.task || 'Tarea'}</div>
+                    <div class="task-meta">${t.subsectionTitle || t.sectionKey || ''}</div>
+                    ${t.completionReason ? `<div class="task-reason" style="color: #ff6b6b; font-size: 0.85rem; margin-top: 0.5rem;">❌ No completada: ${t.completionReason}</div>` : ''}
+                </div>
+                <div class="task-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                    <button class="btn-success" onclick="markTaskCompleted('${t.id}')" style="background: #4caf50; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; cursor: pointer;" ${t.completed ? 'disabled style="opacity: 0.6;"' : ''}>
+                        ✓ Completado
+                    </button>
+                    <button class="btn-warning" onclick="showTaskNotCompletedModal('${t.id}')" style="background: #ff9800; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; cursor: pointer;">
+                        ✗ No Completado
+                    </button>
+                </div>
+            </div>`).join('');
+    }
+    // Para manager/owner, mostrar estado simple
     return list.map(t => `
         <div class="task-item">
             <input type="checkbox" class="task-checkbox" ${t.completed ? 'checked' : ''} onclick="toggleTaskComplete('${t.id}')">
             <div class="task-content">
                 <div class="task-name ${t.completed ? 'completed' : ''}">${t.taskText || t.task || 'Tarea'}</div>
                 <div class="task-meta">${t.subsectionTitle || t.sectionKey || ''}</div>
+                ${t.completionReason ? `<div class="task-reason" style="color: #ff6b6b; font-size: 0.85rem; margin-top: 0.5rem;">Razón: ${t.completionReason}</div>` : ''}
             </div>
         </div>`).join('');
 }
@@ -1652,8 +1676,27 @@ function sendManagerNotification() {
 function loadManagerNotifications() {
     const container = document.getElementById('mgr-notifications-list');
     if (!container) return;
-    const list = workDayNotifications.filter(n => n.propertyId === mobileSelectedProperty);
-    container.innerHTML = list.map(n => `<div class="notification-item"><div class="notification-date">${n.date || new Date(n.createdAt||Date.now()).toLocaleDateString('es-ES')}</div><div class="notification-content">${n.message || 'Aviso'} · ${n.employeeName||''}</div></div>`).join('') || '<div class="empty-state"><p>Sin notificaciones</p></div>';
+    
+    // Mostrar notificaciones de tareas completadas
+    loadTaskNotifications();
+    const pending = taskNotifications.filter(n => n.propertyId === mobileSelectedProperty && n.status === 'pending');
+    
+    if (pending.length === 0) {
+        container.innerHTML = '<p style="color: #999;">No hay notificaciones nuevas</p>';
+        return;
+    }
+    
+    container.innerHTML = pending.map(n => `
+        <div style="background: #e3f2fd; border: 1px solid #2196f3; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+            <div style="font-weight: bold; margin-bottom: 0.5rem;">📌 ${n.type === 'task_completed' ? 'Tarea Completada' : 'Tarea No Completada'}</div>
+            <div style="font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>${n.employeeName}</strong></div>
+            <div style="font-size: 0.85rem; margin-bottom: 0.5rem;"><strong>Tarea:</strong> ${n.taskText}</div>
+            ${n.reason ? '<div style="font-size: 0.85rem; margin-bottom: 0.5rem; color: #d32f2f;"><strong>Razón:</strong> ' + n.reason + '</div>' : ''}
+            <div style="font-size: 0.8rem; color: #666; margin-bottom: 1rem;">${n.completedAt || n.timestamp}</div>
+            ${n.type === 'task_completed' ? '<button class="btn-primary" onclick="verifyTaskCompletion(\'' + n.id + '\')" style="background: #4caf50; padding: 0.5rem 1rem; border: none; border-radius: 4px; color: white; cursor: pointer; margin-right: 0.5rem;">Verificar y Cerrar</button>' : ''}
+            <button class="btn-secondary" onclick="dismissTaskNotification(\'' + n.id + '\')" style="background: #757575; padding: 0.5rem 1rem; border: none; border-radius: 4px; color: white; cursor: pointer;">Descartar</button>
+        </div>
+    `).join('');
 }
 
 function loadManagerStaff() {
@@ -1994,9 +2037,147 @@ function deleteInventoryItemMobile(propId, catKey, itemId) {
     if (idx >= 0) {
         items.splice(idx, 1);
         saveToLocalStorage();
-        if (currentUserType === 'owner') {\n            loadMobileInventory();
+        if (currentUserType === 'owner') {
+            loadMobileInventory();
         } else if (currentUserType === 'manager') {
             loadManagerInventory();
         }
+    }
+}
+
+// ========== Sistema de Notificaciones de Tareas ==========
+
+function loadTaskNotifications() {
+    const stored = localStorage.getItem(TASK_NOTIFICATIONS_KEY);
+    taskNotifications = stored ? JSON.parse(stored) : [];
+}
+
+function saveTaskNotifications() {
+    localStorage.setItem(TASK_NOTIFICATIONS_KEY, JSON.stringify(taskNotifications));
+}
+
+function markTaskCompleted(taskId) {
+    const task = cleaningTasks.find(t => t.id === taskId);
+    if (!task) return;
+    
+    task.completed = true;
+    task.completedAt = new Date().toISOString();
+    task.completionReason = null;
+    
+    const notification = {
+        id: 'notif_' + Date.now(),
+        taskId: taskId,
+        taskText: task.taskText || task.task,
+        employeeId: mobileCurrentUser.staffId,
+        employeeName: mobileCurrentUser.name,
+        propertyId: mobileSelectedProperty,
+        propertyName: properties[mobileSelectedProperty]?.name,
+        completedAt: new Date().toLocaleString(),
+        status: 'pending',
+        type: 'task_completed'
+    };
+    
+    taskNotifications.push(notification);
+    saveTaskNotifications();
+    saveData();
+    
+    showToast('Tarea marcada como completada');
+    loadEmployeeTasks();
+}
+
+function showTaskNotCompletedModal(taskId) {
+    document.getElementById('modal-task-not-completed').classList.add('open');
+    document.getElementById('task-not-completed-id').value = taskId;
+    document.getElementById('task-not-completed-reason').value = '';
+}
+
+function submitTaskNotCompleted() {
+    const taskId = document.getElementById('task-not-completed-id').value;
+    const reason = document.getElementById('task-not-completed-reason').value.trim();
+    
+    if (!reason) {
+        showToast('Por favor escribe la razón', true);
+        return;
+    }
+    
+    const task = cleaningTasks.find(t => t.id === taskId);
+    if (!task) return;
+    
+    task.completed = false;
+    task.completionReason = reason;
+    task.notCompletedAt = new Date().toISOString();
+    
+    const notification = {
+        id: 'notif_' + Date.now(),
+        taskId: taskId,
+        taskText: task.taskText || task.task,
+        employeeId: mobileCurrentUser.staffId,
+        employeeName: mobileCurrentUser.name,
+        propertyId: mobileSelectedProperty,
+        propertyName: properties[mobileSelectedProperty]?.name,
+        reason: reason,
+        timestamp: new Date().toLocaleString(),
+        status: 'pending',
+        type: 'task_not_completed'
+    };
+    
+    taskNotifications.push(notification);
+    saveTaskNotifications();
+    saveData();
+    
+    closeModal('modal-task-not-completed');
+    showToast('Razón registrada');
+    loadEmployeeTasks();
+}
+
+function loadOwnerNotifications() {
+    loadTaskNotifications();
+    const container = document.getElementById('owner-notifications-container');
+    if (!container) return;
+    
+    const pending = taskNotifications.filter(n => n.status === 'pending');
+    
+    if (pending.length === 0) {
+        container.innerHTML = '<p style="color: #999;">No hay notificaciones nuevas</p>';
+        return;
+    }
+    
+    container.innerHTML = pending.map(n => `
+        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+            <div style="font-weight: bold; margin-bottom: 0.5rem;">📌 ${n.type === 'task_completed' ? 'Tarea Completada' : 'Tarea No Completada'}</div>
+            <div style="font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>${n.employeeName}</strong> - ${n.propertyName}</div>
+            <div style="font-size: 0.85rem; margin-bottom: 0.5rem;"><strong>Tarea:</strong> ${n.taskText}</div>
+            ${n.reason ? '<div style="font-size: 0.85rem; margin-bottom: 0.5rem; color: #d32f2f;"><strong>Razón:</strong> ' + n.reason + '</div>' : ''}
+            <div style="font-size: 0.8rem; color: #666; margin-bottom: 1rem;">${n.completedAt || n.timestamp}</div>
+            ${n.type === 'task_completed' ? '<button class="btn-primary" onclick="verifyTaskCompletion(\'' + n.id + '\')" style="background: #4caf50; padding: 0.5rem 1rem; border: none; border-radius: 4px; color: white; cursor: pointer; margin-right: 0.5rem;">Verificar y Cerrar</button>' : ''}
+            <button class="btn-secondary" onclick="dismissTaskNotification(\'' + n.id + '\')" style="background: #757575; padding: 0.5rem 1rem; border: none; border-radius: 4px; color: white; cursor: pointer;">Descartar</button>
+        </div>
+    `).join('');
+}
+
+function verifyTaskCompletion(notificationId) {
+    const notif = taskNotifications.find(n => n.id === notificationId);
+    if (!notif) return;
+    
+    notif.status = 'verified';
+    saveTaskNotifications();
+    
+    showToast('Tarea verificada y cerrada');
+    
+    if (mobileCurrentUserType === 'owner') {
+        loadOwnerNotifications();
+    } else if (mobileCurrentUserType === 'manager') {
+        loadManagerNotifications();
+    }
+}
+
+function dismissTaskNotification(notificationId) {
+    taskNotifications = taskNotifications.filter(n => n.id !== notificationId);
+    saveTaskNotifications();
+    
+    if (mobileCurrentUserType === 'owner') {
+        loadOwnerNotifications();
+    } else if (mobileCurrentUserType === 'manager') {
+        loadManagerNotifications();
     }
 }
