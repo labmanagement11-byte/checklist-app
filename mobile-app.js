@@ -423,7 +423,8 @@ function fillPropertyOptions(selectId) {
 
 function loadMobileInventory() {
     const propId = document.getElementById('inventory-property-select')?.value || mobileSelectedProperty;
-    const category = document.getElementById('inventory-category-select')?.value || '';
+    const rawCategory = document.getElementById('inventory-category-select')?.value || '';
+    const category = normalizeCategoryFilter(rawCategory);
     if (propId) mobileSelectedProperty = propId;
     const container = document.getElementById('inventory-list');
     if (!container) return;
@@ -435,9 +436,8 @@ function loadMobileInventory() {
     const inventory = prop.inventory || {};
     const groups = Object.keys(inventory)
         .filter(catKey => {
-            const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
             if (!category) return true;
-            return category === catName || category === catKey;
+            return catKey === category;
         })
         .map(catKey => {
             const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
@@ -850,7 +850,8 @@ function loadEmployeeSchedule() {
 
 function loadEmployeeInventory() {
     const propId = mobileSelectedProperty;
-    const category = document.getElementById('emp-inventory-category')?.value || '';
+    const rawCategory = document.getElementById('emp-inventory-category')?.value || '';
+    const category = normalizeCategoryFilter(rawCategory);
     const container = document.getElementById('emp-inventory-list');
     if (!container) return;
     const prop = properties[propId];
@@ -861,9 +862,8 @@ function loadEmployeeInventory() {
     const inventory = prop.inventory || {};
     const groups = Object.keys(inventory)
         .filter(catKey => {
-            const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
             if (!category) return true;
-            return category === catName || category === catKey;
+            return catKey === category;
         })
         .map(catKey => {
             const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
@@ -1019,13 +1019,13 @@ function loadManagerInventory() {
     if (!container) return;
     const prop = properties[mobileSelectedProperty];
     if (!prop) return;
-    const category = document.getElementById('mgr-inventory-category')?.value || '';
+    const rawCategory = document.getElementById('mgr-inventory-category')?.value || '';
+    const category = normalizeCategoryFilter(rawCategory);
     const inventory = prop.inventory || {};
     const groups = Object.keys(inventory)
         .filter(catKey => {
-            const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
             if (!category) return true;
-            return category === catName || category === catKey;
+            return catKey === category;
         })
         .map(catKey => {
             const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
@@ -1046,6 +1046,28 @@ function loadManagerInventory() {
             `;
         });
     container.innerHTML = groups.join('');
+}
+
+// Map UI labels to internal category keys
+function normalizeCategoryFilter(val) {
+    const v = (val || '').toLowerCase();
+    if (!v) return '';
+    const map = {
+        'habitacion': 'habitaciones',
+        'habitaciones': 'habitaciones',
+        'baño': 'banos',
+        'banos': 'banos',
+        'cocina': 'cocina',
+        'sala': 'sala',
+        'comedor': 'comedor',
+        'lavanderia': 'lavanderia',
+        'limpieza': 'limpieza',
+        'terraza': 'terraza',
+        'exterior': 'terraza' // if used as synonym
+    };
+    // Also match display names from INVENTORY_CATEGORIES
+    const nameToKey = Object.entries(INVENTORY_CATEGORIES).reduce((acc,[key,obj])=>{ acc[(obj.name||'').toLowerCase()] = key; return acc; },{});
+    return map[v] || nameToKey[v] || '';
 }
 
 function showAddInventoryModalManager() { showAddInventoryModal(); }
