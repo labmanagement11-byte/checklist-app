@@ -601,6 +601,7 @@ function normalizeInventory(prop) {
     if (prop.name === 'Torre Magna PI') {
         excludedCategories.bbq = true;
         excludedCategories.pasillo = true;
+        excludedCategories.terraza = true; // Quitar Terraza en Torre Magna
     }
     
     Object.keys(INVENTORY_CATEGORIES).forEach(catKey => {

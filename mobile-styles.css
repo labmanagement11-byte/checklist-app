@@ -573,6 +573,14 @@ body {
     flex-direction: column;
     gap: 10px;
 }
+.inventory-zone {
+    margin-bottom: 16px;
+}
+.zone-title {
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin: 6px 0 8px 0;
+}
 
 .inventory-item {
     background: var(--surface);

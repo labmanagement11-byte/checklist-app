@@ -409,25 +409,35 @@ function loadMobileInventory() {
     }
     const prop = properties[propId];
     const inventory = prop.inventory || {};
-    const items = [];
-    Object.entries(inventory).forEach(([catKey, arr]) => {
-        arr.forEach(item => {
-            if (category && category !== INVENTORY_CATEGORIES[catKey]?.name && category !== catKey && category !== INVENTORY_CATEGORIES[catKey]?.icon) return;
-            items.push({ ...item, category: INVENTORY_CATEGORIES[catKey]?.name || catKey });
+    const groups = Object.keys(inventory)
+        .filter(catKey => {
+            const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
+            if (!category) return true;
+            return category === catName || category === catKey;
+        })
+        .map(catKey => {
+            const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
+            const itemsHtml = (inventory[catKey] || []).map(it => `
+                <div class="inventory-item">
+                    <div class="item-info">
+                        <div class="item-name">${it.name}</div>
+                        <div class="item-details">${catName}</div>
+                    </div>
+                    <div class="item-qty">${it.qty ?? 0}</div>
+                </div>
+            `).join('');
+            return `
+                <div class="inventory-zone">
+                    <h3 class="zone-title">${catName}</h3>
+                    <div class="inventory-grid">${itemsHtml || '<div class="empty-state"><p>Sin items</p></div>'}</div>
+                </div>
+            `;
         });
-    });
-    if (items.length === 0) {
+    if (!groups.length) {
         container.innerHTML = '<div class="empty-state"><p>Sin items en esta categoría</p></div>';
         return;
     }
-    container.innerHTML = items.map(it => `
-        <div class="inventory-item">
-            <div class="item-info">
-                <div class="item-name">${it.name}</div>
-                <div class="item-details">${it.category}</div>
-            </div>
-            <div class="item-qty">${it.qty ?? 0}</div>
-        </div>`).join('');
+    container.innerHTML = groups.join('');
 }
 
 function showAddInventoryModal() {
@@ -824,19 +834,36 @@ function loadEmployeeInventory() {
         container.innerHTML = '<div class="empty-state"><p>Sin propiedad</p></div>';
         return;
     }
-    const items = [];
-    Object.entries(prop.inventory || {}).forEach(([catKey, arr]) => {
-        arr.forEach(item => {
+    const inventory = prop.inventory || {};
+    const groups = Object.keys(inventory)
+        .filter(catKey => {
             const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
-            if (category && category !== catName && category !== catKey) return;
-            items.push({ ...item, category: catName });
+            if (!category) return true;
+            return category === catName || category === catKey;
+        })
+        .map(catKey => {
+            const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
+            const itemsHtml = (inventory[catKey] || []).map(it => `
+                <div class="inventory-item">
+                    <div class="item-info">
+                        <div class="item-name">${it.name}</div>
+                        <div class="item-details">${catName}</div>
+                    </div>
+                    <div class="item-qty">${it.qty ?? 0}</div>
+                </div>
+            `).join('');
+            return `
+                <div class="inventory-zone">
+                    <h3 class="zone-title">${catName}</h3>
+                    <div class="inventory-grid">${itemsHtml || '<div class="empty-state"><p>Sin items</p></div>'}</div>
+                </div>
+            `;
         });
-    });
-    if (!items.length) {
+    if (!groups.length) {
         container.innerHTML = '<div class="empty-state"><p>Sin items</p></div>';
         return;
     }
-    container.innerHTML = items.map(it => `<div class="inventory-item"><div class="item-info"><div class="item-name">${it.name}</div><div class="item-details">${it.category}</div></div><div class="item-qty">${it.qty||0}</div></div>`).join('');
+    container.innerHTML = groups.join('');
 }
 
 function submitPurchaseRequest() {
@@ -969,15 +996,32 @@ function loadManagerInventory() {
     const prop = properties[mobileSelectedProperty];
     if (!prop) return;
     const category = document.getElementById('mgr-inventory-category')?.value || '';
-    const items = [];
-    Object.entries(prop.inventory || {}).forEach(([catKey, arr]) => {
-        arr.forEach(item => {
+    const inventory = prop.inventory || {};
+    const groups = Object.keys(inventory)
+        .filter(catKey => {
             const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
-            if (category && category !== catName && category !== catKey) return;
-            items.push({ ...item, category: catName });
+            if (!category) return true;
+            return category === catName || category === catKey;
+        })
+        .map(catKey => {
+            const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
+            const itemsHtml = (inventory[catKey] || []).map(it => `
+                <div class="inventory-item">
+                    <div class="item-info">
+                        <div class="item-name">${it.name}</div>
+                        <div class="item-details">${catName}</div>
+                    </div>
+                    <div class="item-qty">${it.qty ?? 0}</div>
+                </div>
+            `).join('');
+            return `
+                <div class="inventory-zone">
+                    <h3 class="zone-title">${catName}</h3>
+                    <div class="inventory-grid">${itemsHtml || '<div class="empty-state"><p>Sin items</p></div>'}</div>
+                </div>
+            `;
         });
-    });
-    container.innerHTML = items.map(it => `<div class="inventory-item"><div class="item-info"><div class="item-name">${it.name}</div><div class="item-details">${it.category}</div></div><div class="item-qty">${it.qty||0}</div></div>`).join('');
+    container.innerHTML = groups.join('');
 }
 
 function showAddInventoryModalManager() { showAddInventoryModal(); }
