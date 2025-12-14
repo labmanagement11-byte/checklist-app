@@ -62,6 +62,16 @@
                     <label for="mobile-remember">Recordar sesión</label>
                 </div>
                 <button class="btn-primary login-btn" onclick="mobileLogin()">Iniciar Sesión</button>
+                
+                <!-- Opción para importar datos -->
+                <div style="margin-top: 20px; text-align: center;">
+                    <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem; margin-bottom: 10px;">
+                        ¿Primera vez? Importa los datos del equipo
+                    </p>
+                    <button onclick="showImportOptionLogin()" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 0.9rem;">
+                        📥 Importar Datos del Equipo
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -142,6 +152,10 @@
                     <span>Usuarios</span>
                 </li>
                 <li class="menu-divider"></li>
+                <li class="menu-item owner-only" data-section="sync" onclick="showSyncDataModal()" style="display: none;">
+                    <span class="menu-icon">🔄</span>
+                    <span>Sincronizar Datos</span>
+                </li>
                 <li class="menu-item" onclick="showProfileModal()">
                     <span class="menu-icon">👨‍💼</span>
                     <span>Mi Perfil</span>
@@ -1200,6 +1214,47 @@
 
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
+
+    <!-- Sync Data Modal -->
+    <div id="sync-data-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>🔄 Sincronizar Datos</h3>
+                <button class="modal-close" onclick="closeSyncModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #2196f3;">
+                    <strong>ℹ️ Importante:</strong> Usa esta función para compartir los datos con tus empleados en sus dispositivos.
+                </div>
+                
+                <h4 style="margin-bottom: 10px;">📤 Exportar Datos</h4>
+                <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                    Descarga los datos para compartirlos con tu equipo
+                </p>
+                <button class="btn-primary" onclick="exportDataToFile()" style="width: 100%; margin-bottom: 20px;">
+                    ⬇️ Descargar Archivo de Datos
+                </button>
+                
+                <hr style="margin: 25px 0; border: none; border-top: 1px solid #e0e0e0;">
+                
+                <h4 style="margin-bottom: 10px;">📥 Importar Datos</h4>
+                <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                    Carga un archivo de datos compartido por el propietario
+                </p>
+                <input type="file" id="import-data-file" accept=".json" style="display: none;" onchange="importDataFromFile(event)">
+                <button class="btn-secondary" onclick="document.getElementById('import-data-file').click()" style="width: 100%; margin-bottom: 10px;">
+                    ⬆️ Cargar Archivo de Datos
+                </button>
+                
+                <div style="background: #fff3cd; padding: 12px; border-radius: 8px; margin-top: 15px; font-size: 13px; border-left: 4px solid #ffc107;">
+                    <strong>⚠️ Nota:</strong> Al importar datos, se reemplazarán todos los datos actuales en este dispositivo.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeSyncModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Profile Modal -->
     <div id="profile-modal" class="modal">

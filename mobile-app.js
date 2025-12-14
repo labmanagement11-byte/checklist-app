@@ -36,6 +36,51 @@ const EPIC_TASK_TEMPLATES = {
     ]
 };
 
+// Inicializar datos de demostración cuando no hay datos en localStorage
+function initializeDemoData() {
+    // Crear propiedad de ejemplo
+    const demoPropertyId = 'prop_demo_' + Date.now();
+    properties[demoPropertyId] = {
+        id: demoPropertyId,
+        name: 'Casa Demo - Configura tus propiedades',
+        address: 'Esta es una propiedad de ejemplo. El propietario debe agregar propiedades reales.',
+        staff: [
+            {
+                id: 'staff_manager_demo',
+                name: 'Manager Demo',
+                username: 'manager',
+                password: 'demo123',
+                role: 'manager'
+            },
+            {
+                id: 'staff_employee_demo',
+                name: 'Empleado Demo',
+                username: 'empleado',
+                password: 'demo123',
+                role: 'employee'
+            }
+        ],
+        inventory: {}
+    };
+    
+    // Normalizar inventario para la propiedad demo
+    normalizeInventory(properties[demoPropertyId]);
+    
+    // Guardar datos
+    saveData();
+    
+    console.log('Datos de demostración inicializados. Usuarios de prueba: manager/demo123, empleado/demo123');
+    
+    // Mostrar mensaje informativo
+    setTimeout(() => {
+        if (mobileCurrentUserType === 'owner') {
+            showToast('⚠️ Primera vez en este dispositivo. Configura tus propiedades y personal real. Luego usa "Sincronizar Datos" para compartir con tu equipo.', false);
+        } else {
+            showToast('ℹ️ Datos de ejemplo cargados. Pide al propietario que te comparta el archivo de datos para acceder a la información real.', false);
+        }
+    }, 500);
+}
+
 function ensureAllInventoriesNormalized() {
     try {
         Object.values(properties || {}).forEach(normalizeInventory);
@@ -48,6 +93,12 @@ function ensureAllInventoriesNormalized() {
 // ---------- Session & Login ----------
 function mobileLogin() {
     loadData();
+    
+    // Si no hay propiedades, crear datos de ejemplo para permitir acceso
+    if (Object.keys(properties).length === 0) {
+        initializeDemoData();
+    }
+    
     ensureAllInventoriesNormalized();
     const type = document.getElementById('mobile-login-type').value;
     const username = document.getElementById('mobile-username').value.trim();
@@ -73,7 +124,7 @@ function mobileLogin() {
     // staff login
     const match = findStaffByCredentials(username, password, type);
     if (!match) {
-        return showToast('Credenciales no válidas', true);
+        return showToast('Usuario o contraseña incorrectos. Contacta al administrador para verificar tus credenciales.', true);
     }
 
     mobileCurrentUserType = type;
@@ -280,6 +331,11 @@ function showMobileOwnerView(skipLoad) {
     document.getElementById('mobile-owner-name').textContent = mobileCurrentUser?.name || 'Propietario';
     updateUserHeaderDisplay();
     updatePropertySelectors();
+    
+    // Mostrar opción de sincronización solo para propietario
+    const syncOption = document.querySelector('.menu-item.owner-only[data-section="sync"]');
+    if (syncOption) syncOption.style.display = 'flex';
+    
     if (!skipLoad) {
         loadDashboardStats();
         loadPropertiesList();
@@ -2379,6 +2435,119 @@ function updateUserHeaderDisplay() {
     const menuHeader = document.querySelector('#mobile-side-menu .menu-header svg');
     if (menuHeader && photoUrl) {
         menuHeader.outerHTML = `<img src="${photoUrl}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid white; flex-shrink: 0;">`;
+    }
+}
+
+// ---------- Data Synchronization ----------
+function showSyncDataModal() {
+    document.getElementById('sync-data-modal').style.display = 'flex';
+    toggleMobileMenu(); // Close side menu
+}
+
+function closeSyncModal() {
+    document.getElementById('sync-data-modal').style.display = 'none';
+}
+
+function exportDataToFile() {
+    try {
+        // Recopilar todos los datos relevantes
+        const exportData = {
+            properties: properties,
+            cleaningTasks: cleaningTasks,
+            purchaseInventory: purchaseInventory,
+            scheduledDates: scheduledDates,
+            purchaseHistory: purchaseHistory,
+            purchaseRequests: purchaseRequests,
+            inventoryChecks: inventoryChecks,
+            exportDate: new Date().toISOString(),
+            appVersion: '1.0'
+        };
+        
+        // Convertir a JSON
+        const dataStr = JSON.stringify(exportData, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        
+        // Crear enlace de descarga
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `LIMPIEZA360PRO_datos_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        showToast('✅ Datos exportados correctamente. Comparte este archivo con tu equipo.');
+    } catch (e) {
+        console.error('Error al exportar datos:', e);
+        showToast('❌ Error al exportar datos', true);
+    }
+}
+
+function importDataFromFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    if (!file.name.endsWith('.json')) {
+        showToast('❌ Por favor selecciona un archivo JSON válido', true);
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            
+            // Validar que tenga la estructura correcta
+            if (!importedData.properties || typeof importedData.properties !== 'object') {
+                throw new Error('Formato de datos inválido');
+            }
+            
+            // Confirmar antes de sobrescribir
+            if (!confirm('⚠️ Esto reemplazará todos los datos actuales. ¿Deseas continuar?')) {
+                event.target.value = ''; // Reset input
+                return;
+            }
+            
+            // Importar datos
+            properties = importedData.properties || {};
+            cleaningTasks = importedData.cleaningTasks || [];
+            purchaseInventory = importedData.purchaseInventory || [];
+            scheduledDates = importedData.scheduledDates || [];
+            purchaseHistory = importedData.purchaseHistory || [];
+            purchaseRequests = importedData.purchaseRequests || [];
+            inventoryChecks = importedData.inventoryChecks || [];
+            
+            // Guardar en localStorage
+            saveData();
+            
+            showToast('✅ Datos importados correctamente. Recarga la página para ver los cambios.');
+            
+            // Recargar página después de 2 segundos
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+            
+        } catch (e) {
+            console.error('Error al importar datos:', e);
+            showToast('❌ Error al importar datos. Verifica que el archivo sea válido.', true);
+        }
+        
+        event.target.value = ''; // Reset input
+    };
+    
+    reader.readAsText(file);
+}
+
+function showImportOptionLogin() {
+    if (confirm('¿Tienes un archivo de datos compartido por el propietario?\n\nSi es así, selecciónalo para cargar los datos antes de iniciar sesión.')) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = function(e) {
+            importDataFromFile(e);
+        };
+        input.click();
     }
 }
 
