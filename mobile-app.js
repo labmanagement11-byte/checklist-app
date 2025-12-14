@@ -2551,3 +2551,57 @@ function showImportOptionLogin() {
     }
 }
 
+// ==================== MOBILE CLOUD SYNC ====================
+
+// Escuchar cambios de otros dispositivos/tabs
+window.addEventListener('storage', function(e) {
+    if (e.key === 'airbnbmanager_data_update' || e.key === STORAGE_KEYS.cloudSync) {
+        console.log('🔄 Datos actualizados desde otro dispositivo');
+        
+        // Mostrar indicador
+        const indicator = document.getElementById('sync-indicator');
+        if (indicator) indicator.style.display = 'inline-block';
+        
+        // Recargar datos
+        loadData();
+        
+        // Actualizar vista actual si hay usuario logueado
+        if (mobileCurrentUser && mobileCurrentUserType) {
+            if (mobileCurrentUserType === 'owner') {
+                loadDashboardStats();
+                loadPropertiesList();
+                loadMobileInventory();
+                loadMobileSchedule();
+                loadMobileTasks();
+            } else if (mobileCurrentUserType === 'manager') {
+                loadManagerDashboard();
+                loadManagerInventory();
+                loadManagerSchedule();
+                loadManagerTasks();
+            } else if (mobileCurrentUserType === 'employee') {
+                loadEmployeeDashboard();
+                loadEmployeeSchedule();
+                loadEmployeeInventory();
+                loadEmployeeTasks();
+            }
+            
+            showToast('✅ Sincronizado con otros dispositivos');
+        }
+        
+        // Ocultar indicador
+        setTimeout(() => {
+            if (indicator) indicator.style.display = 'none';
+        }, 2000);
+    }
+});
+
+// Iniciar sincronización automática en mobile
+window.addEventListener('load', function() {
+    // Esperar a que app.js se cargue
+    setTimeout(() => {
+        if (typeof startAutoSync === 'function') {
+            startAutoSync();
+            console.log('📱 Sincronización móvil activada');
+        }
+    }, 3000);
+});

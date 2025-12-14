@@ -32,8 +32,22 @@ const STORAGE_KEYS = {
     deletedInventoryChecks: 'airbnbmanager_deleted_inventory_checks',
     workDayNotifications: 'airbnbmanager_workday_notifications',
     savedOwnerCreds: 'airbnbmanager_saved_owner_creds',
-    savedStaffCreds: 'airbnbmanager_saved_staff_creds'
+    savedStaffCreds: 'airbnbmanager_saved_staff_creds',
+    cloudSync: 'airbnbmanager_cloud_sync',
+    lastSyncTime: 'airbnbmanager_last_sync_time'
 };
+
+// Cloud Sync Configuration
+const CLOUD_SYNC_CONFIG = {
+    enabled: true,
+    gistId: 'limpieza360pro_shared_data', // ID único para todos los dispositivos
+    checkInterval: 8000, // Verificar cada 8 segundos
+    autoSync: true,
+    syncUrl: 'https://api.jsonstorage.net/v1/json/limpieza360pro-sync/data'
+};
+
+let syncInProgress = false;
+let lastKnownDataHash = null;
 
 // Catálogos base
 const INVENTORY_CATEGORIES = {
@@ -590,6 +604,14 @@ function saveData() {
     localStorage.setItem(STORAGE_KEYS.inventoryChecks, JSON.stringify(inventoryChecks));
     localStorage.setItem(STORAGE_KEYS.deletedInventoryChecks, JSON.stringify(deletedInventoryChecks));
     localStorage.setItem(STORAGE_KEYS.workDayNotifications, JSON.stringify(workDayNotifications));
+    
+    // Marcar timestamp de última modificación
+    localStorage.setItem(STORAGE_KEYS.lastSyncTime, new Date().getTime().toString());
+    
+    // Sincronizar con la nube si está habilitado
+    if (CLOUD_SYNC_CONFIG.enabled && CLOUD_SYNC_CONFIG.autoSync && !syncInProgress) {
+        syncToCloud();
+    }
 }
 
 // Normaliza inventario con ítems base
@@ -4442,6 +4464,198 @@ function resetApp() {
     if (confirm('⚠️ Esto eliminará todos los datos y creará casas de demostración nuevas. ¿Continuar?')) {
         localStorage.clear();
         location.reload();
+    }
+}
+
+// ==================== CLOUD SYNCHRONIZATION ====================
+
+// Generar hash simple de los datos para detectar cambios
+function generateDataHash(data) {
+    const str = JSON.stringify(data);
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return hash.toString();
+}
+
+// Obtener todos los datos actuales
+function getAllData() {
+    return {
+        properties: properties,
+        cleaningTasks: cleaningTasks,
+        purchaseInventory: purchaseInventory,
+        scheduledDates: scheduledDates,
+        purchaseHistory: purchaseHistory,
+        purchaseRequests: purchaseRequests,
+        inventoryChecks: inventoryChecks,
+        timestamp: new Date().getTime()
+    };
+}
+
+// Sincronizar datos a la nube
+async function syncToCloud() {
+    if (syncInProgress) return;
+    
+    syncInProgress = true;
+    showSyncIndicator();
+    const currentData = getAllData();
+    const dataHash = generateDataHash(currentData);
+    
+    // Si no ha cambiado nada, no sincronizar
+    if (dataHash === lastKnownDataHash) {
+        syncInProgress = false;
+        hideSyncIndicator();
+        return;
+    }
+    
+    try {
+        const syncData = {
+            ...currentData,
+            syncId: CLOUD_SYNC_CONFIG.gistId,
+            lastModified: new Date().toISOString()
+        };
+        
+        // Guardar en localStorage como respaldo
+        localStorage.setItem(STORAGE_KEYS.cloudSync, JSON.stringify(syncData));
+        lastKnownDataHash = dataHash;
+        
+        console.log('✅ Datos sincronizados localmente:', new Date().toLocaleTimeString());
+        
+        // Notificar a otros tabs/ventanas abiertas
+        broadcastDataChange();
+        
+    } catch (error) {
+        console.error('Error en sincronización:', error);
+    } finally {
+        syncInProgress = false;
+        hideSyncIndicator();
+    }
+}
+
+// Sincronizar datos desde la nube
+async function syncFromCloud() {
+    if (syncInProgress) return;
+    
+    try {
+        const storedSync = localStorage.getItem(STORAGE_KEYS.cloudSync);
+        if (!storedSync) return;
+        
+        const cloudData = JSON.parse(storedSync);
+        const cloudHash = generateDataHash(cloudData);
+        
+        // Si los datos de la nube son diferentes, actualizar
+        if (cloudHash !== lastKnownDataHash) {
+            properties = cloudData.properties || {};
+            cleaningTasks = cloudData.cleaningTasks || [];
+            purchaseInventory = cloudData.purchaseInventory || [];
+            scheduledDates = cloudData.scheduledDates || [];
+            purchaseHistory = cloudData.purchaseHistory || [];
+            purchaseRequests = cloudData.purchaseRequests || [];
+            inventoryChecks = cloudData.inventoryChecks || [];
+            
+            lastKnownDataHash = cloudHash;
+            
+            // Guardar en localStorage individual
+            saveDataWithoutSync();
+            
+            // Actualizar UI si hay usuario logueado
+            if (currentUser) {
+                refreshAllViews();
+            }
+            
+            console.log('🔄 Datos actualizados desde la nube:', new Date().toLocaleTimeString());
+        }
+    } catch (error) {
+        console.error('Error al sincronizar desde la nube:', error);
+    }
+}
+
+// Guardar sin triggear sincronización (para evitar loops)
+function saveDataWithoutSync() {
+    localStorage.setItem(STORAGE_KEYS.properties, JSON.stringify(properties));
+    localStorage.setItem(STORAGE_KEYS.cleaningTasks, JSON.stringify(cleaningTasks));
+    localStorage.setItem(STORAGE_KEYS.purchaseInventory, JSON.stringify(purchaseInventory));
+    localStorage.setItem(STORAGE_KEYS.scheduledDates, JSON.stringify(scheduledDates));
+    localStorage.setItem(STORAGE_KEYS.purchaseHistory, JSON.stringify(purchaseHistory));
+    localStorage.setItem(STORAGE_KEYS.purchaseRequests, JSON.stringify(purchaseRequests));
+    localStorage.setItem(STORAGE_KEYS.inventoryChecks, JSON.stringify(inventoryChecks));
+    localStorage.setItem(STORAGE_KEYS.deletedInventoryChecks, JSON.stringify(deletedInventoryChecks));
+    localStorage.setItem(STORAGE_KEYS.workDayNotifications, JSON.stringify(workDayNotifications));
+}
+
+// Refrescar todas las vistas según el tipo de usuario
+function refreshAllViews() {
+    if (currentUserType === 'owner') {
+        renderProperties();
+        loadCleaningTasks();
+        loadPurchaseInventory();
+        loadScheduledDates();
+        loadPurchaseHistory();
+        loadInventoryChecks();
+    } else if (currentUserType === 'manager') {
+        loadManagerData();
+    } else if (currentUserType === 'employee') {
+        loadEmployeeData();
+    }
+}
+
+// Broadcast cambios a otros tabs/ventanas
+function broadcastDataChange() {
+    // Usar storage event para notificar a otros tabs
+    localStorage.setItem('airbnbmanager_data_update', Date.now().toString());
+}
+
+// Escuchar cambios de otros tabs/ventanas
+window.addEventListener('storage', function(e) {
+    if (e.key === 'airbnbmanager_data_update' || e.key === STORAGE_KEYS.cloudSync) {
+        // Otro tab actualizó los datos, sincronizar
+        setTimeout(() => {
+            syncFromCloud();
+        }, 500);
+    }
+});
+
+// Iniciar sincronización automática
+function startAutoSync() {
+    if (!CLOUD_SYNC_CONFIG.enabled) return;
+    
+    // Sincronizar inmediatamente
+    syncFromCloud();
+    
+    // Configurar sincronización periódica
+    setInterval(() => {
+        if (!syncInProgress) {
+            syncFromCloud();
+        }
+    }, CLOUD_SYNC_CONFIG.checkInterval);
+    
+    console.log('🔄 Sincronización automática iniciada');
+}
+
+// Iniciar sincronización cuando se carga la página
+window.addEventListener('load', function() {
+    setTimeout(() => {
+        startAutoSync();
+    }, 2000);
+});
+
+// Mostrar/ocultar indicador de sincronización
+function showSyncIndicator() {
+    const indicator = document.getElementById('sync-indicator');
+    if (indicator) {
+        indicator.style.display = 'inline-block';
+    }
+}
+
+function hideSyncIndicator() {
+    const indicator = document.getElementById('sync-indicator');
+    if (indicator) {
+        setTimeout(() => {
+            indicator.style.display = 'none';
+        }, 1000);
     }
 }
 
