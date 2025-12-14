@@ -2284,6 +2284,43 @@ function ensureEpicStaffExists() {
     }
 }
 
+// Asegurar que Torre Magna tenga tareas de mantenimiento semilladas
+function ensureTorreMagnaMaintenanceTasks() {
+    const propId = Object.keys(properties).find(pid => {
+        const nm = properties[pid]?.name?.trim?.();
+        return nm && (nm.toLowerCase() === 'torre magna pi' || nm.toLowerCase() === 'torre magna');
+    });
+    if (!propId) return;
+
+    const hasMaintenance = cleaningTasks.some(t => t.propertyId === propId && /mantenimiento/i.test(t.sectionKey || ''));
+    if (hasMaintenance) return;
+
+    const maintenanceSection = CUSTOM_TASKS['torre-magna-pi-mantenimiento'];
+    if (!maintenanceSection || !maintenanceSection.sections) return;
+
+    const newTasks = [];
+    maintenanceSection.sections.forEach(subsection => {
+        (subsection.tasks || []).forEach(text => {
+            newTasks.push({
+                id: `task_${maintenanceSection.name}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                propertyId: propId,
+                sectionKey: 'torre-magna-pi-mantenimiento',
+                subsectionTitle: subsection.title,
+                taskText: text,
+                assignedTo: '',
+                completed: false,
+                verified: false,
+                notes: ''
+            });
+        });
+    });
+
+    if (newTasks.length > 0) {
+        cleaningTasks.push(...newTasks);
+        saveData();
+    }
+}
+
 function toggleScheduleComplete(scheduleId) {
     const item = scheduledDates.find(s => s.id === scheduleId);
     if (item) {
@@ -4328,6 +4365,7 @@ function initializeApp() {
     
     // Asegurar que los usuarios estén en sus propiedades
     ensureEpicStaffExists();
+    ensureTorreMagnaMaintenanceTasks();
 
     if (!selectedProperty) {
         selectedProperty = Object.keys(properties)[0] || null;
