@@ -724,6 +724,34 @@ function handleEmployeeScheduleClick(scheduleId) {
     showToast('Tareas cargadas para este turno');
 }
 
+function deleteEmployeeSchedule(scheduleId) {
+    const s = scheduledDates.find(x => x.id === scheduleId);
+    if (!s) return showToast('Horario no encontrado', true);
+    
+    if (confirm(`¿Eliminar el horario de ${formatDateShort(s.date)}?`)) {
+        scheduledDates = scheduledDates.filter(x => x.id !== scheduleId);
+        // Eliminar también las tareas asociadas
+        cleaningTasks = cleaningTasks.filter(t => t.scheduleId !== scheduleId);
+        saveData();
+        loadEmployeeSchedule();
+        showToast('Horario eliminado');
+    }
+}
+
+function deleteManagerSchedule(scheduleId) {
+    const s = scheduledDates.find(x => x.id === scheduleId);
+    if (!s) return showToast('Horario no encontrado', true);
+    
+    if (confirm(`¿Eliminar el horario de ${formatDateShort(s.date)}?`)) {
+        scheduledDates = scheduledDates.filter(x => x.id !== scheduleId);
+        // Eliminar también las tareas asociadas
+        cleaningTasks = cleaningTasks.filter(t => t.scheduleId !== scheduleId);
+        saveData();
+        loadManagerSchedule();
+        showToast('Horario eliminado');
+    }
+}
+
 function saveEditedSchedule() {
     const id = document.getElementById('edit-schedule-id').value;
     const sIdx = scheduledDates.findIndex(x => x.id === id);
@@ -973,7 +1001,10 @@ function loadEmployeeSchedule() {
                     <div class="entry-date">${formatDateShort(s.date)}</div>
                     <div class="entry-details">${typeLabel} · ${s.shift || 'turno'}</div>
                 </div>
-                <span class="entry-type ${s.type === 'descanso' ? 'type-descanso' : 'type-trabajo'}">${typeLabel}</span>
+                <div class="entry-actions-right">
+                    <span class="entry-type ${s.type === 'descanso' ? 'type-descanso' : 'type-trabajo'}">${typeLabel}</span>
+                    <button class="btn-danger btn-small" onclick="deleteEmployeeSchedule('${s.id}')" style="padding: 4px 8px; font-size: 12px;">🗑️</button>
+                </div>
             </div>`;
     }).join('');
     setTimeout(() => {
@@ -981,6 +1012,8 @@ function loadEmployeeSchedule() {
         cards.forEach(card => {
             card.style.cursor = 'pointer';
             const handleClick = (e) => {
+                // No activar si se hace click en el botón eliminar
+                if (e.target.closest('.btn-danger')) return;
                 e.stopPropagation();
                 e.preventDefault();
                 handleEmployeeScheduleClick(card.dataset.sid);
@@ -1537,6 +1570,7 @@ function loadManagerSchedule() {
                 <div class="entry-actions">
                     <button class="btn-secondary btn-small" onclick="openEditSchedule('${s.id}')">✏️ Editar</button>
                     <button class="btn-warning btn-small" onclick="resetTasksForSchedule('${s.id}')">↻ Tareas</button>
+                    <button class="btn-danger btn-small" onclick="deleteManagerSchedule('${s.id}')">🗑️ Eliminar</button>
                 </div>
             </div>`;
     }).join('') || '<div class="empty-state"><p>Sin agenda</p></div>';
