@@ -1243,24 +1243,38 @@ function deleteMobileTask(taskId) {
 
 function loadMobileSchedule() {
     const propId = getMobileSelectedProperty();
+    const content = document.getElementById('scheduleContentMobile');
+    const propSelect = document.getElementById('schedulePropertySelect');
+    const staffFilter = document.getElementById('scheduleStaffFilter');
+
     if (!propId) {
-        document.getElementById('scheduleContentMobile').innerHTML = '<div class="empty-state"><div class="empty-text">Selecciona una casa</div></div>';
+        if (content) content.innerHTML = '<div class="empty-state"><div class="empty-text">Selecciona una casa</div></div>';
+        if (propSelect) {
+            const propertyOptions = Object.entries(properties || {}).map(([key, prop]) => `<option value="${key}">${prop.name}</option>`).join('');
+            propSelect.innerHTML = '<option value="">Selecciona una casa...</option>' + propertyOptions;
+        }
         return;
     }
     
     const propertyOptions = Object.entries(properties).map(([key, prop]) => 
         `<option value="${key}" ${key === propId ? 'selected' : ''}>${prop.name}</option>`
     ).join('');
-    document.getElementById('schedulePropertySelect').innerHTML = '<option value="">Selecciona una casa...</option>' + propertyOptions;
+    if (propSelect) {
+        propSelect.innerHTML = '<option value="">Selecciona una casa...</option>' + propertyOptions;
+        propSelect.value = propId;
+    }
 
     // Staff filter / assignment select
-    const staffSelect = document.getElementById('scheduleStaffFilter');
     const prop = properties[propId];
     const staffOptions = (prop?.staff || []).map(s => `<option value="${s.id}">${s.name} - ${getRoleName(s.role)}</option>`).join('');
-    if (staffSelect) {
-        staffSelect.innerHTML = '<option value="">Todos los empleados</option>' + staffOptions;
+    if (staffFilter) {
+        const current = staffFilter.value;
+        staffFilter.innerHTML = '<option value="">Todos los empleados</option>' + staffOptions;
+        if (current && (prop?.staff || []).some(s => s.id === current)) {
+            staffFilter.value = current;
+        }
     }
-    const selectedStaff = staffSelect ? staffSelect.value : '';
+    const selectedStaff = staffFilter ? staffFilter.value : '';
     
     const schedules = scheduledDates
         .filter(s => s.propertyId === propId)
@@ -1268,7 +1282,7 @@ function loadMobileSchedule() {
         .sort((a, b) => new Date(a.date) - new Date(b.date));
     
     if (schedules.length === 0) {
-        document.getElementById('scheduleContentMobile').innerHTML = '<div class="empty-state"><div class="empty-text">No hay fechas agendadas</div></div>';
+        if (content) content.innerHTML = '<div class="empty-state"><div class="empty-text">No hay fechas agendadas<br><br><button class="btn btn-primary" onclick="showAddScheduleMobile()">Agendar ahora</button></div></div>';
         return;
     }
     
@@ -1295,17 +1309,14 @@ function loadMobileSchedule() {
         `;
     }).join('');
     
-    document.getElementById('scheduleContentMobile').innerHTML = scheduleHTML;
+    if (content) content.innerHTML = scheduleHTML;
 }
 
 function showAddScheduleMobile() {
-    const propId = getMobileSelectedProperty();
-    if (!propId) {
-        alert('Primero selecciona una casa');
-        return;
-    }
-    
-    const prop = properties[propId];
+    const propSelect = document.getElementById('schedulePropertySelect');
+    const currentProp = propSelect ? propSelect.value || getMobileSelectedProperty() : getMobileSelectedProperty();
+    const propertyOptions = Object.entries(properties || {}).map(([key, prop]) => `<option value="${key}" ${currentProp === key ? 'selected' : ''}>${prop.name}</option>`).join('');
+    const prop = currentProp ? properties[currentProp] : null;
     const staffSelect = document.getElementById('scheduleStaffFilter');
     const presetStaffId = staffSelect ? staffSelect.value : '';
     const staffOptions = (prop?.staff || []).map(s => 
@@ -1315,6 +1326,13 @@ function showAddScheduleMobile() {
     const today = new Date().toISOString().split('T')[0];
     
     const modalBody = `
+        <div class="form-group">
+            <label class="form-label">Propiedad</label>
+            <select id="mobileScheduleProperty" class="form-control" onchange="onSchedulePropertyChangeMobile()">
+                <option value="">Selecciona una casa...</option>
+                ${propertyOptions}
+            </select>
+        </div>
         <div class="form-group">
             <label class="form-label">Fecha</label>
             <input type="date" id="mobileScheduleDate" class="form-control" min="${today}">
@@ -1349,8 +1367,12 @@ function showAddScheduleMobile() {
 }
 
 function saveMobileSchedule() {
-    const propId = getMobileSelectedProperty();
-    if (!propId) return;
+    const propSelect = document.getElementById('mobileScheduleProperty');
+    const propId = propSelect ? propSelect.value || getMobileSelectedProperty() : getMobileSelectedProperty();
+    if (!propId) {
+        alert('Selecciona una propiedad');
+        return;
+    }
     
     const date = document.getElementById('mobileScheduleDate').value;
     const type = document.getElementById('mobileScheduleType').value;
@@ -1382,6 +1404,16 @@ function saveMobileSchedule() {
     closeMobileModal();
     loadMobileSchedule();
     alert('✅ Fecha agendada');
+}
+
+function onSchedulePropertyChangeMobile() {
+    const propSelect = document.getElementById('mobileScheduleProperty');
+    const staffSelect = document.getElementById('mobileScheduleStaff');
+    if (!propSelect || !staffSelect) return;
+    const propId = propSelect.value;
+    const prop = properties[propId];
+    const staffOptions = (prop?.staff || []).map(s => `<option value="${s.id}">${s.name} - ${getRoleName(s.role)}</option>`).join('');
+    staffSelect.innerHTML = '<option value="">Sin asignar</option>' + staffOptions;
 }
 
 // ========== MORE OPTIONS MOBILE ==========
