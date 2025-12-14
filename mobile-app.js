@@ -6,10 +6,47 @@ let mobileCurrentUserType = null; // owner | manager | employee
 let mobileCurrentUser = null;
 let mobileSelectedProperty = null;
 let mobileActiveSection = 'dashboard';
+let mobileActiveScheduleId = null; // track focused schedule for task filtering
+let mobilePendingScheduleId = null; // temp holder when navigating from schedule to tasks
+
+// Base task templates for EPIC jobs so employees can see concrete steps
+const EPIC_TASK_TEMPLATES = {
+    limpieza_regular: [
+        'Barrido y trapeado general',
+        'Superficies cocina limpias',
+        'Baños ordenados y desinfectados',
+        'Habitaciones ventiladas y camas tendidas',
+        'Basura retirada en todas las áreas'
+    ],
+    limpieza_profunda: [
+        'Desempolvar y aspirar muebles y rincones',
+        'Limpieza profunda de cocina (electrodomésticos, campana)',
+        'Desinfección completa de baños (paredes, juntas, vidrios)',
+        'Lavado y cambio de blancos / protectores',
+        'Limpieza detallada de ventanas y marcos'
+    ],
+    mantenimiento: [
+        'Revisar bombillos y reemplazar quemados',
+        'Revisar plomería y fugas',
+        'Ajustar manijas/cerraduras sueltas',
+        'Probar electrodomésticos y reportar fallas',
+        'Verificar detectores y extintores'
+    ]
+};
+
+function ensureAllInventoriesNormalized() {
+    try {
+        Object.values(properties || {}).forEach(normalizeInventory);
+        saveData();
+    } catch (e) {
+        console.error('No se pudo normalizar inventarios', e);
+    }
+}
 
 // ---------- Session & Login ----------
 function mobileLogin() {
     loadData();
+    ensureAllInventoriesNormalized();
     const type = document.getElementById('mobile-login-type').value;
     const username = document.getElementById('mobile-username').value.trim();
     const password = document.getElementById('mobile-password').value.trim();
@@ -70,6 +107,7 @@ function restoreMobileSession() {
     const raw = localStorage.getItem(MOBILE_SESSION_KEY);
     if (!raw) return false;
     try {
+        ensureAllInventoriesNormalized();
         const session = JSON.parse(raw);
         if (!session?.type || !session?.user) return false;
         mobileCurrentUserType = session.type;
@@ -195,9 +233,16 @@ function showEmployeeSection(section) {
         item.classList.toggle('active', item.dataset.section === section.replace('section-',''));
     });
     toggleEmployeeMenu();
-    if (section === 'emp-schedule') loadEmployeeSchedule();
+    if (section === 'emp-schedule') {
+        mobileActiveScheduleId = null; // viewing calendar resets filter
+        loadEmployeeSchedule();
+    }
     if (section === 'emp-inventory') loadEmployeeInventory();
-    if (section === 'emp-tasks') loadEmployeeTasks();
+    if (section === 'emp-tasks') {
+        mobileActiveScheduleId = mobilePendingScheduleId || null; // apply pending schedule filter if any
+        mobilePendingScheduleId = null;
+        loadEmployeeTasks();
+    }
     if (section === 'emp-purchase') loadEmployeePurchaseRequests();
 }
 
@@ -568,15 +613,22 @@ function loadMobileSchedule() {
     }
     list.innerHTML = items.map(s => {
         const staff = (properties[propId]?.staff || []).find(st => st.id === s.assignedTo);
+        const epicValue = s.epicType || 'limpieza_regular';
+        const hasEpic = s.type === 'epic' || !!s.epicType;
+        const typeLabel = s.type === 'descanso' ? 'descanso' : hasEpic ? 'EPIC D1' : s.type;
+        const epicLabel = hasEpic ? formatEpicType(epicValue) : '';
         return `
             <div class="schedule-entry">
                 <div class="entry-info">
                     <div class="entry-date">${formatDateShort(s.date)}</div>
                     <div class="entry-details">${staff ? staff.name : 'Sin asignar'} · ${s.shift || s.startTime || 'turno libre'}</div>
-                    <div class="entry-epic">${formatEpicType(s.epicType || 'limpieza_regular')}</div>
+                    ${epicLabel ? `<div class="entry-epic">${epicLabel}</div>` : ''}
                 </div>
-                <span class="entry-type ${s.type === 'descanso' ? 'type-descanso' : 'type-trabajo'}">${s.type}</span>
-                <button class="btn-secondary btn-small" onclick="openEditSchedule('${s.id}')">✏️ Editar</button>
+                <span class="entry-type ${s.type === 'descanso' ? 'type-descanso' : 'type-trabajo'}">${typeLabel}</span>
+                <div class="entry-actions">
+                    <button class="btn-secondary btn-small" onclick="openEditSchedule('${s.id}')">✏️ Editar</button>
+                    <button class="btn-warning btn-small" onclick="resetTasksForSchedule('${s.id}')">↻ Tareas</button>
+                </div>
             </div>`;
     }).join('');
 }
@@ -630,6 +682,43 @@ function openEditSchedule(id) {
     document.getElementById('modal-edit-schedule').classList.add('open');
 }
 
+function ensureTasksForSchedule(schedule) {
+    if (!schedule) return [];
+    const epicKey = schedule.epicType || 'limpieza_regular';
+    const template = EPIC_TASK_TEMPLATES[epicKey] || EPIC_TASK_TEMPLATES.limpieza_regular;
+    const existing = cleaningTasks.filter(t => t.scheduleId === schedule.id);
+    if (existing.length) return existing;
+    const propId = schedule.propertyId;
+    const assignedTo = schedule.assignedTo || null;
+    const assignedEmployeeName = schedule.assignedEmployeeName || null;
+    const created = template.map((text, idx) => ({
+        id: `task_${schedule.id}_${idx}`,
+        propertyId: propId,
+        sectionKey: 'limpieza',
+        taskText: text,
+        subsectionTitle: `EPIC D1 · ${formatEpicType(epicKey)}`,
+        scheduleId: schedule.id,
+        assignedTo,
+        assignedEmployeeName,
+        completed: false,
+        createdAt: new Date().toISOString()
+    }));
+    cleaningTasks.push(...created);
+    saveData();
+    return created;
+}
+
+function handleEmployeeScheduleClick(scheduleId) {
+    const s = scheduledDates.find(x => x.id === scheduleId);
+    if (!s) return;
+    mobileSelectedProperty = s.propertyId;
+    mobilePendingScheduleId = s.id;
+    ensureTasksForSchedule(s);
+    showEmployeeSection('emp-tasks');
+    loadEmployeeTasks();
+    showToast('Tareas cargadas para este turno');
+}
+
 function saveEditedSchedule() {
     const id = document.getElementById('edit-schedule-id').value;
     const sIdx = scheduledDates.findIndex(x => x.id === id);
@@ -642,9 +731,14 @@ function saveEditedSchedule() {
     s.assignedEmployeeName = staff?.name || null;
     s.shift = document.getElementById('edit-schedule-shift').value || s.shift;
     s.epicType = document.getElementById('edit-schedule-epic-type').value || s.epicType || 'limpieza_regular';
+    if (s.type !== 'descanso' && cleaningTasks.filter(t => t.scheduleId === s.id).length === 0) {
+        ensureTasksForSchedule(s);
+    }
     saveData();
     closeModal('modal-edit-schedule');
     loadMobileSchedule();
+    loadManagerSchedule();
+    loadEmployeeSchedule();
     showToast('Trabajo actualizado');
 }
 
@@ -684,12 +778,30 @@ function renderTaskList(list) {
         </div>`).join('');
 }
 
+function resetTasksForSchedule(scheduleId) {
+    const schedule = scheduledDates.find(s => s.id === scheduleId);
+    if (!schedule) return showToast('Turno no encontrado', true);
+    const tasks = cleaningTasks.filter(t => t.scheduleId === scheduleId);
+    if (tasks.length === 0 && schedule.type !== 'descanso') {
+        ensureTasksForSchedule(schedule);
+    } else {
+        tasks.forEach(t => t.completed = false);
+        saveData();
+    }
+    loadMobileTasks?.();
+    loadManagerTasks?.();
+    loadEmployeeTasks?.();
+    showToast('Tareas reiniciadas para el turno');
+}
+
 function toggleTaskComplete(taskId) {
     const idx = cleaningTasks.findIndex(t => t.id === taskId);
     if (idx < 0) return;
     cleaningTasks[idx].completed = !cleaningTasks[idx].completed;
     saveData();
     loadMobileTasks();
+    loadManagerTasks?.();
+    loadEmployeeTasks?.();
 }
 
 function addMobileTask() {
@@ -845,7 +957,27 @@ function loadEmployeeSchedule() {
         list.innerHTML = '<div class="empty-state"><p>Sin horarios</p></div>';
         return;
     }
-    list.innerHTML = items.map(s => `<div class="schedule-entry"><div class="entry-info"><div class="entry-date">${formatDateShort(s.date)}</div><div class="entry-details">${s.type} · ${s.shift || 'turno'}</div></div></div>`).join('');
+    list.innerHTML = items.map(s => {
+        const epicValue = s.epicType || 'limpieza_regular';
+        const hasEpic = s.type === 'epic' || !!s.epicType;
+        const epicLabel = hasEpic ? formatEpicType(epicValue) : '';
+        const typeLabel = s.type === 'descanso' ? 'descanso' : hasEpic ? `EPIC D1 · ${epicLabel}` : s.type;
+        return `
+            <div class="schedule-entry clickable" data-sid="${s.id}">
+                <div class="entry-info">
+                    <div class="entry-date">${formatDateShort(s.date)}</div>
+                    <div class="entry-details">${typeLabel} · ${s.shift || 'turno'}</div>
+                </div>
+                <span class="entry-type ${s.type === 'descanso' ? 'type-descanso' : 'type-trabajo'}">${typeLabel}</span>
+            </div>`;
+    }).join('');
+    // Attach delegated click listener
+    setTimeout(() => {
+        const cards = list.querySelectorAll('.schedule-entry.clickable[data-sid]');
+        cards.forEach(card => {
+            card.addEventListener('click', () => handleEmployeeScheduleClick(card.dataset.sid));
+        });
+    }, 50);
 }
 
 function loadEmployeeInventory() {
@@ -930,7 +1062,8 @@ function loadEmployeePurchaseRequests() {
 
 function loadEmployeeTasks() {
     const propId = mobileSelectedProperty;
-    const tasks = cleaningTasks.filter(t => t.propertyId === propId && (!t.assignedTo || t.assignedTo === mobileCurrentUser.staffId));
+    const tasks = cleaningTasks.filter(t => t.propertyId === propId && (!t.assignedTo || t.assignedTo === mobileCurrentUser.staffId))
+        .filter(t => !mobileActiveScheduleId || t.scheduleId === mobileActiveScheduleId);
     const clean = tasks.filter(t => !isMaintenanceTask(t));
     const maint = tasks.filter(t => isMaintenanceTask(t));
     document.getElementById('emp-tasks-limpieza-list').innerHTML = renderTaskList(clean);
@@ -1103,24 +1236,29 @@ function loadManagerPurchaseHistory() {
 }
 
 function addManagerSchedule() {
+    const propId = mobileSelectedProperty;
     const date = document.getElementById('mgr-schedule-date').value;
     const type = document.getElementById('mgr-schedule-type').value;
     const employeeId = document.getElementById('mgr-schedule-employee').value;
     const shift = document.getElementById('mgr-schedule-shift').value;
+    const epicType = document.getElementById('mgr-schedule-epic-type')?.value || 'limpieza_regular';
+    if (!propId) return showToast('Selecciona propiedad');
     if (!date) return showToast('Selecciona fecha');
-    const prop = properties[mobileSelectedProperty];
+    const prop = properties[propId];
     const staff = (prop?.staff || []).find(s => s.id === employeeId);
     scheduledDates.push({
         id: `schedule_${Date.now()}`,
-        propertyId: mobileSelectedProperty,
+        propertyId: propId,
         date,
         type,
         assignedTo: employeeId || null,
         assignedEmployeeName: staff?.name || null,
         shift,
+        epicType,
         completed: false
     });
     saveData();
+    document.getElementById('mgr-schedule-date').value = '';
     loadManagerSchedule();
     showToast('Fecha agregada');
 }
@@ -1129,7 +1267,25 @@ function loadManagerSchedule() {
     const container = document.getElementById('mgr-schedule-list');
     if (!container) return;
     const list = scheduledDates.filter(s => s.propertyId === mobileSelectedProperty).sort((a,b)=> new Date(a.date)-new Date(b.date));
-    container.innerHTML = list.map(s => `<div class="schedule-entry"><div class="entry-info"><div class="entry-date">${formatDateShort(s.date)}</div><div class="entry-details">${s.assignedEmployeeName||'Sin asignar'} · ${s.shift||'turno'}</div></div><span class="entry-type ${s.type==='descanso'?'type-descanso':'type-trabajo'}">${s.type}</span></div>`).join('') || '<div class="empty-state"><p>Sin agenda</p></div>';
+    container.innerHTML = list.map(s => {
+        const epicValue = s.epicType || 'limpieza_regular';
+        const hasEpic = s.type === 'epic' || !!s.epicType;
+        const typeLabel = s.type === 'descanso' ? 'descanso' : hasEpic ? 'EPIC D1' : s.type;
+        const epicLabel = hasEpic ? formatEpicType(epicValue) : '';
+        return `
+            <div class="schedule-entry">
+                <div class="entry-info">
+                    <div class="entry-date">${formatDateShort(s.date)}</div>
+                    <div class="entry-details">${s.assignedEmployeeName || 'Sin asignar'} · ${s.shift || 'turno'}</div>
+                    ${epicLabel ? `<div class="entry-epic">${epicLabel}</div>` : ''}
+                </div>
+                <span class="entry-type ${s.type==='descanso'?'type-descanso':'type-trabajo'}">${typeLabel}</span>
+                <div class="entry-actions">
+                    <button class="btn-secondary btn-small" onclick="openEditSchedule('${s.id}')">✏️ Editar</button>
+                    <button class="btn-warning btn-small" onclick="resetTasksForSchedule('${s.id}')">↻ Tareas</button>
+                </div>
+            </div>`;
+    }).join('') || '<div class="empty-state"><p>Sin agenda</p></div>';
     const staffSel = document.getElementById('mgr-schedule-employee');
     if (staffSel) {
         const options = (properties[mobileSelectedProperty]?.staff||[]).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
@@ -1265,37 +1421,6 @@ function loadEmployeeDashboard() {
     `;
 }
 
-function loadEmployeeInventory() {
-    const category = document.getElementById('emp-inventory-category')?.value || '';
-    const container = document.getElementById('emp-inventory-list');
-    if (!container) return;
-    const prop = properties[mobileSelectedProperty];
-    if (!prop) {
-        container.innerHTML = '<div class="empty-state"><p>Propiedad no disponible</p></div>';
-        return;
-    }
-    const inventory = prop.inventory || {};
-    const items = [];
-    Object.entries(inventory).forEach(([catKey, arr]) => {
-        arr.forEach(item => {
-            if (category && category !== INVENTORY_CATEGORIES[catKey]?.name && category !== catKey) return;
-            items.push({ ...item, category: INVENTORY_CATEGORIES[catKey]?.name || catKey, catKey });
-        });
-    });
-    if (!items.length) {
-        container.innerHTML = '<div class="empty-state"><p>Sin inventario</p></div>';
-        return;
-    }
-    container.innerHTML = items.map(it => `
-        <div class="inventory-item">
-            <div class="item-info">
-                <div class="item-name">${it.name}</div>
-                <div class="item-details">${it.category}</div>
-            </div>
-            <div class="item-qty">${it.qty ?? 0}</div>
-        </div>`).join('');
-}
-
 function completeMobileTask(taskId) {
     const task = cleaningTasks.find(t => t.id === taskId);
     if (task) {
@@ -1344,170 +1469,27 @@ function sendMobileNotification() {
     loadMobileNotifications();
     showToast('Notificación enviada');
 }
-
-// ---------- Manager View Additional Functions ----------
-function loadManagerInventoryChecks() {
-    const container = document.getElementById('mgr-inventory-checks-list');
-    if (!container) return;
-    const checks = inventoryChecks.filter(c => c.propertyId === mobileSelectedProperty);
-    if (!checks.length) {
-        container.innerHTML = '<div class="empty-state"><p>Sin verificaciones</p></div>';
-        return;
-    }
-    container.innerHTML = checks.map(c => `
-        <div class="check-item">
-            <div class="check-info">
-                <div class="check-item-name">${c.itemName || 'Item'}</div>
-                <div class="check-details">${c.employeeName || 'Empleado'} · ${new Date(c.date || Date.now()).toLocaleDateString('es-ES')}</div>
-            </div>
-            <div class="check-status status-${c.approved ? 'approved' : c.rejected ? 'rejected' : 'pending'}">
-                ${c.approved ? 'Aprobada' : c.rejected ? 'Rechazada' : 'Pendiente'}
-            </div>
-        </div>`).join('');
-}
-
-function loadManagerPurchase() {
-    const container = document.getElementById('mgr-purchase-list');
-    if (!container) return;
-    const items = purchaseInventory.filter(p => p.propertyId === mobileSelectedProperty);
-    if (!items.length) {
-        container.innerHTML = '<div class="empty-state"><p>Sin compras pendientes</p></div>';
-        return;
-    }
-    container.innerHTML = items.map(p => `
-        <div class="purchase-item">
-            <div class="purchase-info">
-                <div class="purchase-name">${p.name || p.itemName}</div>
-                <div class="purchase-qty">x${p.qty || 1}</div>
-            </div>
-            <div class="purchase-status">${p.purchased ? '✓ Comprado' : 'Pendiente'}</div>
-        </div>`).join('');
-}
-
-function addManagerSchedule() {
-    const propId = mobileSelectedProperty;
-    const date = document.getElementById('mgr-schedule-date').value;
-    const type = document.getElementById('mgr-schedule-type').value;
-    const employeeId = document.getElementById('mgr-schedule-employee').value;
-    const shift = document.getElementById('mgr-schedule-shift').value;
-    if (!date) return showToast('Selecciona fecha');
-    const staff = (properties[propId]?.staff || []).find(s => s.id === employeeId);
-    scheduledDates.push({
-        id: `schedule_${Date.now()}`,
-        propertyId: propId,
-        date,
-        type,
-        assignedTo: employeeId || null,
-        assignedEmployeeName: staff?.name || null,
-        shift,
-        completed: false
-    });
-    saveData();
-    document.getElementById('mgr-schedule-date').value = '';
-    loadManagerSchedule();
-    showToast('Fecha agregada');
-}
-
-// ---------- Additional Modal & Helper Functions ----------
-function showAddStaffModal() {
-    const propSelect = document.getElementById('new-staff-property');
-    if (propSelect) {
-        const options = Object.values(properties || {}).map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-        propSelect.innerHTML = '<option value="">Seleccione propiedad</option>' + options;
-    }
-    document.getElementById('modal-add-staff').classList.add('open');
-}
-
-function addNewStaff() {
-    const name = document.getElementById('new-staff-name').value.trim();
-    const username = document.getElementById('new-staff-username').value.trim();
-    const password = document.getElementById('new-staff-password').value.trim();
-    const role = document.getElementById('new-staff-role').value;
-    const propId = document.getElementById('new-staff-property').value;
-    if (!name || !username || !password || !propId) return showToast('Completa todos los campos', true);
-    const prop = properties[propId];
-    if (!prop) return showToast('Propiedad no válida', true);
-    if (!prop.staff) prop.staff = [];
-    prop.staff.push({
-        id: `staff_${Date.now()}`,
-        name,
-        username,
-        password,
-        role
-    });
-    saveData();
-    closeModal('modal-add-staff');
-    loadMobileStaff();
-    showToast('Empleado agregado');
-}
-
-function toggleTaskGroup(key) {
-    const content = document.querySelector(`[id="${key}-list"]`)?.closest('.task-group')?.querySelector('.task-group-content');
-    if (content) {
-        content.style.display = content.style.display === 'none' ? 'block' : 'none';
-    }
-}
-
-function reinitializeTasks() {
-    const defaultTasks = [
-        { propertyId: mobileSelectedProperty, sectionKey: 'limpieza', taskText: 'Limpiar habitaciones', completed: false },
-        { propertyId: mobileSelectedProperty, sectionKey: 'limpieza', taskText: 'Limpiar baños', completed: false },
-        { propertyId: mobileSelectedProperty, sectionKey: 'mantenimiento', taskText: 'Revisar plomería', completed: false }
-    ];
-    cleaningTasks = cleaningTasks.filter(t => t.propertyId !== mobileSelectedProperty);
-    defaultTasks.forEach(t => {
-        cleaningTasks.push({
-            id: `task_${Date.now()}_${Math.random()}`,
-            ...t,
-            createdAt: new Date().toISOString()
-        });
-    });
-    saveData();
-    loadMobileTasks();
-    showToast('Tareas reiniciadas');
-}
-
-function resetManagerInventoryVerification() {
-    if (!mobileSelectedProperty) return showToast('Selecciona propiedad');
-    inventoryChecks = inventoryChecks.filter(c => c.propertyId !== mobileSelectedProperty);
-    saveData();
-    showToast('Verificación reseteada');
-}
-
-function showAddInventoryModalManager() {
-    showAddInventoryModal();
-}
-
-function addMobileTask() {
-    const text = document.getElementById('new-task-input')?.value.trim();
-    const type = document.getElementById('new-task-type')?.value || 'limpieza';
-    const assignee = document.getElementById('new-task-assignee')?.value;
-    if (!text) return showToast('Describe la tarea');
-    const propId = document.getElementById('tasks-property-select')?.value || mobileSelectedProperty;
-    const prop = properties[propId];
-    const staff = (prop?.staff || []).find(s => s.id === assignee);
-    cleaningTasks.push({
-        id: `task_${Date.now()}`,
-        propertyId: propId,
-        sectionKey: type,
-        taskText: text,
-        assignedTo: assignee || null,
-        assignedEmployeeName: staff?.name || null,
-        completed: false,
-        createdAt: new Date().toISOString()
-    });
-    saveData();
-    document.getElementById('new-task-input').value = '';
-    loadMobileTasks();
-    showToast('Tarea creada');
-}
-
 // ---------- Init ----------
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
+    ensureAllInventoriesNormalized();
     const restored = restoreMobileSession();
     if (!restored) {
         document.getElementById('mobile-login-view').style.display = 'flex';
     }
     updatePropertySelectors();
+    // Delegate clicks for employee schedule cards in case inline handlers fail
+    const empScheduleList = document.getElementById('emp-schedule-list');
+    if (empScheduleList) {
+        empScheduleList.addEventListener('click', (e) => {
+            const card = e.target.closest('.schedule-entry.clickable[data-sid]');
+            if (card) handleEmployeeScheduleClick(card.dataset.sid);
+        });
+        empScheduleList.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const card = e.target.closest('.schedule-entry.clickable[data-sid]');
+                if (card) handleEmployeeScheduleClick(card.dataset.sid);
+            }
+        });
+    }
 });

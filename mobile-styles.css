@@ -902,6 +902,17 @@ body {
     align-items: center;
 }
 
+.schedule-entry.clickable {
+    cursor: pointer;
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+    touch-action: manipulation;
+}
+
+.schedule-entry.clickable:active {
+    transform: scale(0.99);
+    box-shadow: var(--shadow-strong, 0 4px 12px rgba(0,0,0,0.12));
+}
+
 .schedule-entry .entry-info {
     flex: 1;
 }
