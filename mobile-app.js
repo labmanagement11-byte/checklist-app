@@ -1059,11 +1059,21 @@ function loadMobileTasks() {
     const viewAll = selectedValue === 'all';
     const activePropId = viewAll ? null : (selectedValue || defaultPropId);
 
+    // Asegurar estado de propiedad seleccionada
+    if (activePropId) {
+        mobileSelectedProperty = activePropId;
+    }
+
     if (selectElement) {
         const propertyOptions = propertyEntries.map(([key, prop]) => 
             `<option value="${key}" ${key === activePropId ? 'selected' : ''}>${prop.name}</option>`
         ).join('');
         selectElement.innerHTML = '<option value="">Selecciona una casa...</option><option value="all" ' + (viewAll ? 'selected' : '') + '>Todas las propiedades</option>' + propertyOptions;
+        if (!viewAll && activePropId) {
+            selectElement.value = activePropId;
+        } else if (viewAll) {
+            selectElement.value = 'all';
+        }
     }
 
     if (!activePropId && !viewAll) {
@@ -1137,17 +1147,22 @@ function loadMobileTasks() {
 
 function showAddTaskMobile() {
     const propId = getMobileSelectedProperty();
-    if (!propId) {
-        alert('Primero selecciona una casa');
-        return;
-    }
-    
-    const prop = properties[propId];
-    const staffOptions = (prop?.staff || []).map(s => 
+    const propertyOptions = Object.entries(properties || {}).map(([key, prop]) => 
+        `<option value="${key}" ${propId === key ? 'selected' : ''}>${prop.name}</option>`
+    ).join('');
+    const currentProp = propId ? properties[propId] : null;
+    const staffOptions = (currentProp?.staff || []).map(s => 
         `<option value="${s.id}">${s.name} - ${getRoleName(s.role)}</option>`
     ).join('');
     
     const modalBody = `
+        <div class="form-group">
+            <label class="form-label">Propiedad</label>
+            <select id="mobileTaskProperty" class="form-control" onchange="onTaskPropertyChangeMobile()">
+                <option value="">Selecciona una casa...</option>
+                ${propertyOptions}
+            </select>
+        </div>
         <div class="form-group">
             <label class="form-label">Descripción de la Tarea</label>
             <input type="text" id="mobileTaskDesc" class="form-control" placeholder="Ej: Limpiar cocina">
@@ -1172,9 +1187,24 @@ function showAddTaskMobile() {
     showMobileModal('📋 Nueva Tarea', modalBody);
 }
 
+// Cambiar staff al cambiar propiedad en el modal de tarea
+function onTaskPropertyChangeMobile() {
+    const propSelect = document.getElementById('mobileTaskProperty');
+    const staffSelect = document.getElementById('mobileTaskStaff');
+    if (!propSelect || !staffSelect) return;
+    const propId = propSelect.value;
+    const prop = properties[propId];
+    const staffOptions = (prop?.staff || []).map(s => `<option value="${s.id}">${s.name} - ${getRoleName(s.role)}</option>`).join('');
+    staffSelect.innerHTML = '<option value="">Sin asignar</option>' + staffOptions;
+}
+
 function saveMobileTask() {
-    const propId = getMobileSelectedProperty();
-    if (!propId) return;
+    const modalPropSelect = document.getElementById('mobileTaskProperty');
+    const propId = modalPropSelect ? modalPropSelect.value : getMobileSelectedProperty();
+    if (!propId) {
+        alert('Selecciona una propiedad');
+        return;
+    }
     
     const desc = document.getElementById('mobileTaskDesc').value.trim();
     const staffId = document.getElementById('mobileTaskStaff').value;
