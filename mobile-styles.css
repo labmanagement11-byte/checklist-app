@@ -50,6 +50,10 @@ body {
 
 .login-container {
     width: 100%;
+.schedule-entries .entry-epic {
+    font-size: 0.85rem;
+    color: #64748b;
+}
     max-width: 400px;
 }
 
@@ -72,6 +76,10 @@ body {
 }
 
 .login-subtitle {
+.btn-small {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+}
     font-size: 14px;
     opacity: 0.9;
 }

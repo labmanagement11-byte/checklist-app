@@ -539,8 +539,10 @@ function loadMobileSchedule() {
                 <div class="entry-info">
                     <div class="entry-date">${formatDateShort(s.date)}</div>
                     <div class="entry-details">${staff ? staff.name : 'Sin asignar'} · ${s.shift || s.startTime || 'turno libre'}</div>
+                    <div class="entry-epic">${formatEpicType(s.epicType || 'limpieza_regular')}</div>
                 </div>
                 <span class="entry-type ${s.type === 'descanso' ? 'type-descanso' : 'type-trabajo'}">${s.type}</span>
+                <button class="btn-secondary btn-small" onclick="openEditSchedule('${s.id}')">✏️ Editar</button>
             </div>`;
     }).join('');
 }
@@ -551,6 +553,7 @@ function addMobileSchedule() {
     const type = document.getElementById('schedule-type').value;
     const employeeId = document.getElementById('schedule-employee').value;
     const shift = document.getElementById('schedule-shift').value;
+    const epicType = document.getElementById('schedule-epic-type')?.value || 'limpieza_regular';
     if (!propId) return showToast('Selecciona propiedad', true);
     if (!date) return showToast('Selecciona fecha', true);
     const prop = properties[propId];
@@ -563,11 +566,52 @@ function addMobileSchedule() {
         assignedTo: employeeId || null,
         assignedEmployeeName: staff?.name || null,
         shift,
+        epicType,
         completed: false
     });
     saveData();
     loadMobileSchedule();
     showToast('Fecha agregada');
+}
+
+function formatEpicType(val) {
+    if (val === 'limpieza_profunda') return 'Limpieza Profunda';
+    if (val === 'mantenimiento') return 'Mantenimiento';
+    return 'Limpieza Regular';
+}
+
+function openEditSchedule(id) {
+    const s = scheduledDates.find(x => x.id === id);
+    if (!s) return;
+    document.getElementById('edit-schedule-id').value = s.id;
+    document.getElementById('edit-schedule-date').value = s.date;
+    document.getElementById('edit-schedule-type').value = s.type;
+    document.getElementById('edit-schedule-shift').value = s.shift || 'completo';
+    document.getElementById('edit-schedule-epic-type').value = s.epicType || 'limpieza_regular';
+    // fill employee options for current property
+    const sel = document.getElementById('edit-schedule-employee');
+    const options = (properties[s.propertyId]?.staff || []).map(st => `<option value="${st.id}">${st.name}</option>`).join('');
+    sel.innerHTML = '<option value="">Sin asignar</option>' + options;
+    sel.value = s.assignedTo || '';
+    document.getElementById('modal-edit-schedule').classList.add('open');
+}
+
+function saveEditedSchedule() {
+    const id = document.getElementById('edit-schedule-id').value;
+    const sIdx = scheduledDates.findIndex(x => x.id === id);
+    if (sIdx < 0) return;
+    const s = scheduledDates[sIdx];
+    s.date = document.getElementById('edit-schedule-date').value || s.date;
+    s.type = document.getElementById('edit-schedule-type').value || s.type;
+    s.assignedTo = document.getElementById('edit-schedule-employee').value || null;
+    const staff = (properties[s.propertyId]?.staff || []).find(st => st.id === s.assignedTo);
+    s.assignedEmployeeName = staff?.name || null;
+    s.shift = document.getElementById('edit-schedule-shift').value || s.shift;
+    s.epicType = document.getElementById('edit-schedule-epic-type').value || s.epicType || 'limpieza_regular';
+    saveData();
+    closeModal('modal-edit-schedule');
+    loadMobileSchedule();
+    showToast('Trabajo actualizado');
 }
 
 // ---------- Tasks ----------

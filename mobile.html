@@ -298,6 +298,14 @@
                                 <option value="completo">Completo</option>
                             </select>
                         </div>
+                        <div class="form-group">
+                            <label>Epic D1:</label>
+                            <select id="schedule-epic-type">
+                                <option value="limpieza_regular">Limpieza Regular</option>
+                                <option value="limpieza_profunda">Limpieza Profunda</option>
+                                <option value="mantenimiento">Mantenimiento</option>
+                            </select>
+                        </div>
                     </div>
                     <button class="btn-primary" onclick="addMobileSchedule()">Agregar al Calendario</button>
                 </div>
@@ -1004,6 +1012,61 @@
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeModal('modal-confirm')">Cancelar</button>
                 <button class="btn-primary" id="confirm-action-btn">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Schedule Modal -->
+    <div id="modal-edit-schedule" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Editar Trabajo</h3>
+                <button class="modal-close" onclick="closeModal('modal-edit-schedule')">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-schedule-id">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Fecha:</label>
+                        <input type="date" id="edit-schedule-date">
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo:</label>
+                        <select id="edit-schedule-type">
+                            <option value="trabajo">Trabajo</option>
+                            <option value="descanso">Descanso</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Empleado:</label>
+                        <select id="edit-schedule-employee">
+                            <option value="">Sin asignar</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Turno:</label>
+                        <select id="edit-schedule-shift">
+                            <option value="mañana">Mañana</option>
+                            <option value="tarde">Tarde</option>
+                            <option value="noche">Noche</option>
+                            <option value="completo">Completo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Epic D1:</label>
+                        <select id="edit-schedule-epic-type">
+                            <option value="limpieza_regular">Limpieza Regular</option>
+                            <option value="limpieza_profunda">Limpieza Profunda</option>
+                            <option value="mantenimiento">Mantenimiento</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('modal-edit-schedule')">Cancelar</button>
+                <button class="btn-primary" onclick="saveEditedSchedule()">Guardar</button>
             </div>
         </div>
     </div>
