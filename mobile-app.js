@@ -376,6 +376,8 @@ function updatePropertySelectors() {
         fillStaffOptions('new-task-assignee', mobileSelectedProperty);
         fillStaffOptions('mgr-schedule-employee', mobileSelectedProperty);
         fillStaffOptions('mgr-new-task-assignee', mobileSelectedProperty);
+        // Update category filters according to property (e.g., hide Terraza in Torre Magna)
+        updateCategoryFiltersForProperty(mobileSelectedProperty);
     }
     // Manager/employee badges
     const mgrBadge = document.getElementById('mgr-property-name');
@@ -388,6 +390,28 @@ function updatePropertySelectors() {
         const prop = properties[mobileSelectedProperty];
         empProp.textContent = prop ? prop.name : '';
     }
+}
+
+function updateCategoryFiltersForProperty(propId) {
+    const propName = properties[propId]?.name || '';
+    const isTorreMagna = propName.trim().toLowerCase() === 'torre magna pi' || propName.trim().toLowerCase() === 'torre magna';
+    const categorySelectIds = ['inventory-category-select','emp-inventory-category','mgr-inventory-category'];
+    categorySelectIds.forEach(id => {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const opts = Array.from(sel.options);
+        const idxTerraza = opts.findIndex(o => (o.text || o.value || '').toLowerCase() === 'terraza');
+        if (isTorreMagna) {
+            if (idxTerraza >= 0) sel.remove(idxTerraza);
+        } else {
+            if (idxTerraza < 0) {
+                const opt = document.createElement('option');
+                opt.value = 'Terraza';
+                opt.text = 'Terraza';
+                sel.appendChild(opt);
+            }
+        }
+    });
 }
 
 function fillPropertyOptions(selectId) {
