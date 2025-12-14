@@ -1499,7 +1499,7 @@ function loadManagerInventory() {
             `;
         });
     container.innerHTML = groups.join('');
-}}
+}
 
 // Map UI labels to internal category keys
 function normalizeCategoryFilter(val) {
