@@ -540,21 +540,36 @@
             <!-- Employee Inventory (Read-only with verification) -->
             <section id="section-emp-inventory" class="content-section">
                 <h2 class="section-title">Inventario</h2>
-                <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Verifica las cantidades y marca si está completo o falta algo.</p>
-                <div class="section-controls">
-                    <select id="emp-inventory-category" onchange="loadEmployeeInventory()">
-                        <option value="">Todas las categorías</option>
-                        <option value="Habitación">Habitación</option>
-                        <option value="Baño">Baño</option>
-                        <option value="Cocina">Cocina</option>
-                        <option value="Sala">Sala</option>
-                        <option value="Terraza">Terraza</option>
-                        <option value="Limpieza">Limpieza</option>
-                        <option value="Exterior">Exterior</option>
-                    </select>
+                <div class="inventory-tabs">
+                    <button class="tab-btn active" onclick="switchInventoryTab('form')">Verificar</button>
+                    <button class="tab-btn" onclick="switchInventoryTab('summary')">Resumen</button>
                 </div>
-                <div id="emp-inventory-list" class="emp-inventory-verification">
-                    <!-- Inventory items with verification -->
+
+                <!-- Verification Form Tab -->
+                <div id="inv-tab-form" class="tab-content active">
+                    <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Verifica las cantidades y marca si está completo o falta algo.</p>
+                    <div class="section-controls">
+                        <select id="emp-inventory-category" onchange="loadEmployeeInventory()">
+                            <option value="">Todas las categorías</option>
+                            <option value="Habitación">Habitación</option>
+                            <option value="Baño">Baño</option>
+                            <option value="Cocina">Cocina</option>
+                            <option value="Sala">Sala</option>
+                            <option value="Terraza">Terraza</option>
+                            <option value="Limpieza">Limpieza</option>
+                            <option value="Exterior">Exterior</option>
+                        </select>
+                    </div>
+                    <div id="emp-inventory-list" class="emp-inventory-verification">
+                        <!-- Inventory items with verification -->
+                    </div>
+                </div>
+
+                <!-- Summary Tab -->
+                <div id="inv-tab-summary" class="tab-content">
+                    <div id="emp-inventory-summary" class="inventory-summary">
+                        <!-- Summary will be loaded here -->
+                    </div>
                 </div>
             </section>
 

@@ -750,6 +750,131 @@ body {
     min-height: 60px;
 }
 
+/* Inventory Tabs */
+.inventory-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.tab-btn {
+    padding: 10px 16px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+}
+
+.tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Inventory Summary */
+.inventory-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.summary-category {
+    background: var(--surface);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+.summary-category-header {
+    background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
+    color: white;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.summary-category-header h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.summary-stats {
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.summary-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px;
+    border-radius: 6px;
+    gap: 12px;
+}
+
+.summary-item-left {
+    flex: 1;
+}
+
+.summary-item-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.summary-item-details {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.summary-item-comment {
+    font-size: 12px;
+    color: #d32f2f;
+    margin-top: 4px;
+}
+
+.summary-item-right {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.summary-item-status {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.summary-item-date {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
 .inventory-actions {
     display: flex;
     gap: 10px;

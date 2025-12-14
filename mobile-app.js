@@ -1164,6 +1164,104 @@ function setMobileInventoryComment(catKey, itemId, comment) {
     }
 }
 
+function switchInventoryTab(tab) {
+    document.querySelectorAll('#section-emp-inventory .tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('#section-emp-inventory .tab-content').forEach(content => content.classList.remove('active'));
+    
+    event.target.classList.add('active');
+    document.getElementById(`inv-tab-${tab}`).classList.add('active');
+    
+    if (tab === 'summary') {
+        loadEmployeeInventorySummary();
+    }
+}
+
+function loadEmployeeInventorySummary() {
+    const propId = mobileSelectedProperty;
+    const container = document.getElementById('emp-inventory-summary');
+    if (!container) return;
+    
+    const prop = properties[propId];
+    if (!prop) {
+        container.innerHTML = '<div class="empty-state"><p>Sin propiedad</p></div>';
+        return;
+    }
+    
+    const checks = inventoryChecks.filter(c => 
+        c.propertyId === propId && 
+        c.employeeId === mobileCurrentUser.staffId
+    );
+    
+    if (!checks.length) {
+        container.innerHTML = '<div class="empty-state"><p>No hay verificaciones realizadas</p></div>';
+        return;
+    }
+    
+    const groupedByCategory = {};
+    checks.forEach(check => {
+        if (!groupedByCategory[check.categoryKey]) {
+            groupedByCategory[check.categoryKey] = [];
+        }
+        groupedByCategory[check.categoryKey].push(check);
+    });
+    
+    let html = '';
+    
+    Object.keys(groupedByCategory).forEach(catKey => {
+        const categoryChecks = groupedByCategory[catKey];
+        const okCount = categoryChecks.filter(c => c.status === 'ok').length;
+        const missingCount = categoryChecks.filter(c => c.status === 'missing').length;
+        const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
+        const catIcon = INVENTORY_CATEGORIES[catKey]?.icon || '📦';
+        
+        html += `
+            <div class="summary-category">
+                <div class="summary-category-header">
+                    <h3>${catIcon} ${catName}</h3>
+                    <span class="summary-stats">✓${okCount} | ✗${missingCount}</span>
+                </div>
+                <div class="summary-items">
+        `;
+        
+        categoryChecks.forEach(check => {
+            const items = prop.inventory[catKey] || [];
+            const item = items.find(i => i.id === check.itemId);
+            if (!item) return;
+            
+            const date = new Date(check.checkDate);
+            const dateStr = date.toLocaleDateString('es-ES', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            const statusIcon = check.status === 'ok' ? '✓' : check.status === 'resolved' ? '🔧' : '✗';
+            const statusColor = check.status === 'ok' ? '#4CAF50' : check.status === 'resolved' ? '#2196F3' : '#f44336';
+            const statusBg = check.status === 'ok' ? 'rgba(76, 175, 80, 0.1)' : check.status === 'resolved' ? 'rgba(33, 150, 243, 0.1)' : 'rgba(244, 67, 54, 0.1)';
+            
+            html += `
+                <div class="summary-item" style="background-color: ${statusBg}; border-left: 4px solid ${statusColor};">
+                    <div class="summary-item-left">
+                        <div class="summary-item-name">${item.name}</div>
+                        <div class="summary-item-details">
+                            <span>Esperado: ${item.qty} | Real: ${check.realQty}</span>
+                        </div>
+                        ${check.comment ? `<div class="summary-item-comment">💬 ${check.comment}</div>` : ''}
+                    </div>
+                    <div class="summary-item-right">
+                        <div class="summary-item-status" style="color: ${statusColor}; font-size: 20px; font-weight: 600;">
+                            ${statusIcon}
+                        </div>
+                        <div class="summary-item-date">${dateStr}</div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
 function submitPurchaseRequest() {
     const item = document.getElementById('emp-purchase-item').value.trim();
     const qty = Math.max(1, parseInt(document.getElementById('emp-purchase-qty').value, 10) || 1);
