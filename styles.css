@@ -4,30 +4,49 @@
     box-sizing: border-box;
 }
 
-/* Luxury Logo Animations */
-@keyframes luxuryFloat {
+/* Advanced Logo Animations - Elegant Motion */
+@keyframes metalRotate {
     0%, 100% {
-        transform: translateY(0px) scale(1);
-        filter: drop-shadow(0 10px 25px rgba(212, 175, 55, 0.3)) drop-shadow(0 0 20px rgba(79, 70, 229, 0.2));
+        transform: rotateZ(0deg);
     }
     50% {
-        transform: translateY(-8px) scale(1.02);
-        filter: drop-shadow(0 15px 35px rgba(212, 175, 55, 0.5)) drop-shadow(0 0 30px rgba(79, 70, 229, 0.4));
+        transform: rotateZ(3deg);
     }
 }
 
-@keyframes luxuryShimmer {
+@keyframes houseFloat {
     0%, 100% {
-        opacity: 0.8;
+        transform: translateY(0px);
     }
     50% {
-        opacity: 1;
+        transform: translateY(-6px);
+    }
+}
+
+@keyframes shineGlide {
+    0%, 100% {
+        opacity: 0.15;
+        transform: translateX(-10px);
+    }
+    50% {
+        opacity: 0.35;
+        transform: translateX(10px);
+    }
+}
+
+@keyframes shimmerPulse {
+    0%, 100% {
+        filter: brightness(1);
+    }
+    50% {
+        filter: brightness(1.15);
     }
 }
 
 img[src*="logo.svg"] {
-    animation: luxuryFloat 5s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
-    filter: drop-shadow(0 10px 25px rgba(212, 175, 55, 0.3));
+    animation: metalRotate 6s ease-in-out infinite, shimmerPulse 4s ease-in-out infinite;
+    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.3));
+    transform-origin: center center;
 }
 
 :root {
