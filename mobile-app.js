@@ -1560,13 +1560,15 @@ function loadManagerSchedule() {
         const typeLabel = s.type === 'descanso' ? 'descanso' : hasEpic ? 'EPIC D1' : s.type;
         const epicLabel = hasEpic ? formatEpicType(epicValue) : '';
         return `
-            <div class="schedule-entry">
-                <div class="entry-info">
-                    <div class="entry-date">${formatDateShort(s.date)}</div>
-                    <div class="entry-details">${s.assignedEmployeeName || 'Sin asignar'} · ${s.shift || 'turno'}</div>
-                    ${epicLabel ? `<div class="entry-epic">${epicLabel}</div>` : ''}
+            <div class="schedule-entry-card">
+                <div class="schedule-entry">
+                    <div class="entry-info">
+                        <div class="entry-date">${formatDateShort(s.date)}</div>
+                        <div class="entry-details">${s.assignedEmployeeName || 'Sin asignar'} · ${s.shift || 'turno'}</div>
+                        ${epicLabel ? `<div class="entry-epic">${epicLabel}</div>` : ''}
+                    </div>
+                    <span class="entry-type ${s.type==='descanso'?'type-descanso':'type-trabajo'}">${typeLabel}</span>
                 </div>
-                <span class="entry-type ${s.type==='descanso'?'type-descanso':'type-trabajo'}">${typeLabel}</span>
                 <div class="entry-actions">
                     <button class="btn-secondary btn-small" onclick="openEditSchedule('${s.id}')">✏️ Editar</button>
                     <button class="btn-warning btn-small" onclick="resetTasksForSchedule('${s.id}')">↻ Tareas</button>
