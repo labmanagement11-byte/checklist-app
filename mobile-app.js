@@ -272,13 +272,30 @@ function removePropertyMobile(propId) {
 
 function selectPropertyMobile(propId) {
     mobileSelectedProperty = propId;
-    loadMobileInventory();
-    loadMobileStaff();
-    loadMobileStaffInline();
-    renderMobileOwnerDashboard();
-    renderMobileEmployeeTasks();
-    renderMobileCalendar();
+    // Solo actualizar las vistas activas
     loadMobileProperties();
+    
+    // Actualizar solo si los contenedores existen y son visibles
+    const activeTab = document.querySelector('.tab-content.active');
+    if (activeTab) {
+        const tabId = activeTab.id;
+        if (tabId === 'tab-inventory') {
+            loadMobileInventory();
+        } else if (tabId === 'tab-staff') {
+            loadMobileStaff();
+        } else if (tabId === 'tab-tasks') {
+            loadMobileTasks();
+        } else if (tabId === 'tab-schedule') {
+            loadMobileSchedule();
+        } else if (tabId === 'tab-properties') {
+            loadMobileStaffInline();
+        }
+    }
+    
+    // Actualizar dashboard si es necesario
+    if (document.getElementById('tab-dashboard')?.classList.contains('active')) {
+        renderMobileOwnerDashboard();
+    }
 }
 
 function showAddPropertyMobile() {
@@ -934,19 +951,29 @@ function getItemEmoji(category, itemName) {
 function loadMobileTasks() {
     const propId = getMobileSelectedProperty();
     if (!propId) {
-        document.getElementById('tasksContentMobile').innerHTML = '<div class="empty-state"><div class="empty-text">Selecciona una casa</div></div>';
+        const contentDiv = document.getElementById('tasksContentMobile');
+        if (contentDiv) {
+            contentDiv.innerHTML = '<div class="empty-state"><div class="empty-text">Selecciona una casa</div></div>';
+        }
         return;
     }
     
-    const propertyOptions = Object.entries(properties).map(([key, prop]) => 
-        `<option value="${key}" ${key === propId ? 'selected' : ''}>${prop.name}</option>`
-    ).join('');
-    document.getElementById('tasksPropertySelect').innerHTML = '<option value="">Selecciona una casa...</option>' + propertyOptions;
+    // Cargar selector de propiedades
+    const selectElement = document.getElementById('tasksPropertySelect');
+    if (selectElement) {
+        const propertyOptions = Object.entries(properties).map(([key, prop]) => 
+            `<option value="${key}" ${key === propId ? 'selected' : ''}>${prop.name}</option>`
+        ).join('');
+        selectElement.innerHTML = '<option value="">Selecciona una casa...</option>' + propertyOptions;
+    }
     
     const tasks = cleaningTasks.filter(t => t.propertyId === propId);
     
+    const contentDiv = document.getElementById('tasksContentMobile');
+    if (!contentDiv) return;
+    
     if (tasks.length === 0) {
-        document.getElementById('tasksContentMobile').innerHTML = '<div class="empty-state"><div class="empty-text">No hay tareas creadas</div></div>';
+        contentDiv.innerHTML = '<div class="empty-state"><div class="empty-text">No hay tareas creadas.<br><br><button class="btn btn-primary" onclick="showAddTaskMobile()">Crear Primera Tarea</button></div></div>';
         return;
     }
     
@@ -968,7 +995,7 @@ function loadMobileTasks() {
         `;
     }).join('');
     
-    document.getElementById('tasksContentMobile').innerHTML = tasksHTML;
+    contentDiv.innerHTML = tasksHTML;
 }
 
 function showAddTaskMobile() {
