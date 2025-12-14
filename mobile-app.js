@@ -817,7 +817,7 @@ function renderTaskList(list) {
                     ${t.completionReason ? `<div class="task-reason" style="color: #ff6b6b; font-size: 0.85rem; margin-top: 0.5rem;">❌ No completada: ${t.completionReason}</div>` : ''}
                 </div>
                 <div class="task-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
-                    <button class="btn-success" onclick="markTaskCompleted('${t.id}')" style="background: #4caf50; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; cursor: pointer;" ${t.completed ? 'disabled style="opacity: 0.6;"' : ''}>
+                    <button class="btn-success" onclick="markTaskCompleted('${t.id}')" style="background: #4caf50; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; cursor: pointer; ${t.completed ? 'opacity: 0.6;' : ''}" ${t.completed ? 'disabled' : ''}>
                         ✓ Completado
                     </button>
                     <button class="btn-warning" onclick="showTaskNotCompletedModal('${t.id}')" style="background: #ff9800; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; cursor: pointer;">
