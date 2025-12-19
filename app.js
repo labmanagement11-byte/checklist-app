@@ -522,17 +522,8 @@ function loadData() {
     deletedInventoryChecks = deletedInventoryChecks.filter(deleted => {
         const deletedTime = new Date(deleted.deletedAt).getTime();
         const timePassed = now - deletedTime;
-        
-        if (timePassed > threeDaysMs) {
-            return false; // Eliminar permanentemente
-            const updatedTask = { ...task, verified: true };
-            saveTaskToFirestore(updatedTask).then(() => {
-                renderTasks();
-                renderEmployeeTasks();
-                renderManagerTasks();
-                restoreOpenSections(openSections);
-            });
-}
+        return timePassed <= threeDaysMs; // Solo mantener los que no han expirado
+    });
 
 async function deleteInventoryReport(propertyId) {
     if (!confirm('⚠️ ¿Eliminar este reporte de inventario? Se guardará un respaldo por 3 días.')) return;
