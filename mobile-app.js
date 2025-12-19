@@ -765,10 +765,11 @@ function ensureTasksForSchedule(schedule) {
     const propId = schedule.propertyId;
     const assignedTo = schedule.assignedTo || null;
     const assignedEmployeeName = schedule.assignedEmployeeName || null;
+    const sectionKey = epicKey === 'mantenimiento' ? 'mantenimiento' : 'limpieza';
     const created = template.map((text, idx) => ({
         id: `task_${schedule.id}_${idx}`,
         propertyId: propId,
-        sectionKey: 'limpieza',
+        sectionKey,
         taskText: text,
         subsectionTitle: `EPIC D1 · ${formatEpicType(epicKey)}`,
         scheduleId: schedule.id,
