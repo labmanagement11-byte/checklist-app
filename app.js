@@ -3142,10 +3142,19 @@ function renderTasks() {
                     row.style.display = 'flex';
                     row.style.justifyContent = 'space-between';
                     row.style.alignItems = 'center';
+                    let completedTimeHtml = '';
+                    if (task.completedTime) {
+                        const completedDate = new Date(task.completedTime);
+                        const timeStr = completedDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                        completedTimeHtml = `<span style="color:#4CAF50; font-weight:600;">${timeStr}</span>`;
+                    }
+                    const employeeName = task.assignedEmployeeName || 'Sin asignar';
                     row.innerHTML = `
                         <div>
                             <span style="color:green; font-weight:600;">✅</span>
                             <span style="text-decoration:line-through;">${task.taskText}</span>
+                            <span style="color:#888; margin-left:0.5rem;">(${employeeName})</span>
+                            ${completedTimeHtml ? `<span style="margin-left:0.5rem;">⏰ ${completedTimeHtml}</span>` : ''}
                         </div>
                         <div style="display:flex; gap:0.5rem;">
                             <button class="btn-success" onclick="verifyAndCloseTask('${task.id}')">✔️ Verificar y Cerrar</button>
