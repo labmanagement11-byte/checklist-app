@@ -16,58 +16,6 @@
                     </video>
                     <div style="position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 10; color: white; font-size: 1.5rem; font-weight: bold; text-shadow: 0 2px 8px #000;">¡Login exitoso!</div>
                 </div>
-        <!-- LOGIN -->
-        <div id="loginView" class="view" style="display: block; background: url('login-background.png?v=3') center/cover no-repeat; position: relative;">
-            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.15); z-index: 0;"></div>
-            <div class="login-container" style="position: relative; z-index: 1;">
-                <style>
-                </style>
-                <div style="display: flex; align-items: center; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem;">
-                    <img src="logo-new.png?v=1" alt="LIMPIEZA-360PRO-APP" width="160" height="160" style="flex-shrink: 0;">
-                    <h1 style="margin: 0; color: #1E3A8A; font-size: 2rem;">LIMPIEZA-360PRO-APP</h1>
-                </div>
-                <p>✨ Gestión de Propiedades y Limpieza</p>
-                <div class="login-form">
-                    <div class="form-group">
-                        <label>Tipo de Usuario</label>
-                        <select id="userType" onchange="updateLoginForm()">
-                            <option value="">Selecciona...</option>
-                            <option value="owner">Dueño</option>
-                            <option value="manager">Manager</option>
-                            <option value="employee">Empleado</option>
-                        </select>
-                    </div>
-                    <div class="form-group" id="ownerUsernameGroup" style="display:none;">
-                        <label>👤 Usuario</label>
-                        <input type="text" id="ownerCode" placeholder="Tu usuario">
-                    </div>
-                    <div class="form-group" id="ownerPasswordGroup" style="display:none;">
-                        <label>🔐 Contraseña</label>
-                        <input type="password" id="ownerPassword" placeholder="Tu contraseña">
-                    </div>
-                    <div class="form-group" id="ownerRememberGroup" style="display:none; align-items:center; gap:0.5rem;">
-                        <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.9rem;">
-                            <input type="checkbox" id="rememberOwner" style="width:auto;"> Recordar usuario y contraseña
-                        </label>
-                    </div>
-                    <div class="form-group" id="staffUsernameGroup" style="display:none;">
-                        <label>👤 Usuario del personal</label>
-                        <input type="text" id="staffUsername" placeholder="Usuario asignado por el dueño">
-                    </div>
-                    <div class="form-group" id="staffPasswordGroup" style="display:none;">
-                        <label>🔒 Contraseña del personal</label>
-                        <input type="password" id="staffPassword" placeholder="Contraseña asignada por el dueño">
-                    </div>
-                    <div class="form-group" id="staffRememberGroup" style="display:none; align-items:center; gap:0.5rem;">
-                        <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.9rem;">
-                            <input type="checkbox" id="rememberStaff" style="width:auto;"> Recordar usuario y contraseña
-                        </label>
-                    </div>
-                    <button class="btn-primary" onclick="login()">Ingresar</button>
-                    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" style="margin-top: 1.5rem; width: 100%;">🌙 Tema Oscuro</button>
-                </div>
-            </div>
-        </div>
         
         <!-- LOGIN -->
         <div id="loginView" class="view" style="display: none; background: url('login-background.png?v=3') center/cover no-repeat; position: relative;">
