@@ -86,7 +86,27 @@
                 <span></span>
             </button>
             <h1 class="header-title" style="display: flex; align-items: center; gap: 0.5rem; justify-content: center;">
-                <img src="header-logo.png?v=1" alt="360" style="height: 36px; width: auto;">
+                <svg width="50" height="50" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="empHeaderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <animate attributeName="x1" values="0%;100%;0%" dur="3s" repeatCount="indefinite"/>
+                            <animate attributeName="y1" values="0%;100%;0%" dur="3s" repeatCount="indefinite"/>
+                            <stop offset="0%" style="stop-color:#FF6B6B;stop-opacity:1"/>
+                            <stop offset="50%" style="stop-color:#FFD700;stop-opacity:1"/>
+                            <stop offset="100%" style="stop-color:#4ECDC4;stop-opacity:1"/>
+                        </linearGradient>
+                        <filter id="empGlow" x="-40%" y="-40%" width="180%" height="180%">
+                            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    <circle cx="50" cy="50" r="45" fill="url(#empHeaderGradient)" filter="url(#empGlow)"/>
+                    <text x="50" y="62" font-family="Arial Black, sans-serif" font-size="32" font-weight="bold" text-anchor="middle" fill="url(#empHeaderGradient)" filter="url(#empGlow)">360</text>
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="url(#empHeaderGradient)" stroke-width="2" opacity="0.6"/>
+                </svg>
             </h1>
             <div class="header-actions">
                 <span id="sync-indicator" style="font-size: 1.2rem; color: #4CAF50; display: none; animation: spin 2s linear infinite;">🔄</span>
