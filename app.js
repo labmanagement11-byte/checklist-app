@@ -4597,8 +4597,11 @@ function hideSyncIndicator() {
     }
 }
 
+
 window.addEventListener('DOMContentLoaded', () => {
     loadTheme();
     updateThemeButtonText();
     initializeApp();
 });
+
+// --- FIN DEL ARCHIVO ---
