@@ -4,8 +4,22 @@ const OWNER_CREDENTIALS = {
     password: 'galindo123',
     name: 'Jonathan Galindo'
 };
+
 // Mobile App Logic - redesigned for hamburger layout
 // Relies on shared data/state from app.js
+
+// --- Mostrar login siempre al cargar si no hay sesión válida ---
+window.addEventListener('DOMContentLoaded', function() {
+    // Intenta restaurar sesión
+    restoreMobileSession && restoreMobileSession();
+    // Si no hay usuario autenticado, muestra login y oculta todo lo demás
+    if (!mobileCurrentUserType || !mobileCurrentUser) {
+        document.getElementById('mobile-login-view').style.display = 'flex';
+        document.getElementById('mobile-owner-view').style.display = 'none';
+        document.getElementById('mobile-employee-view').style.display = 'none';
+        document.getElementById('mobile-manager-view').style.display = 'none';
+    }
+});
 
 const MOBILE_SESSION_KEY = 'airbnbmanager_mobile_session';
 const TASK_NOTIFICATIONS_KEY = 'airbnbmanager_task_notifications';
