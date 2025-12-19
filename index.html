@@ -386,15 +386,22 @@
         // Welcome video handler
         let videoSkipped = false;
         
+
         function skipToLogin() {
             videoSkipped = true;
             const welcomeView = document.getElementById('welcomeVideoView');
             const loginView = document.getElementById('loginView');
             const video = document.getElementById('welcomeVideo');
-            
             video.pause();
             welcomeView.style.display = 'none';
             loginView.style.display = 'block';
+            // Mostrar campos correctos de login según tipo de usuario
+            if (typeof updateLoginForm === 'function') {
+                updateLoginForm();
+            } else {
+                // Si aún no está cargado, intentar después de un pequeño delay
+                setTimeout(() => { if (typeof updateLoginForm === 'function') updateLoginForm(); }, 300);
+            }
         }
         
         // Auto-advance to login after video ends
@@ -403,7 +410,6 @@
             if (video) {
                 // Intentar reproducir con sonido
                 video.muted = false;
-                
                 // Si el navegador bloquea el autoplay con sonido, intentar reproducir manualmente
                 const playPromise = video.play();
                 if (playPromise !== undefined) {
@@ -414,16 +420,19 @@
                         video.play();
                     });
                 }
-                
                 // Cuando el video termine, ir automáticamente al login
                 video.addEventListener('ended', function() {
                     if (!videoSkipped) {
                         skipToLogin();
                     }
                 });
-                
-                // Remover el timeout de seguridad - solo avanzar cuando termine el video
             }
+            // Asegurar que el login siempre muestre los campos correctos al cargar (por si no hay video)
+            setTimeout(() => {
+                if (document.getElementById('loginView') && document.getElementById('loginView').style.display !== 'none') {
+                    if (typeof updateLoginForm === 'function') updateLoginForm();
+                }
+            }, 500);
         });
     </script>
     

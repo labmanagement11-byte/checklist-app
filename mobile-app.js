@@ -1,3 +1,9 @@
+// --- Credenciales del propietario (deben coincidir con app.js) ---
+const OWNER_CREDENTIALS = {
+    username: 'jonathan',
+    password: 'galindo123',
+    name: 'Jonathan Galindo'
+};
 // Mobile App Logic - redesigned for hamburger layout
 // Relies on shared data/state from app.js
 
@@ -115,6 +121,25 @@ function updateCategoryFiltersForProperty(propId) {
 // --- FIN FIX ---
 
 // ---------- Session & Login ----------
+// Busca staff por credenciales y rol esperado (manager/employee)
+function findStaffByCredentials(username, password, expectedRole) {
+    const propIds = Object.keys(properties);
+    for (const propId of propIds) {
+        const prop = properties[propId];
+        const staff = (prop.staff || []).find(s => {
+            if (s.username !== username || s.password !== password) return false;
+            if (expectedRole === 'manager') return s.role === 'manager';
+            // Para ingreso como empleado, permitir roles de limpieza o mantenimiento
+            if (expectedRole === 'employee') return s.role === 'employee' || s.role === 'maintenance';
+            return false;
+        });
+        if (staff) {
+            return { property: prop, staff };
+        }
+    }
+    return null;
+}
+
 function mobileLogin() {
     loadData();
     
@@ -561,7 +586,6 @@ function fillPropertyOptions(selectId) {
     select.innerHTML = '<option value="">Seleccione propiedad</option>' + entries.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
 }
 
-let mobileInventoryUnsubscribe = null;
 function loadMobileInventory() {
     const propId = document.getElementById('inventory-property-select')?.value || mobileSelectedProperty;
     const rawCategory = document.getElementById('inventory-category-select')?.value || '';
@@ -1160,7 +1184,6 @@ function fillPropertyOptions(selectId) {
     select.innerHTML = '<option value="">Seleccione propiedad</option>' + entries.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
 }
 
-let mobileInventoryUnsubscribe = null;
 function loadMobileInventory() {
     const propId = document.getElementById('inventory-property-select')?.value || mobileSelectedProperty;
     const rawCategory = document.getElementById('inventory-category-select')?.value || '';
