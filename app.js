@@ -1054,12 +1054,23 @@ function login() {
         const user = document.getElementById('ownerCode').value.trim();
         const pass = document.getElementById('ownerPassword').value.trim();
         if (user === OWNER_CREDENTIALS.username && pass === OWNER_CREDENTIALS.password) {
-            currentUserType = 'owner';
-            currentUser = { name: OWNER_CREDENTIALS.name, username: user, loginTime: new Date() };
-            // Mantener la propiedad seleccionada en la sesión del dueño
-            if (!selectedProperty) {
+            // Si no hay propiedades, crear una demo automáticamente
+            if (!properties || Object.keys(properties).length === 0) {
+                const demoPropertyId = 'prop_demo_' + Date.now();
+                properties[demoPropertyId] = {
+                    id: demoPropertyId,
+                    name: 'Casa Demo - Configura tus propiedades',
+                    address: 'Esta es una propiedad de ejemplo. El propietario debe agregar propiedades reales.',
+                    staff: [],
+                    inventory: {}
+                };
+                selectedProperty = demoPropertyId;
+                saveData();
+            } else if (!selectedProperty) {
                 selectedProperty = Object.keys(properties)[0] || null;
             }
+            currentUserType = 'owner';
+            currentUser = { name: OWNER_CREDENTIALS.name, username: user, loginTime: new Date() };
             localStorage.setItem('airbnbmanager_session', JSON.stringify({ type: 'owner', user: currentUser, selectedProperty }));
 
             // Guardar credenciales si se marcó recordar
