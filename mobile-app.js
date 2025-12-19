@@ -74,9 +74,9 @@ function initializeDemoData() {
     // Mostrar mensaje informativo
     setTimeout(() => {
         if (mobileCurrentUserType === 'owner') {
-            showToast('⚠️ Primera vez en este dispositivo. Configura tus propiedades y personal real. Luego usa "Sincronizar Datos" para compartir con tu equipo.', false);
+            showToast('⚠️ Primera vez en este dispositivo. Configura tus propiedades y personal real.', false);
         } else {
-            showToast('ℹ️ Datos de ejemplo cargados. Pide al propietario que te comparta el archivo de datos para acceder a la información real.', false);
+            showToast('ℹ️ Datos de ejemplo cargados. Solicita acceso al propietario para obtener la información real.', false);
         }
     }, 500);
 }
