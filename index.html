@@ -32,7 +32,7 @@
                 <div class="login-form">
                     <div class="form-group">
                         <label>Tipo de Usuario</label>
-                        <select id="userType" onchange="updateLoginForm()">
+                        <select id="userType" onchange="updateLoginForm()" title="Tipo de usuario" aria-label="Tipo de usuario">
                             <option value="">Selecciona...</option>
                             <option value="owner">Dueño</option>
                             <option value="manager">Manager</option>
@@ -112,7 +112,7 @@
                     <section id="inventorySection" class="section">
                         <h2>📦 Inventario - 🏠 <span id="propertyNameInventory"></span></h2>
                         <div class="inventory-controls" style="flex-wrap: wrap; margin-bottom:0.5rem;">
-                            <select id="inventoryCategorySelect" class="input-add" style="min-width:180px;">
+                            <select id="inventoryCategorySelect" class="input-add" style="min-width:180px;" title="Categoría de inventario" aria-label="Categoría de inventario">
                                 <option value="">Categoría</option>
                             </select>
                             <input type="text" id="inventoryNewItemName" class="input-add" placeholder="Nuevo ítem (ej: Airfryer)">
@@ -155,15 +155,15 @@
                         <h2>📅 Calendario de Limpieza y Mantenimiento</h2>
                         <div class="inventory-controls" style="flex-wrap: wrap;">
                             <input type="date" id="scheduleDate" class="input-add" placeholder="Seleccionar fecha" onclick="this.showPicker()">
-                            <select id="scheduleType" class="input-add">
+                            <select id="scheduleType" class="input-add" title="Tipo de tarea" aria-label="Tipo de tarea">
                                 <option value="limpieza-regular">🧹 Limpieza Regular</option>
                                 <option value="limpieza-profunda">🧽 Limpieza Profunda</option>
                                 <option value="mantenimiento">🔧 Mantenimiento</option>
                             </select>
-                            <select id="scheduleEmployee" class="input-add">
+                            <select id="scheduleEmployee" class="input-add" title="Empleado asignado" aria-label="Empleado asignado">
                                 <option value="">Seleccionar empleado...</option>
                             </select>
-                            <select id="scheduleTime" class="input-add">
+                            <select id="scheduleTime" class="input-add" title="Turno de trabajo" aria-label="Turno de trabajo">
                                 <option value="">Seleccionar turno...</option>
                                 <option value="mañana">🌅 Turno Mañana</option>
                                 <option value="tarde">🌇 Turno Tarde</option>
@@ -179,7 +179,7 @@
                         <h2>📋 Tareas - 🏠 <span id="propertyNameTasks"></span></h2>
                         <div class="tasks-controls">
                             <input type="text" id="taskInput" placeholder="Ej: Limpiar cocina" class="input-add">
-                            <select id="employeeSelect" class="input-add">
+                            <select id="employeeSelect" class="input-add" title="Empleado asignado" aria-label="Empleado asignado">
                                 <option value="">Asignar a...</option>
                             </select>
                             <button class="btn-primary" onclick="addTask()">Crear Tarea</button>
@@ -199,7 +199,7 @@
                         <h2>👥 Equipo de la Propiedad</h2>
                         <div class="inventory-controls" style="flex-wrap: wrap;">
                             <input type="text" id="staffNameInput" placeholder="Nombre" class="input-add">
-                            <select id="staffRoleSelect" class="input-add" style="min-width: 180px;">
+                            <select id="staffRoleSelect" class="input-add" style="min-width: 180px;" title="Rol del personal" aria-label="Rol del personal">
                                 <option value="manager">Manager</option>
                                 <option value="employee">Empleado - Limpieza</option>
                                 <option value="maintenance">Empleado - Mantenimiento</option>
@@ -334,15 +334,15 @@
                     <h2>📅 Calendario de Limpieza y Mantenimiento</h2>
                     <div class="inventory-controls" style="flex-wrap: wrap;">
                         <input type="date" id="managerScheduleDate" class="input-add" placeholder="Seleccionar fecha" onclick="this.showPicker()">
-                        <select id="managerScheduleType" class="input-add">
+                        <select id="managerScheduleType" class="input-add" title="Tipo de tarea" aria-label="Tipo de tarea">
                             <option value="limpieza-regular">🧹 Limpieza Regular</option>
                             <option value="limpieza-profunda">🧽 Limpieza Profunda</option>
                             <option value="mantenimiento">🔧 Mantenimiento</option>
                         </select>
-                        <select id="managerScheduleEmployee" class="input-add">
+                        <select id="managerScheduleEmployee" class="input-add" title="Empleado asignado" aria-label="Empleado asignado">
                             <option value="">Seleccionar empleado...</option>
                         </select>
-                        <select id="managerScheduleTime" class="input-add">
+                        <select id="managerScheduleTime" class="input-add" title="Turno de trabajo" aria-label="Turno de trabajo">
                             <option value="">Seleccionar turno...</option>
                             <option value="mañana">🌅 Turno Mañana</option>
                             <option value="tarde">🌇 Turno Tarde</option>
@@ -357,7 +357,7 @@
                     <h2>📋 Tareas de Limpieza</h2>
                     <div class="tasks-controls">
                         <input type="text" id="managerTaskInput" placeholder="Ej: Limpiar cocina" class="input-add">
-                        <select id="managerEmployeeSelect" class="input-add">
+                        <select id="managerEmployeeSelect" class="input-add" title="Empleado asignado" aria-label="Empleado asignado">
                             <option value="">Asignar a...</option>
                         </select>
                         <button class="btn-primary" onclick="managerAddTask()">Crear Tarea</button>
