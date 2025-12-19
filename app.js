@@ -29,46 +29,8 @@ function deleteStaffFromFirestore(staffId) {
 // --- Firestore: Sincronización de inventario y verificaciones ---
 let inventoryChecksUnsubscribe = null;
 let deletedInventoryChecksUnsubscribe = null;
-function loadInventoryChecksFromFirestore() {
-    if (inventoryChecksUnsubscribe) inventoryChecksUnsubscribe();
-    inventoryChecksUnsubscribe = window.db.collection('inventoryChecks').onSnapshot(snapshot => {
-        inventoryChecks = [];
-        snapshot.forEach(doc => {
-            inventoryChecks.push({ id: doc.id, ...doc.data() });
-        });
-        if (typeof renderInventoryChecks === 'function') renderInventoryChecks();
-        if (typeof renderManagerInventoryChecks === 'function') renderManagerInventoryChecks();
-    });
-}
-
-function loadDeletedInventoryChecksFromFirestore() {
-    if (deletedInventoryChecksUnsubscribe) deletedInventoryChecksUnsubscribe();
-    deletedInventoryChecksUnsubscribe = window.db.collection('deletedInventoryChecks').onSnapshot(snapshot => {
-        deletedInventoryChecks = [];
-        snapshot.forEach(doc => {
-            deletedInventoryChecks.push({ id: doc.id, ...doc.data() });
-        });
-    });
-}
-
-function saveInventoryCheckToFirestore(check) {
-    if (!check.id) {
-        return window.db.collection('inventoryChecks').add(check);
-    } else {
-        const c = { ...check };
-        delete c.id;
-        return window.db.collection('inventoryChecks').doc(check.id).set(c);
-    }
-}
-
 function deleteInventoryCheckFromFirestore(checkId) {
-    cocina: {
-        name: 'Cocina',
-        icon: '🍳',
-        items: [
-            'Tenedores', 'Cuchillos', 'Cucharas', 'Platos', 'Vasos', 'Copas',
-            'Sartenes', 'Ollas', 'Cafetera', 'Tazas', 'Cucharón', 'Espumadera',
-            'Tabla de picar', 'Destapador', 'Microondas', 'Licuadora', 'Tetera',
+    return window.db.collection('inventoryChecks').doc(checkId).delete();
             'Bowls', 'Colador', 'Abrelatas', 'Sacacorchos', 'Bandeja', 'Pyrex',
             'Rallador', 'Pelador', 'Pinzas cocina', 'Espátula'
         ]
