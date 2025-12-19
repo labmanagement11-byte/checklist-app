@@ -8,18 +8,32 @@ const OWNER_CREDENTIALS = {
 // Mobile App Logic - redesigned for hamburger layout
 // Relies on shared data/state from app.js
 
-// --- Mostrar login siempre al cargar si no hay sesión válida ---
-window.addEventListener('DOMContentLoaded', function() {
-    // Intenta restaurar sesión
+
+// --- Refuerzo: Siempre mostrar login si no hay sesión válida ---
+function forceMobileLoginIfNoSession() {
     restoreMobileSession && restoreMobileSession();
-    // Si no hay usuario autenticado, muestra login y oculta todo lo demás
     if (!mobileCurrentUserType || !mobileCurrentUser) {
-        document.getElementById('mobile-login-view').style.display = 'flex';
+        document.getElementById('mobile-login-view').style.display = 'block';
         document.getElementById('mobile-owner-view').style.display = 'none';
         document.getElementById('mobile-employee-view').style.display = 'none';
         document.getElementById('mobile-manager-view').style.display = 'none';
     }
-});
+}
+
+window.addEventListener('DOMContentLoaded', forceMobileLoginIfNoSession);
+
+// Refuerzo: también al terminar el splash/video
+window.skipToLoginMobile = function() {
+    if (typeof mobileVideoSkipped !== 'undefined') mobileVideoSkipped = true;
+    const welcomeView = document.getElementById('mobile-welcome-video');
+    const loginView = document.getElementById('mobile-login-view');
+    const video = document.getElementById('welcomeVideoMobile');
+    if (video) video.pause();
+    if (welcomeView) welcomeView.style.display = 'none';
+    if (loginView) loginView.style.display = 'block';
+    // Forzar login si no hay sesión
+    forceMobileLoginIfNoSession();
+};
 
 const MOBILE_SESSION_KEY = 'airbnbmanager_mobile_session';
 const TASK_NOTIFICATIONS_KEY = 'airbnbmanager_task_notifications';
