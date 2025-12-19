@@ -474,50 +474,7 @@ function loadData() {
                 verified: false,
                 notes: ''
             };
-            saveTaskToFirestore(newTask).then(() => {
-                document.getElementById('taskInput').value = '';
-                document.getElementById('employeeSelect').value = '';
-            });
-    localStorage.setItem(STORAGE_KEYS.lastSyncTime, new Date().getTime().toString());
-    
-    // Sincronizar con la nube si está habilitado
-    if (CLOUD_SYNC_CONFIG.enabled && CLOUD_SYNC_CONFIG.autoSync && !syncInProgress) {
-        syncToCloud();
-    }
-}
-            const newTask = {
-                propertyId: currentUser.propertyId,
-                sectionKey: 'general',
-                taskText: text,
-                assignedTo,
-                completed: false,
-                verified: false,
-                notes: ''
-            };
-            saveTaskToFirestore(newTask).then(() => {
-                document.getElementById('managerTaskInput').value = '';
-                document.getElementById('managerEmployeeSelect').value = '';
-            });
-        // Saltar categorías excluidas para esta propiedad
-        if (excludedCategories[catKey]) {
-            // Si ya existe, eliminarla
-            if (prop.inventory[catKey]) {
-            deleteTaskFromFirestore(taskId).then(() => {
-                restoreOpenSections(openSections);
-            });
-            prop.inventory[catKey] = INVENTORY_CATEGORIES[catKey].items.map(item => ({
-                id: `${catKey}-${item.toLowerCase().replace(/\s+/g, '-')}`,
-                name: item,
-                qty: 0
-            }));
-        }
-    });
-            const updatedTask = { ...task, completed: !!done };
-            saveTaskToFirestore(updatedTask).then(() => {
-                renderEmployeeTasks();
-                restoreOpenSections(openSections);
-            });
-    const threeDaysMs = 3 * 24 * 60 * 60 * 1000; // 3 días en milisegundos
+
     
     deletedInventoryChecks = deletedInventoryChecks.filter(deleted => {
         const deletedTime = new Date(deleted.deletedAt).getTime();
