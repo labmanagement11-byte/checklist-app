@@ -90,6 +90,30 @@ function ensureAllInventoriesNormalized() {
     }
 }
 
+// --- FIX: Versión corregida de updateCategoryFiltersForProperty ---
+function updateCategoryFiltersForProperty(propId) {
+    const propName = properties[propId]?.name || '';
+    const isTorreMagna = propName.trim().toLowerCase() === 'torre magna pi' || propName.trim().toLowerCase() === 'torre magna';
+    const categorySelectIds = ['inventory-category-select','emp-inventory-category','mgr-inventory-category'];
+    categorySelectIds.forEach(id => {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const opts = Array.from(sel.options);
+        const idxTerraza = opts.findIndex(o => (o.text || o.value || '').toLowerCase() === 'terraza');
+        if (isTorreMagna) {
+            if (idxTerraza >= 0) sel.remove(idxTerraza);
+        } else {
+            if (idxTerraza < 0) {
+                const opt = document.createElement('option');
+                opt.value = 'Terraza';
+                opt.text = 'Terraza';
+                sel.appendChild(opt);
+            }
+        }
+    });
+}
+// --- FIN FIX ---
+
 // ---------- Session & Login ----------
 function mobileLogin() {
     loadData();
@@ -537,6 +561,7 @@ function fillPropertyOptions(selectId) {
     select.innerHTML = '<option value="">Seleccione propiedad</option>' + entries.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
 }
 
+let mobileInventoryUnsubscribe = null;
 function loadMobileInventory() {
     const propId = document.getElementById('inventory-property-select')?.value || mobileSelectedProperty;
     const rawCategory = document.getElementById('inventory-category-select')?.value || '';
@@ -544,43 +569,54 @@ function loadMobileInventory() {
     if (propId) mobileSelectedProperty = propId;
     const container = document.getElementById('inventory-list');
     if (!container) return;
-    if (!propId || !properties[propId]) {
+    if (!propId) {
         container.innerHTML = '<div class="empty-state"><p>Selecciona una propiedad</p></div>';
         return;
     }
-    const prop = properties[propId];
-    const inventory = prop.inventory || {};
-    const groups = Object.keys(inventory)
-        .filter(catKey => {
-            if (!category) return true;
-            return catKey === category;
-        })
-        .map(catKey => {
-            const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
-            const itemsHtml = (inventory[catKey] || []).map(it => `
-                <div class="inventory-item">
-                    <div class="item-info">
-                        <div class="item-name">${it.name}</div>
-                        <div class="item-details">${catName}</div>
-                    </div>
-                    <div class="item-qty-edit">
-                        <input type="number" min="0" value="${it.qty ?? 0}" onchange="updateInventoryItemQtyMobile('${propId}','${catKey}','${it.id}', this.value)" style="width: 60px; padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
-                        <button class="btn-icon" onclick="deleteInventoryItemMobile('${propId}','${catKey}','${it.id}')" style="background: #ff4444; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; margin-left: 0.5rem;">🗑️</button>
-                    </div>
-                </div>
-            `).join('');
-            return `
-                <div class="inventory-zone">
-                    <h3 class="zone-title">${catName}</h3>
-                    <div class="inventory-grid">${itemsHtml || '<div class="empty-state"><p>Sin items</p></div>'}</div>
-                </div>
-            `;
+    // Limpiar listener anterior si existe
+    if (typeof mobileInventoryUnsubscribe === 'function') mobileInventoryUnsubscribe();
+    // Escuchar inventario en tiempo real desde Firestore
+    mobileInventoryUnsubscribe = window.db.collection('inventoryChecks')
+        .where('propertyId', '==', propId)
+        .onSnapshot(snapshot => {
+            const inventory = {};
+            snapshot.forEach(doc => {
+                const item = doc.data();
+                if (!inventory[item.categoryKey]) inventory[item.categoryKey] = [];
+                inventory[item.categoryKey].push(item);
+            });
+            const groups = Object.keys(inventory)
+                .filter(catKey => {
+                    if (!category) return true;
+                    return catKey === category;
+                })
+                .map(catKey => {
+                    const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
+                    const itemsHtml = (inventory[catKey] || []).map(it => `
+                        <div class="inventory-item">
+                            <div class="item-info">
+                                <div class="item-name">${it.name}</div>
+                                <div class="item-details">${catName}</div>
+                            </div>
+                            <div class="item-qty-edit">
+                                <input type="number" min="0" value="${it.qty ?? 0}" onchange="updateInventoryItemQtyMobile('${propId}','${catKey}','${it.id}', this.value)" style="width: 60px; padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                                <button class="btn-icon" onclick="deleteInventoryItemMobile('${propId}','${catKey}','${it.id}')" style="background: #ff4444; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; margin-left: 0.5rem;">🗑️</button>
+                            </div>
+                        </div>
+                    `).join('');
+                    return `
+                        <div class="inventory-zone">
+                            <h3 class="zone-title">${catName}</h3>
+                            <div class="inventory-grid">${itemsHtml || '<div class="empty-state"><p>Sin items</p></div>'}</div>
+                        </div>
+                    `;
+                });
+            if (!groups.length) {
+                container.innerHTML = '<div class="empty-state"><p>Sin items en esta categoría</p></div>';
+                return;
+            }
+            container.innerHTML = groups.join('');
         });
-    if (!groups.length) {
-        container.innerHTML = '<div class="empty-state"><p>Sin items en esta categoría</p></div>';
-        return;
-    }
-    container.innerHTML = groups.join('');
 }
 
 function showAddInventoryModal() {
@@ -594,667 +630,66 @@ function addInventoryItem() {
     const category = document.getElementById('new-item-category').value;
     if (!propId) return showToast('Selecciona propiedad', true);
     if (!name || !category) return showToast('Completa nombre y categoría', true);
-    const prop = properties[propId];
-    if (!prop.inventory[category]) prop.inventory[category] = [];
-    prop.inventory[category].push({ id: `${category}-${Date.now()}`, name, qty });
-    saveData();
-    closeModal('modal-add-inventory');
-    loadMobileInventory();
-    showToast('Artículo agregado');
+    const item = { id: `${category}-${Date.now()}`, propertyId: propId, categoryKey: category, name, qty };
+    window.db.collection('inventoryChecks').add(item).then(() => {
+        closeModal('modal-add-inventory');
+        showToast('Artículo agregado');
+    });
+}
+
+function deleteInventoryItemMobile(propId, catKey, itemId) {
+    window.db.collection('inventoryChecks')
+        .where('propertyId', '==', propId)
+        .where('categoryKey', '==', catKey)
+        .where('id', '==', itemId)
+        .get()
+        .then(snapshot => {
+            snapshot.forEach(doc => {
+                doc.ref.delete();
+            });
+            showToast('Artículo eliminado');
+        });
 }
 
 function resetInventoryVerification() {
     if (!mobileSelectedProperty) return showToast('Selecciona propiedad');
-    inventoryChecks = inventoryChecks.filter(c => c.propertyId !== mobileSelectedProperty);
-    saveData();
-    showToast('Verificación reseteada');
-}
-
-function loadInventoryChecks() {
-    const propId = document.getElementById('inventory-checks-property-select')?.value || mobileSelectedProperty;
-    const container = document.getElementById('inventory-checks-list');
-    if (!container) return;
-    if (!propId) {
-        container.innerHTML = '<div class="empty-state"><p>Selecciona una propiedad</p></div>';
-        return;
-    }
-    const checks = inventoryChecks.filter(c => c.propertyId === propId);
-    if (!checks.length) {
-        container.innerHTML = '<div class="empty-state"><p>No hay verificaciones</p></div>';
-        return;
-    }
-    container.innerHTML = checks.map(c => `
-        <div class="check-item">
-            <div class="check-date">${new Date(c.createdAt || c.date || Date.now()).toLocaleDateString('es-ES')}</div>
-            <div class="check-employee">${c.employeeName || 'Empleado'}</div>
-            <div class="check-status">${c.approved ? 'Aprobado' : 'Pendiente'}</div>
-        </div>`).join('');
-}
-
-// ---------- Purchase ----------
-function loadMobilePurchaseList() {
-    const propId = document.getElementById('purchase-property-select')?.value || mobileSelectedProperty;
-    if (propId) mobileSelectedProperty = propId;
-    const container = document.getElementById('purchase-list');
-    if (!container) return;
-    const items = purchaseInventory.filter(p => !propId || p.propertyId === propId);
-    if (!items.length) {
-        container.innerHTML = '<div class="empty-state"><p>Lista vacía</p></div>';
-        return;
-    }
-    container.innerHTML = items.map(item => `
-        <div class="purchase-item">
-            <input type="checkbox" class="purchase-checkbox" ${item.purchased ? 'checked' : ''} onclick="togglePurchaseStatus('${item.id}')">
-            <div class="purchase-info">
-                <div class="purchase-name">${item.name || item.item}</div>
-                <div class="purchase-details">Cant: ${item.qty || 1}</div>
-            </div>
-            <div class="purchase-urgency ${item.urgency === 'urgente' ? 'urgency-urgente' : 'urgency-normal'}">${item.urgency || 'normal'}</div>
-        </div>`).join('');
-}
-
-function loadPurchaseHistory() {
-    const propId = document.getElementById('purchase-history-property-select')?.value || mobileSelectedProperty;
-    const container = document.getElementById('purchase-history-list');
-    if (!container) return;
-    const history = purchaseHistory.filter(h => !propId || h.propertyId === propId);
-    if (!history.length) {
-        container.innerHTML = '<div class="empty-state"><p>Sin historial</p></div>';
-        return;
-    }
-    container.innerHTML = history.map(h => `
-        <div class="history-item">
-            <div class="history-date">${new Date(h.purchaseDate || Date.now()).toLocaleString('es-ES')}</div>
-            <div class="history-content">${h.itemName || h.name} · ${h.qty || 1}</div>
-        </div>`).join('');
-}
-
-// ---------- Schedule ----------
-function loadMobileSchedule() {
-    const propId = document.getElementById('schedule-property-select')?.value || mobileSelectedProperty;
-    if (propId) mobileSelectedProperty = propId;
-    fillStaffOptions('schedule-employee', propId);
-    const list = document.getElementById('schedule-list');
-    if (!list) return;
-    if (!propId) {
-        list.innerHTML = '<div class="empty-state"><p>Selecciona una propiedad</p></div>';
-        return;
-    }
-    const items = scheduledDates.filter(s => s.propertyId === propId).sort((a,b)=> new Date(a.date)-new Date(b.date));
-    if (!items.length) {
-        list.innerHTML = '<div class="empty-state"><p>Sin fechas agendadas</p></div>';
-        return;
-    }
-    list.innerHTML = items.map(s => {
-        const staff = (properties[propId]?.staff || []).find(st => st.id === s.assignedTo);
-        const epicValue = s.epicType || 'limpieza_regular';
-        const hasEpic = s.type === 'epic' || !!s.epicType;
-        const typeLabel = s.type === 'descanso' ? 'descanso' : hasEpic ? 'EPIC D1' : s.type;
-        const epicLabel = hasEpic ? formatEpicType(epicValue) : '';
-        return `
-            <div class="schedule-entry">
-                <div class="entry-info">
-                    <div class="entry-date">${formatDateShort(s.date)}</div>
-                    <div class="entry-details">${staff ? staff.name : 'Sin asignar'} · ${s.shift || s.startTime || 'turno libre'}</div>
-                    ${epicLabel ? `<div class="entry-epic">${epicLabel}</div>` : ''}
-                </div>
-                <span class="entry-type ${s.type === 'descanso' ? 'type-descanso' : 'type-trabajo'}">${typeLabel}</span>
-                <div class="entry-actions">
-                    <button class="btn-secondary btn-small" onclick="openEditSchedule('${s.id}')">✏️ Editar</button>
-                    <button class="btn-warning btn-small" onclick="resetTasksForSchedule('${s.id}')">↻ Tareas</button>
-                </div>
-            </div>`;
-    }).join('');
-}
-
-function addMobileSchedule() {
-    const propId = document.getElementById('schedule-property-select')?.value || mobileSelectedProperty;
-    const date = document.getElementById('schedule-date').value;
-    const type = document.getElementById('schedule-type').value;
-    const employeeId = document.getElementById('schedule-employee').value;
-    const shift = document.getElementById('schedule-shift').value;
-    const epicType = document.getElementById('schedule-epic-type')?.value || 'limpieza_regular';
-    if (!propId) return showToast('Selecciona propiedad', true);
-    if (!date) return showToast('Selecciona fecha', true);
-    const prop = properties[propId];
-    const staff = (prop?.staff || []).find(s => s.id === employeeId);
-    scheduledDates.push({
-        id: `schedule_${Date.now()}`,
-        propertyId: propId,
-        date,
-        type,
-        assignedTo: employeeId || null,
-        assignedEmployeeName: staff?.name || null,
-        shift,
-        epicType,
-        completed: false
-    });
-    saveData();
-    loadMobileSchedule();
-    showToast('Fecha agregada');
-}
-
-function formatEpicType(val) {
-    if (val === 'limpieza_profunda') return 'Limpieza Profunda';
-    if (val === 'mantenimiento') return 'Mantenimiento';
-    return 'Limpieza Regular';
-}
-
-function openEditSchedule(id) {
-    const s = scheduledDates.find(x => x.id === id);
-    if (!s) return;
-    document.getElementById('edit-schedule-id').value = s.id;
-    document.getElementById('edit-schedule-date').value = s.date;
-    document.getElementById('edit-schedule-type').value = s.type;
-    document.getElementById('edit-schedule-shift').value = s.shift || 'completo';
-    document.getElementById('edit-schedule-epic-type').value = s.epicType || 'limpieza_regular';
-    // fill employee options for current property
-    const sel = document.getElementById('edit-schedule-employee');
-    const options = (properties[s.propertyId]?.staff || []).map(st => `<option value="${st.id}">${st.name}</option>`).join('');
-    sel.innerHTML = '<option value="">Sin asignar</option>' + options;
-    sel.value = s.assignedTo || '';
-    document.getElementById('modal-edit-schedule').classList.add('open');
-}
-
-function ensureTasksForSchedule(schedule) {
-    if (!schedule) return [];
-    const epicKey = schedule.epicType || 'limpieza_regular';
-    const template = EPIC_TASK_TEMPLATES[epicKey] || EPIC_TASK_TEMPLATES.limpieza_regular;
-    const existing = cleaningTasks.filter(t => t.scheduleId === schedule.id);
-    if (existing.length) return existing;
-    const propId = schedule.propertyId;
-    const assignedTo = schedule.assignedTo || null;
-    const assignedEmployeeName = schedule.assignedEmployeeName || null;
-    const sectionKey = epicKey === 'mantenimiento' ? 'mantenimiento' : 'limpieza';
-    const created = template.map((text, idx) => ({
-        id: `task_${schedule.id}_${idx}`,
-        propertyId: propId,
-        sectionKey,
-        taskText: text,
-        subsectionTitle: `EPIC D1 · ${formatEpicType(epicKey)}`,
-        scheduleId: schedule.id,
-        assignedTo,
-        assignedEmployeeName,
-        completed: false,
-        createdAt: new Date().toISOString()
-    }));
-    cleaningTasks.push(...created);
-    saveData();
-    return created;
-}
-
-function handleEmployeeScheduleClick(scheduleId) {
-    const s = scheduledDates.find(x => x.id === scheduleId);
-    if (!s) return;
-    mobileSelectedProperty = s.propertyId;
-    mobilePendingScheduleId = s.id;
-    ensureTasksForSchedule(s);
-    showEmployeeSection('emp-tasks');
-    loadEmployeeTasks();
-    showToast('Tareas cargadas para este turno');
-}
-
-function deleteEmployeeSchedule(scheduleId) {
-    const s = scheduledDates.find(x => x.id === scheduleId);
-    if (!s) return showToast('Horario no encontrado', true);
-    
-    if (confirm(`¿Eliminar el horario de ${formatDateShort(s.date)}?`)) {
-        scheduledDates = scheduledDates.filter(x => x.id !== scheduleId);
-        // Eliminar también las tareas asociadas
-        cleaningTasks = cleaningTasks.filter(t => t.scheduleId !== scheduleId);
-        saveData();
-        loadEmployeeSchedule();
-        showToast('Horario eliminado');
-    }
-}
-
-function deleteManagerSchedule(scheduleId) {
-    const s = scheduledDates.find(x => x.id === scheduleId);
-    if (!s) return showToast('Horario no encontrado', true);
-    
-    if (confirm(`¿Eliminar el horario de ${formatDateShort(s.date)}?`)) {
-        scheduledDates = scheduledDates.filter(x => x.id !== scheduleId);
-        // Eliminar también las tareas asociadas
-        cleaningTasks = cleaningTasks.filter(t => t.scheduleId !== scheduleId);
-        saveData();
-        loadManagerSchedule();
-        showToast('Horario eliminado');
-    }
-}
-
-function saveEditedSchedule() {
-    const id = document.getElementById('edit-schedule-id').value;
-    const sIdx = scheduledDates.findIndex(x => x.id === id);
-    if (sIdx < 0) return;
-    const s = scheduledDates[sIdx];
-    s.date = document.getElementById('edit-schedule-date').value || s.date;
-    s.type = document.getElementById('edit-schedule-type').value || s.type;
-    s.assignedTo = document.getElementById('edit-schedule-employee').value || null;
-    const staff = (properties[s.propertyId]?.staff || []).find(st => st.id === s.assignedTo);
-    s.assignedEmployeeName = staff?.name || null;
-    s.shift = document.getElementById('edit-schedule-shift').value || s.shift;
-    s.epicType = document.getElementById('edit-schedule-epic-type').value || s.epicType || 'limpieza_regular';
-    if (s.type !== 'descanso' && cleaningTasks.filter(t => t.scheduleId === s.id).length === 0) {
-        ensureTasksForSchedule(s);
-    }
-    saveData();
-    closeModal('modal-edit-schedule');
-    loadMobileSchedule();
-    loadManagerSchedule();
-    loadEmployeeSchedule();
-    showToast('Trabajo actualizado');
-}
-
-// ---------- Tasks ----------
-function isMaintenanceTask(task) {
-    const key = (task.sectionKey || task.type || '').toLowerCase();
-    return key.includes('mantenimiento') || key.includes('mant') || key === 'mantenimiento';
-}
-
-function loadMobileTasks() {
-    const propId = document.getElementById('tasks-property-select')?.value || mobileSelectedProperty;
-    const typeFilter = document.getElementById('tasks-type-filter')?.value || '';
-    if (propId) mobileSelectedProperty = propId;
-    fillStaffOptions('new-task-assignee', propId);
-    const limpiezaDiv = document.getElementById('tasks-limpieza-list');
-    const mantenimientoDiv = document.getElementById('tasks-mantenimiento-list');
-    if (!limpiezaDiv || !mantenimientoDiv) return;
-    const tasks = cleaningTasks.filter(t => !propId || t.propertyId === propId).filter(t => {
-        if (!typeFilter) return true;
-        return typeFilter === 'mantenimiento' ? isMaintenanceTask(t) : !isMaintenanceTask(t);
-    });
-    const clean = tasks.filter(t => !isMaintenanceTask(t));
-    const maint = tasks.filter(t => isMaintenanceTask(t));
-    limpiezaDiv.innerHTML = renderTaskList(clean);
-    mantenimientoDiv.innerHTML = renderTaskList(maint);
-}
-
-function renderTaskList(list) {
-    if (!list.length) return '<div class="empty-state"><p>Sin tareas</p></div>';
-    // Para empleados, mostrar botones de Completado/No Completado
-    if (mobileCurrentUserType === 'employee') {
-        return list.map(t => `
-            <div class="task-item">
-                <div class="task-content">
-                    <div class="task-name ${t.completed ? 'completed' : ''}">${t.taskText || t.task || 'Tarea'}</div>
-                    <div class="task-meta">${t.subsectionTitle || t.sectionKey || ''}</div>
-                    ${t.completionReason ? `<div class="task-reason" style="color: #ff6b6b; font-size: 0.85rem; margin-top: 0.5rem;">❌ No completada: ${t.completionReason}</div>` : ''}
-                </div>
-                <div class="task-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
-                    <button class="btn-success" onclick="markTaskCompleted('${t.id}')" style="background: #4caf50; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; cursor: pointer; ${t.completed ? 'opacity: 0.6;' : ''}" ${t.completed ? 'disabled' : ''}>
-                        ✓ Completado
-                    </button>
-                    <button class="btn-warning" onclick="showTaskNotCompletedModal('${t.id}')" style="background: #ff9800; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; cursor: pointer;">
-                        ✗ No Completado
-                    </button>
-                </div>
-            </div>`).join('');
-    }
-    // Para manager/owner, mostrar estado simple
-    return list.map(t => {
-        const isEpicD1Profunda = t.subsectionTitle && t.subsectionTitle.includes('EPIC D1') && t.subsectionTitle.includes('Limpieza Profunda');
-        return `<div class="task-item" style="${isEpicD1Profunda ? 'border:2px solid #2196F3; background:#e3f2fd;' : ''}">
-            <input type="checkbox" class="task-checkbox" ${t.completed ? 'checked' : ''} onclick="toggleTaskComplete('${t.id}')">
-            <div class="task-content">
-                <div class="task-name ${t.completed ? 'completed' : ''}">${t.taskText || t.task || 'Tarea'}</div>
-                <div class="task-meta">${t.subsectionTitle || t.sectionKey || ''}${isEpicD1Profunda ? ' <span style=\"color:#2196F3; font-weight:600;\">(Limpieza Profunda EPIC D1)</span>' : ''}</div>
-                ${t.assignedEmployeeName ? `<div class="task-employee" style="color:#0d47a1; font-size:0.9rem; margin-top:0.3rem;">👤 ${t.assignedEmployeeName}</div>` : ''}
-                ${t.completionReason ? `<div class="task-reason" style="color: #ff6b6b; font-size: 0.85rem; margin-top: 0.5rem;">Razón: ${t.completionReason}</div>` : ''}
-            </div>
-        </div>`;
-    }).join('');
-}
-
-function resetTasksForSchedule(scheduleId) {
-    const schedule = scheduledDates.find(s => s.id === scheduleId);
-    if (!schedule) return showToast('Turno no encontrado', true);
-    const tasks = cleaningTasks.filter(t => t.scheduleId === scheduleId);
-    if (tasks.length === 0 && schedule.type !== 'descanso') {
-        ensureTasksForSchedule(schedule);
-    } else {
-        tasks.forEach(t => t.completed = false);
-        saveData();
-    }
-    loadMobileTasks?.();
-    loadManagerTasks?.();
-    loadEmployeeTasks?.();
-    showToast('Tareas reiniciadas para el turno');
-}
-
-function toggleTaskComplete(taskId) {
-    const idx = cleaningTasks.findIndex(t => t.id === taskId);
-    if (idx < 0) return;
-    cleaningTasks[idx].completed = !cleaningTasks[idx].completed;
-    saveData();
-    loadMobileTasks();
-    loadManagerTasks?.();
-    loadEmployeeTasks?.();
-}
-
-function addMobileTask() {
-    const propId = document.getElementById('tasks-property-select')?.value || mobileSelectedProperty;
-    const text = document.getElementById('new-task-input').value.trim();
-    const type = document.getElementById('new-task-type').value;
-    const assignee = document.getElementById('new-task-assignee').value;
-    if (!propId) return showToast('Selecciona propiedad', true);
-    if (!text) return showToast('Describe la tarea', true);
-    const prop = properties[propId];
-    const staff = (prop?.staff || []).find(s => s.id === assignee);
-    cleaningTasks.push({
-        id: `task_${Date.now()}`,
-        propertyId: propId,
-        sectionKey: type,
-        taskText: text,
-        assignedTo: assignee || null,
-        assignedEmployeeName: staff?.name || null,
-        completed: false,
-        createdAt: new Date().toISOString()
-    });
-    saveData();
-    document.getElementById('new-task-input').value = '';
-    loadMobileTasks();
-    showToast('Tarea creada');
-}
-
-function reinitializeTasks() {
-    const propId = document.getElementById('tasks-property-select')?.value || mobileSelectedProperty;
-    if (!propId) return showToast('Selecciona propiedad');
-    if (!confirm('Reiniciar tareas a lista base?')) return;
-    const prop = properties[propId];
-    cleaningTasks = cleaningTasks.filter(t => t.propertyId !== propId);
-    cleaningTasks.push(...createDefaultCleaningTasks(propId, prop?.name || ''));
-    saveData();
-    loadMobileTasks();
-}
-
-function toggleTaskGroup(key) {
-    const group = document.getElementById(key.startsWith('emp') ? key : `tasks-${key}`);
-    if (!group) return;
-    group.classList.toggle('collapsed');
-}
-
-// ---------- Notifications ----------
-function loadMobileNotifications() {
-    const propId = document.getElementById('notifications-property-select')?.value || mobileSelectedProperty;
-    const container = document.getElementById('notifications-list');
-    if (!container) return;
-    const list = workDayNotifications.filter(n => !propId || n.propertyId === propId);
-    if (!list.length) {
-        container.innerHTML = '<div class="empty-state"><p>Sin notificaciones</p></div>';
-        return;
-    }
-    container.innerHTML = list.map(n => `
-        <div class="notification-item">
-            <div class="notification-date">${n.date || new Date(n.createdAt||Date.now()).toLocaleDateString('es-ES')}</div>
-            <div class="notification-content">${n.message || 'Cierre de jornada'} · ${n.employeeName || ''}</div>
-        </div>`).join('');
-}
-
-function sendMobileNotification() {
-    const propId = document.getElementById('notifications-property-select')?.value || mobileSelectedProperty;
-    const text = document.getElementById('new-notification').value.trim();
-    if (!propId) return showToast('Selecciona propiedad', true);
-    if (!text) return showToast('Escribe mensaje', true);
-    workDayNotifications.push({
-        id: `notif_${Date.now()}`,
-        propertyId: propId,
-        message: text,
-        date: new Date().toLocaleString('es-ES'),
-        createdAt: new Date().toISOString(),
-        read: false
-    });
-    saveData();
-    document.getElementById('new-notification').value = '';
-    loadMobileNotifications();
-    showToast('Notificación enviada');
-}
-
-// ---------- Staff ----------
-function loadMobileStaff() {
-    const propId = document.getElementById('staff-property-filter')?.value || '';
-    const container = document.getElementById('staff-list');
-    if (!container) return;
-    const entries = Object.values(properties || {});
-    const staff = entries.flatMap(p => (p.staff || []).map(s => ({...s, propertyName: p.name, propertyId: p.id})))
-        .filter(s => !propId || s.propertyId === propId);
-    if (!staff.length) {
-        container.innerHTML = '<div class="empty-state"><p>Sin personal</p></div>';
-        return;
-    }
-    container.innerHTML = staff.map(s => `
-        <div class="staff-card">
-            <div class="staff-avatar">${s.name.charAt(0).toUpperCase()}</div>
-            <div class="staff-info">
-                <div class="staff-name">${s.name}</div>
-                <div class="staff-role">${getRoleName(s.role)}</div>
-                <div class="staff-property">${s.propertyName}</div>
-            </div>
-        </div>`).join('');
-}
-
-function showAddStaffModal() {
-    fillPropertyOptions('new-staff-property');
-    document.getElementById('modal-add-staff').classList.add('open');
-}
-
-function addNewStaff() {
-    const name = document.getElementById('new-staff-name').value.trim();
-    const username = document.getElementById('new-staff-username').value.trim();
-    const password = document.getElementById('new-staff-password').value.trim();
-    const role = document.getElementById('new-staff-role').value;
-    const propId = document.getElementById('new-staff-property').value;
-    if (!name || !username || !password || !propId) return showToast('Completa todos los campos', true);
-    const prop = properties[propId];
-    if (!prop.staff) prop.staff = [];
-    prop.staff.push({ id: `staff_${Date.now()}`, name, username, password, role });
-    saveData();
-    closeModal('modal-add-staff');
-    loadMobileStaff();
-    updatePropertySelectors();
-    showToast('Empleado agregado');
-}
-
-// ---------- Employee View ----------
-function showMobileEmployeeView(skipLoad) {
-    document.getElementById('mobile-login-view').style.display = 'none';
-    document.getElementById('mobile-owner-view').style.display = 'none';
-    document.getElementById('mobile-manager-view').style.display = 'none';
-    document.getElementById('mobile-employee-view').style.display = 'flex';
-    document.getElementById('mobile-employee-name').textContent = mobileCurrentUser?.name || 'Empleado';
-    updateUserHeaderDisplay();
-    document.getElementById('menu-employee-property').textContent = properties[mobileSelectedProperty]?.name || '';
-    document.getElementById('emp-login-time').textContent = new Date(mobileCurrentUser.loginTime || Date.now()).toLocaleTimeString('es-ES');
-    document.getElementById('menu-login-time').textContent = new Date(mobileCurrentUser.loginTime || Date.now()).toLocaleTimeString('es-ES');
-    document.getElementById('emp-assigned-property').textContent = properties[mobileSelectedProperty]?.name || '';
-    document.getElementById('emp-shift-info').textContent = 'Completo';
-    if (!skipLoad) {
-        loadEmployeeDashboard();
-        loadEmployeeSchedule();
-        loadEmployeeInventory();
-        loadEmployeeTasks();
-        loadEmployeePurchaseRequests();
-    }
-}
-
-function loadEmployeeSchedule() {
-    const propId = mobileSelectedProperty;
-    const list = document.getElementById('emp-schedule-list');
-    if (!list) return;
-    const items = scheduledDates.filter(s => s.propertyId === propId && (!s.assignedTo || s.assignedTo === mobileCurrentUser.staffId));
-    if (!items.length) {
-        list.innerHTML = '<div class="empty-state"><p>Sin horarios</p></div>';
-        return;
-    }
-    list.innerHTML = items.map(s => {
-        const epicValue = s.epicType || 'limpieza_regular';
-        const hasEpic = s.type === 'epic' || !!s.epicType;
-        const epicLabel = hasEpic ? formatEpicType(epicValue) : '';
-        const typeLabel = s.type === 'descanso' ? 'descanso' : hasEpic ? `EPIC D1 · ${epicLabel}` : s.type;
-        return `
-            <div class="schedule-entry clickable" data-sid="${s.id}" style="cursor:pointer;">
-                <div class="entry-info">
-                    <div class="entry-date">${formatDateShort(s.date)}</div>
-                    <div class="entry-details">${typeLabel} · ${s.shift || 'turno'}</div>
-                </div>
-                <div class="entry-actions-right">
-                    <span class="entry-type ${s.type === 'descanso' ? 'type-descanso' : 'type-trabajo'}">${typeLabel}</span>
-                    <button class="btn-danger btn-small" onclick="deleteEmployeeSchedule('${s.id}')" style="padding: 4px 8px; font-size: 12px;">🗑️</button>
-                </div>
-            </div>`;
-    }).join('');
-    setTimeout(() => {
-        const cards = list.querySelectorAll('.schedule-entry.clickable[data-sid]');
-        cards.forEach(card => {
-            card.style.cursor = 'pointer';
-            const handleClick = (e) => {
-                // No activar si se hace click en el botón eliminar
-                if (e.target.closest('.btn-danger')) return;
-                e.stopPropagation();
-                e.preventDefault();
-                handleEmployeeScheduleClick(card.dataset.sid);
-            };
-            card.addEventListener('click', handleClick);
-            card.addEventListener('touchend', handleClick);
+    window.db.collection('inventoryChecks')
+        .where('propertyId', '==', mobileSelectedProperty)
+        .get()
+        .then(snapshot => {
+            const batch = window.db.batch();
+            snapshot.forEach(doc => batch.delete(doc.ref));
+            batch.commit().then(() => {
+                showToast('Verificación reseteada');
+            });
         });
-    }, 100);
-}
-
-function loadEmployeeInventory() {
-    const propId = mobileSelectedProperty;
-    const container = document.getElementById('emp-inventory-list');
-    if (!container) return;
-    
-    const prop = properties[propId];
-    if (!prop) {
-        container.innerHTML = '<div class="empty-state"><p>Sin propiedad</p></div>';
-        return;
-    }
-    
-    const inventory = prop.inventory || {};
-    const categoryFilter = document.getElementById('emp-inventory-category')?.value || '';
-    
-    let html = '';
-    
-    Object.keys(INVENTORY_CATEGORIES).forEach(catKey => {
-        const items = inventory[catKey] || [];
-        if (items.length === 0) return;
-        if (categoryFilter && catKey !== categoryFilter) return;
-        
-        const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
-        const catIcon = INVENTORY_CATEGORIES[catKey]?.icon || '📦';
-        
-        html += `<div class="inventory-zone"><h3 class="zone-title">${catIcon} ${catName}</h3>`;
-        
-        items.forEach(item => {
-            const check = inventoryChecks.find(c => 
-                c.propertyId === propId && 
-                c.categoryKey === catKey && 
-                c.itemId === item.id && 
-                c.employeeId === mobileCurrentUser.staffId
-            );
-            
-            const realQty = check?.realQty ?? item.qty;
-            const status = check?.status || '';
-            const comment = check?.comment || '';
-            
-            html += `
-                <div class="inventory-item-verification">
-                    <div class="item-header">
-                        <span class="item-name">${item.name}</span>
-                        <span class="item-expected">Esperado: ${item.qty}</span>
-                    </div>
-                    <div class="item-verification">
-                        <div class="real-qty-group">
-                            <label>Real:</label>
-                            <input type="number" 
-                                   id="real_${catKey}_${item.id}" 
-                                   class="inventory-input" 
-                                   min="0" 
-                                   value="${realQty}"
-                                   onchange="setMobileInventoryCheck('${catKey}', '${item.id}', this.value)">
-                        </div>
-                        <div class="status-buttons">
-                            <button class="btn-status ${status === 'ok' ? 'active' : ''}" 
-                                    onclick="setMobileInventoryStatus('${catKey}', '${item.id}', 'ok')"
-                                    title="Completado"
-                                    style="background: ${status === 'ok' ? '#4CAF50' : '#ddd'}; color: ${status === 'ok' ? 'white' : '#666'};">
-                                ✓
-                            </button>
-                            <button class="btn-status ${status === 'missing' ? 'active' : ''}" 
-                                    onclick="setMobileInventoryStatus('${catKey}', '${item.id}', 'missing')"
-                                    title="Falta algo"
-                                    style="background: ${status === 'missing' ? '#f44336' : '#ddd'}; color: ${status === 'missing' ? 'white' : '#666'};">
-                                ✗
-                            </button>
-                        </div>
-                    </div>
-                    ${status === 'missing' ? `
-                        <div class="item-comment">
-                            <textarea id="comment_${catKey}_${item.id}" 
-                                      placeholder="¿Qué falta o está dañado?"
-                                      class="comment-input"
-                                      onchange="setMobileInventoryComment('${catKey}', '${item.id}', this.value)">${comment}</textarea>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-        });
-        
-        html += '</div>';
-    });
-    
-    if (!html) {
-        container.innerHTML = '<div class="empty-state"><p>Sin items</p></div>';
-    } else {
-        container.innerHTML = html;
-    }
 }
 
 function setMobileInventoryCheck(catKey, itemId, realQty) {
     const propId = mobileSelectedProperty;
-    const checkIndex = inventoryChecks.findIndex(c => 
-        c.propertyId === propId && 
-        c.categoryKey === catKey && 
-        c.itemId === itemId &&
-        c.employeeId === mobileCurrentUser.staffId
-    );
-    
+    const checkId = `check_${propId}_${catKey}_${itemId}_${mobileCurrentUser.staffId}`;
     const checkData = {
-        id: checkIndex >= 0 ? inventoryChecks[checkIndex].id : `check_${Date.now()}`,
+        id: checkId,
         propertyId: propId,
         categoryKey: catKey,
         itemId: itemId,
         employeeId: mobileCurrentUser.staffId,
         employeeName: mobileCurrentUser.name,
         realQty: parseInt(realQty, 10) || 0,
-        status: inventoryChecks[checkIndex]?.status || 'pending',
-        comment: inventoryChecks[checkIndex]?.comment || '',
+        status: 'pending',
+        comment: '',
         checkDate: new Date().toISOString()
     };
-    
-    if (checkIndex >= 0) {
-        inventoryChecks[checkIndex] = checkData;
-    } else {
-        inventoryChecks.push(checkData);
-    }
-    
-    saveData();
+    window.db.collection('inventoryChecks').doc(checkId).set(checkData);
 }
 
 function setMobileInventoryStatus(catKey, itemId, status) {
     const propId = mobileSelectedProperty;
-    const checkIndex = inventoryChecks.findIndex(c => 
-        c.propertyId === propId && 
-        c.categoryKey === catKey && 
-        c.itemId === itemId &&
-        c.employeeId === mobileCurrentUser.staffId
-    );
-    
+    const checkId = `check_${propId}_${catKey}_${itemId}_${mobileCurrentUser.staffId}`;
     const realQtyInput = document.getElementById(`real_${catKey}_${itemId}`);
     const realQty = realQtyInput ? parseInt(realQtyInput.value, 10) || 0 : 0;
-    
     const checkData = {
-        id: checkIndex >= 0 ? inventoryChecks[checkIndex].id : `check_${Date.now()}`,
+        id: checkId,
         propertyId: propId,
         categoryKey: catKey,
         itemId: itemId,
@@ -1262,1356 +697,1216 @@ function setMobileInventoryStatus(catKey, itemId, status) {
         employeeName: mobileCurrentUser.name,
         realQty: realQty,
         status: status,
-        comment: inventoryChecks[checkIndex]?.comment || '',
+        comment: '',
         checkDate: new Date().toISOString()
     };
-    
-    if (checkIndex >= 0) {
-        inventoryChecks[checkIndex] = checkData;
-    } else {
-        inventoryChecks.push(checkData);
-    }
-    
-    saveData();
+    window.db.collection('inventoryChecks').doc(checkId).set(checkData);
     loadEmployeeInventory();
 }
 
 function setMobileInventoryComment(catKey, itemId, comment) {
     const propId = mobileSelectedProperty;
-    const checkIndex = inventoryChecks.findIndex(c => 
-        c.propertyId === propId && 
-        c.categoryKey === catKey && 
-        c.itemId === itemId &&
-        c.employeeId === mobileCurrentUser.staffId
-    );
-    
-    if (checkIndex >= 0) {
-        inventoryChecks[checkIndex].comment = comment;
-        inventoryChecks[checkIndex].checkDate = new Date().toISOString();
-        saveData();
-    }
+    const checkId = `check_${propId}_${catKey}_${itemId}_${mobileCurrentUser.staffId}`;
+    window.db.collection('inventoryChecks').doc(checkId).update({
+        comment,
+        checkDate: new Date().toISOString()
+    });
 }
 
-function switchInventoryTab(tab) {
-    document.querySelectorAll('#section-emp-inventory .tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('#section-emp-inventory .tab-content').forEach(content => content.classList.remove('active'));
+// ---------- Session & Login ----------
+function mobileLogin() {
+    loadData();
     
-    event.target.classList.add('active');
-    document.getElementById(`inv-tab-${tab}`).classList.add('active');
-    
-    if (tab === 'summary') {
-        loadEmployeeInventorySummary();
+    // Si no hay propiedades, crear datos de ejemplo para permitir acceso
+    if (Object.keys(properties).length === 0) {
+        initializeDemoData();
     }
-}
+    
+    ensureAllInventoriesNormalized();
+    const type = document.getElementById('mobile-login-type').value;
+    const username = document.getElementById('mobile-username').value.trim();
+    const password = document.getElementById('mobile-password').value.trim();
+    const remember = document.getElementById('mobile-remember').checked;
 
-function loadEmployeeInventorySummary() {
-    const propId = mobileSelectedProperty;
-    const container = document.getElementById('emp-inventory-summary');
-    if (!container) return;
-    
-    const prop = properties[propId];
-    if (!prop) {
-        container.innerHTML = '<div class="empty-state"><p>Sin propiedad</p></div>';
-        return;
+    if (!type || !username || !password) {
+        return showToast('Completa usuario y contraseña');
     }
-    
-    const checks = inventoryChecks.filter(c => 
-        c.propertyId === propId && 
-        c.employeeId === mobileCurrentUser.staffId
-    );
-    
-    if (!checks.length) {
-        container.innerHTML = '<div class="empty-state"><p>No hay verificaciones realizadas</p></div>';
-        return;
-    }
-    
-    const groupedByCategory = {};
-    checks.forEach(check => {
-        if (!groupedByCategory[check.categoryKey]) {
-            groupedByCategory[check.categoryKey] = [];
+
+    if (type === 'owner') {
+        if (username === OWNER_CREDENTIALS.username && password === OWNER_CREDENTIALS.password) {
+            mobileCurrentUserType = 'owner';
+            mobileCurrentUser = { name: OWNER_CREDENTIALS.name, username, loginTime: new Date().toISOString() };
+            mobileSelectedProperty = mobileSelectedProperty || Object.keys(properties)[0] || null;
+            persistMobileSession(remember);
+            showMobileOwnerView();
+            return;
         }
-        groupedByCategory[check.categoryKey].push(check);
-    });
-    
-    let html = '';
-    
-    Object.keys(groupedByCategory).forEach(catKey => {
-        const categoryChecks = groupedByCategory[catKey];
-        const okCount = categoryChecks.filter(c => c.status === 'ok').length;
-        const missingCount = categoryChecks.filter(c => c.status === 'missing').length;
-        const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
-        const catIcon = INVENTORY_CATEGORIES[catKey]?.icon || '📦';
-        
-        html += `
-            <div class="inv-summary-section">
-                <div class="inv-summary-header">
-                    <div class="inv-header-title">${catIcon} ${catName}</div>
-                    <div class="inv-header-stats">✓${okCount} | ✗${missingCount}</div>
-                </div>
-                <div class="inv-summary-table">
-                    <div class="inv-table-header">
-                        <div class="inv-col-item">Artículo</div>
-                        <div class="inv-col-qty">Esperado</div>
-                        <div class="inv-col-qty">Real</div>
-                        <div class="inv-col-status">Estado</div>
-                    </div>
-        `;
-        
-        categoryChecks.forEach(check => {
-            const items = prop.inventory[catKey] || [];
-            const item = items.find(i => i.id === check.itemId);
-            if (!item) return;
-            
-            const date = new Date(check.checkDate);
-            const dateStr = date.toLocaleDateString('es-ES', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-            const statusIcon = check.status === 'ok' ? '✓' : check.status === 'resolved' ? '🔧' : '✗';
-            const statusColor = check.status === 'ok' ? '#4CAF50' : check.status === 'resolved' ? '#2196F3' : '#f44336';
-            const bgColor = check.status === 'ok' ? 'rgba(76, 175, 80, 0.08)' : check.status === 'resolved' ? 'rgba(33, 150, 243, 0.08)' : 'rgba(244, 67, 54, 0.08)';
-            
-            html += `
-                <div class="inv-table-row" style="background-color: ${bgColor};">
-                    <div class="inv-col-item">
-                        <div class="inv-item-name">${item.name}</div>
-                        ${check.comment ? `<div class="inv-item-comment">💬 ${check.comment}</div>` : ''}
-                    </div>
-                    <div class="inv-col-qty">${item.qty}</div>
-                    <div class="inv-col-qty">${check.realQty}</div>
-                    <div class="inv-col-status">
-                        <div style="font-size: 18px; color: ${statusColor}; font-weight: 700;">${statusIcon}</div>
-                        <div class="inv-item-date">${dateStr}</div>
-                    </div>
-                </div>
-            `;
-        });
-        
-        html += `
-                </div>
-            </div>
-        `;
-    });
-    
-    container.innerHTML = html;
-}
-
-function submitPurchaseRequest() {
-    const item = document.getElementById('emp-purchase-item').value.trim();
-    const qty = Math.max(1, parseInt(document.getElementById('emp-purchase-qty').value, 10) || 1);
-    const urgency = document.getElementById('emp-purchase-urgency').value;
-    const reason = document.getElementById('emp-purchase-reason').value.trim();
-    if (!item) return showToast('Ingresa artículo');
-    purchaseRequests.push({
-        id: `preq_${Date.now()}`,
-        propertyId: mobileSelectedProperty,
-        item,
-        qty,
-        urgency,
-        reason,
-        employeeId: mobileCurrentUser.staffId,
-        employeeName: mobileCurrentUser.name,
-        approved: false,
-        rejected: false,
-        createdAt: new Date().toISOString()
-    });
-    saveData();
-    document.getElementById('emp-purchase-item').value = '';
-    document.getElementById('emp-purchase-qty').value = '1';
-    document.getElementById('emp-purchase-reason').value = '';
-    loadEmployeePurchaseRequests();
-    showToast('Solicitud enviada');
-}
-
-function loadEmployeePurchaseRequests() {
-    const container = document.getElementById('emp-purchase-requests');
-    if (!container) return;
-    const list = purchaseRequests.filter(r => r.propertyId === mobileSelectedProperty && r.employeeId === mobileCurrentUser.staffId);
-    if (!list.length) {
-        container.innerHTML = '<div class="empty-state"><p>Sin solicitudes</p></div>';
-        return;
+        return showToast('Credenciales incorrectas', true);
     }
-    container.innerHTML = list.map(r => `<div class="request-item"><div><strong>${r.item}</strong> · x${r.qty}</div><div class="request-status status-${r.approved?'approved':r.rejected?'rejected':'pending'}">${r.approved?'Aprobada':r.rejected?'Rechazada':'Pendiente'}</div></div>`).join('');
-}
 
-function loadEmployeeTasks() {
-    const propId = mobileSelectedProperty;
-    const tasks = cleaningTasks.filter(t => t.propertyId === propId && (!t.assignedTo || t.assignedTo === mobileCurrentUser.staffId))
-        .filter(t => !mobileActiveScheduleId || t.scheduleId === mobileActiveScheduleId);
-    const clean = tasks.filter(t => !isMaintenanceTask(t));
-    const maint = tasks.filter(t => isMaintenanceTask(t));
-    document.getElementById('emp-tasks-limpieza-list').innerHTML = renderTaskList(clean);
-    document.getElementById('emp-tasks-mantenimiento-list').innerHTML = renderTaskList(maint);
-}
+    // staff login
+    const match = findStaffByCredentials(username, password, type);
+    if (!match) {
+        return showToast('Usuario o contraseña incorrectos. Contacta al administrador para verificar tus credenciales.', true);
+    }
 
-function finishWorkDay() {
-    const propId = mobileSelectedProperty;
-    const tasks = cleaningTasks.filter(t => t.propertyId === propId && (!t.assignedTo || t.assignedTo === mobileCurrentUser.staffId));
-    const pending = tasks.filter(t => !t.completed);
-    const summary = {
-        id: `notif_${Date.now()}`,
-        propertyId: propId,
-        employeeId: mobileCurrentUser.staffId,
-        employeeName: mobileCurrentUser.name,
-        date: new Date().toLocaleDateString('es-ES'),
-        time: new Date().toLocaleTimeString('es-ES'),
-        pendingTasks: pending.map(t => t.taskText || t.task || 'Tarea'),
-        pendingInventoryCount: inventoryChecks.filter(c => c.propertyId === propId && !c.approved).length,
-        read: false,
-        createdAt: new Date().toISOString()
+    mobileCurrentUserType = type;
+    mobileCurrentUser = {
+        staffId: match.staff.id,
+        propertyId: match.property.id,
+        name: match.staff.name,
+        username: match.staff.username,
+        role: match.staff.role,
+        loginTime: new Date().toISOString()
     };
-    workDayNotifications.push(summary);
-    saveData();
-    loadMobileNotifications();
-    showToast('Jornada finalizada');
+    mobileSelectedProperty = match.property.id;
+    persistMobileSession(remember);
+
+    if (type === 'manager') {
+        showMobileManagerView();
+    } else {
+        showMobileEmployeeView();
+    }
 }
 
-function loadEndDaySummary() {
-    const propId = mobileSelectedProperty;
-    const tasks = cleaningTasks.filter(t => t.propertyId === propId && (!t.assignedTo || t.assignedTo === mobileCurrentUser.staffId));
-    const completed = tasks.filter(t => t.completed).length;
-    const pending = tasks.filter(t => !t.completed).length;
-    const totalInventory = Object.values(properties[propId]?.inventory || {}).reduce((acc, arr) => acc + arr.length, 0);
-    const verifiedInventory = inventoryChecks.filter(c => c.propertyId === propId && c.employeeId === mobileCurrentUser.staffId).length;
-    const inventoryPercent = totalInventory > 0 ? Math.round((verifiedInventory / totalInventory) * 100) : 0;
-    
-    document.getElementById('end-day-tasks-done').textContent = completed;
-    document.getElementById('end-day-tasks-pending').textContent = pending;
-    document.getElementById('end-day-inventory').textContent = `${inventoryPercent}%`;
+function persistMobileSession(remember) {
+    const payload = {
+        type: mobileCurrentUserType,
+        user: mobileCurrentUser,
+        selectedProperty: mobileSelectedProperty,
+        remember: !!remember
+    };
+    localStorage.setItem(MOBILE_SESSION_KEY, JSON.stringify(payload));
 }
 
-// ---------- Manager View ----------
-function showMobileManagerView(skipLoad) {
-    document.getElementById('mobile-login-view').style.display = 'none';
+function restoreMobileSession() {
+    const raw = localStorage.getItem(MOBILE_SESSION_KEY);
+    if (!raw) return false;
+    try {
+        ensureAllInventoriesNormalized();
+        const session = JSON.parse(raw);
+        if (!session?.type || !session?.user) return false;
+        mobileCurrentUserType = session.type;
+        mobileCurrentUser = session.user;
+        mobileSelectedProperty = session.selectedProperty || null;
+        if (mobileCurrentUserType === 'owner') {
+            showMobileOwnerView(true);
+        } else if (mobileCurrentUserType === 'manager') {
+            showMobileManagerView(true);
+        } else {
+            showMobileEmployeeView(true);
+        }
+        return true;
+    } catch (e) {
+        console.error('No se pudo restaurar sesión', e);
+        return false;
+    }
+}
+
+function mobileLogout() {
+    mobileCurrentUser = null;
+    mobileCurrentUserType = null;
+    mobileSelectedProperty = null;
+    localStorage.removeItem(MOBILE_SESSION_KEY);
+    document.getElementById('mobile-login-view').style.display = 'flex';
     document.getElementById('mobile-owner-view').style.display = 'none';
     document.getElementById('mobile-employee-view').style.display = 'none';
-    document.getElementById('mobile-manager-view').style.display = 'flex';
-    document.getElementById('mobile-manager-name').textContent = mobileCurrentUser?.name || 'Gerente';
-    updateUserHeaderDisplay();
-    document.getElementById('menu-manager-property').textContent = properties[mobileCurrentUser.propertyId]?.name || '';
-    document.getElementById('mgr-property-name').textContent = properties[mobileCurrentUser.propertyId]?.name || '';
-    mobileSelectedProperty = mobileCurrentUser.propertyId;
-    updatePropertySelectors();
-    if (!skipLoad) {
-        loadManagerDashboard();
-        loadManagerInventory();
-        loadManagerInventoryChecks();
-        loadManagerPurchase();
-        loadManagerPurchaseHistory();
-        loadManagerSchedule();
-        loadManagerTasks();
-        loadManagerNotifications();
-        loadManagerStaff();
+    document.getElementById('mobile-manager-view').style.display = 'none';
+}
+
+function refreshMobileApp() {
+    // Guardar sesión temporal para restaurar después del reload
+    const temp = {
+        type: mobileCurrentUserType,
+        user: mobileCurrentUser,
+        selectedProperty: mobileSelectedProperty
+    };
+    localStorage.setItem('airbnbmanager_mobile_session_temp', JSON.stringify(temp));
+    location.reload();
+}
+
+// ---------- Menu Toggles ----------
+function toggleMobileMenu() {
+    const menu = document.getElementById('mobile-side-menu');
+    const overlay = document.getElementById('menu-overlay');
+    const btn = document.querySelector('#mobile-owner-view .hamburger-btn');
+    const isOpen = menu.classList.contains('open');
+    menu.classList.toggle('open', !isOpen);
+    overlay.classList.toggle('open', !isOpen);
+    btn?.classList.toggle('active', !isOpen);
+}
+
+function toggleEmployeeMenu() {
+    const menu = document.getElementById('employee-side-menu');
+    const overlay = document.getElementById('employee-menu-overlay');
+    const btn = document.querySelector('#mobile-employee-view .hamburger-btn');
+    const open = menu.classList.contains('open');
+    menu.classList.toggle('open', !open);
+    overlay.classList.toggle('open', !open);
+    btn?.classList.toggle('active', !open);
+}
+
+function toggleManagerMenu() {
+    const menu = document.getElementById('manager-side-menu');
+    const overlay = document.getElementById('manager-menu-overlay');
+    const btn = document.querySelector('#mobile-manager-view .hamburger-btn');
+    const open = menu.classList.contains('open');
+    menu.classList.toggle('open', !open);
+    overlay.classList.toggle('open', !open);
+    btn?.classList.toggle('active', !open);
+}
+
+// ---------- Navigation ----------
+function showMobileSection(section) {
+    mobileActiveSection = section;
+    document.querySelectorAll('#mobile-owner-view .content-section').forEach(sec => sec.classList.remove('active'));
+    const target = document.getElementById(`section-${section}`);
+    if (target) target.classList.add('active');
+    document.querySelectorAll('#mobile-side-menu .menu-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.section === section);
+    });
+    toggleMobileMenu();
+    // Lazy load sections
+    switch (section) {
+        case 'dashboard':
+            loadDashboardStats();
+            break;
+        case 'properties':
+            loadPropertiesList();
+            break;
+        case 'inventory':
+            loadMobileInventory();
+            break;
+        case 'inventory-checks':
+            loadInventoryChecks();
+            break;
+        case 'purchase':
+            loadMobilePurchaseList();
+            break;
+        case 'purchase-history':
+            loadPurchaseHistory();
+            break;
+        case 'schedule':
+            loadMobileSchedule();
+            break;
+        case 'tasks':
+            loadMobileTasks();
+            break;
+        case 'notifications':
+            loadMobileNotifications();
+            break;
+        case 'staff':
+            loadMobileStaff();
+            break;
+        case 'users':
+            loadMobileUsers();
+            break;
     }
 }
 
-function loadManagerDashboard() {
-    const container = document.getElementById('mgr-dashboard-stats');
-    if (!container) return;
-    const tasks = cleaningTasks.filter(t => t.propertyId === mobileSelectedProperty);
-    const completed = tasks.filter(t => t.completed).length;
-    const pending = tasks.filter(t => !t.completed).length;
-    const staff = properties[mobileSelectedProperty]?.staff || [];
-    container.innerHTML = `
-        <div class="stat-card">
+function showEmployeeSection(section) {
+    document.querySelectorAll('#mobile-employee-view .content-section').forEach(sec => sec.classList.remove('active'));
+    const target = document.getElementById(`section-${section}`);
+    if (target) target.classList.add('active');
+    document.querySelectorAll('#employee-side-menu .menu-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.section === section.replace('section-',''));
+    });
+    toggleEmployeeMenu();
+    if (section === 'emp-schedule') {
+        mobileActiveScheduleId = null; // viewing calendar resets filter
+        loadEmployeeSchedule();
+    }
+    if (section === 'emp-inventory') loadEmployeeInventory();
+    if (section === 'emp-tasks') {
+        mobileActiveScheduleId = mobilePendingScheduleId || null; // apply pending schedule filter if any
+        mobilePendingScheduleId = null;
+        loadEmployeeTasks();
+    }
+    if (section === 'emp-purchase') loadEmployeePurchaseRequests();
+    if (section === 'emp-end-day') loadEndDaySummary();
+}
+
+function showManagerSection(section) {
+    document.querySelectorAll('#mobile-manager-view .content-section').forEach(sec => sec.classList.remove('active'));
+    const target = document.getElementById(`section-${section}`);
+    if (target) target.classList.add('active');
+    document.querySelectorAll('#manager-side-menu .menu-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.section === section.replace('section-',''));
+    });
+    toggleManagerMenu();
+    if (section === 'mgr-inventory') loadManagerInventory();
+    if (section === 'mgr-inventory-checks') loadManagerInventoryChecks();
+    if (section === 'mgr-purchase') loadManagerPurchase();
+    if (section === 'mgr-purchase-history') loadManagerPurchaseHistory();
+    if (section === 'mgr-schedule') loadManagerSchedule();
+    if (section === 'mgr-tasks') loadManagerTasks();
+    if (section === 'mgr-notifications') loadManagerNotifications();
+    if (section === 'mgr-staff') loadManagerStaff();
+    if (section === 'mgr-users') loadManagerUsers();
+}
+
+// ---------- Owner View ----------
+function showMobileOwnerView(skipLoad) {
+    document.getElementById('mobile-login-view').style.display = 'none';
+    document.getElementById('mobile-owner-view').style.display = 'flex';
+    document.getElementById('mobile-employee-view').style.display = 'none';
+    document.getElementById('mobile-manager-view').style.display = 'none';
+    document.getElementById('mobile-owner-name').textContent = mobileCurrentUser?.name || 'Propietario';
+    updateUserHeaderDisplay();
+    updatePropertySelectors();
+    
+    // Mostrar opción de sincronización solo para propietario
+    const syncOption = document.querySelector('.menu-item.owner-only[data-section="sync"]');
+    if (syncOption) syncOption.style.display = 'flex';
+    
+    if (!skipLoad) {
+        loadDashboardStats();
+        loadPropertiesList();
+        loadMobileInventory();
+        loadInventoryChecks();
+        loadMobilePurchaseList();
+        loadPurchaseHistory();
+        loadMobileSchedule();
+        loadMobileTasks();
+        loadMobileNotifications();
+        loadMobileStaff();
+        loadOwnerNotifications();
+    }
+}
+
+function loadDashboardStats() {
+    const propSelect = document.getElementById('dashboard-property-select');
+    const target = document.getElementById('dashboard-stats');
+    if (!propSelect || !target) return;
+    const propId = propSelect.value || mobileSelectedProperty;
+    if (!propSelect.value && mobileSelectedProperty) propSelect.value = mobileSelectedProperty;
+    const tasks = cleaningTasks.filter(t => !propId || t.propertyId === propId);
+    const completedTasks = tasks.filter(t => t.completed).length;
+    const pendingTasks = tasks.filter(t => !t.completed).length;
+    const schedules = scheduledDates.filter(s => !propId || s.propertyId === propId).length;
+    const purchases = purchaseInventory.filter(p => !propId || p.propertyId === propId).length;
+    const staffCount = Object.values(properties || {}).reduce((acc, prop) => {
+        if (propId && prop.id !== propId) return acc;
+        return acc + (prop.staff ? prop.staff.length : 0);
+    }, 0);
+
+    target.innerHTML = `
+        <div class="stat-card" onclick="showMobileSection('tasks')">
             <div class="stat-icon">✅</div>
-            <div class="stat-value">${completed}</div>
+            <div class="stat-value">${completedTasks}</div>
             <div class="stat-label">Tareas completadas</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-icon">📋</div>
-            <div class="stat-value">${pending}</div>
+        <div class="stat-card" onclick="showMobileSection('tasks')">
+            <div class="stat-icon">📝</div>
+            <div class="stat-value">${pendingTasks}</div>
             <div class="stat-label">Tareas pendientes</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" onclick="showMobileSection('schedule')">
+            <div class="stat-icon">📅</div>
+            <div class="stat-value">${schedules}</div>
+            <div class="stat-label">Fechas agendadas</div>
+        </div>
+        <div class="stat-card" onclick="showMobileSection('purchase')">
+            <div class="stat-icon">🛒</div>
+            <div class="stat-value">${purchases}</div>
+            <div class="stat-label">Items compra</div>
+        </div>
+        <div class="stat-card" onclick="showMobileSection('staff')">
             <div class="stat-icon">👥</div>
-            <div class="stat-value">${staff.length}</div>
-            <div class="stat-label">Personal asignado</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">📦</div>
-            <div class="stat-value">${purchaseInventory.filter(p => p.propertyId === mobileSelectedProperty).length}</div>
-            <div class="stat-label">Items en compra</div>
-        </div>
-    `;
+            <div class="stat-value">${staffCount}</div>
+            <div class="stat-label">Personal</div>
+        </div>`;
 }
 
-function loadManagerInventory() {
-    const container = document.getElementById('mgr-inventory-list');
+function loadPropertiesList() {
+    const container = document.getElementById('properties-list');
     if (!container) return;
-    const prop = properties[mobileSelectedProperty];
-    if (!prop) return;
-    const rawCategory = document.getElementById('mgr-inventory-category')?.value || '';
-    const category = normalizeCategoryFilter(rawCategory);
-    const inventory = prop.inventory || {};
-    const groups = Object.keys(inventory)
-        .filter(catKey => {
-            if (!category) return true;
-            return catKey === category;
-        })
-        .map(catKey => {
-            const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
-            const itemsHtml = (inventory[catKey] || []).map(it => `
-                <div class="inventory-item">
-                    <div class="item-info">
-                        <div class="item-name">${it.name}</div>
-                        <div class="item-details">${catName}</div>
-                    </div>
-                    <div class="item-qty-edit">
-                        <input type="number" min="0" value="${it.qty ?? 0}" onchange="updateInventoryItemQtyMobile('${prop.id}','${catKey}','${it.id}', this.value)" style="width: 60px; padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
-                        <button class="btn-icon" onclick="deleteInventoryItemMobile('${prop.id}','${catKey}','${it.id}')" style="background: #ff4444; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; margin-left: 0.5rem;">🗑️</button>
-                    </div>
-                </div>
-            `).join('');
-            return `
-                <div class="inventory-zone">
-                    <h3 class="zone-title">${catName}</h3>
-                    <div class="inventory-grid">${itemsHtml || '<div class="empty-state"><p>Sin items</p></div>'}</div>
-                </div>
-            `;
-        });
-    container.innerHTML = groups.join('');
-}
-
-// Map UI labels to internal category keys
-function normalizeCategoryFilter(val) {
-    const v = (val || '').toLowerCase();
-    if (!v) return '';
-    const map = {
-        'habitacion': 'habitaciones',
-        'habitaciones': 'habitaciones',
-        'baño': 'banos',
-        'banos': 'banos',
-        'cocina': 'cocina',
-        'sala': 'sala',
-        'comedor': 'comedor',
-        'lavanderia': 'lavanderia',
-        'limpieza': 'limpieza',
-        'terraza': 'terraza',
-        'exterior': 'terraza' // if used as synonym
-    };
-    // Also match display names from INVENTORY_CATEGORIES
-    const nameToKey = Object.entries(INVENTORY_CATEGORIES).reduce((acc,[key,obj])=>{ acc[(obj.name||'').toLowerCase()] = key; return acc; },{});
-    return map[v] || nameToKey[v] || '';
-}
-
-function showAddInventoryModalManager() { showAddInventoryModal(); }
-function resetManagerInventoryVerification() { resetInventoryVerification(); loadManagerInventoryChecks(); }
-function loadManagerInventoryChecks() {
-    const container = document.getElementById('mgr-inventory-checks-list');
-    if (!container) return;
-    const checks = inventoryChecks.filter(c => c.propertyId === mobileSelectedProperty);
-    container.innerHTML = checks.map(c => `<div class="check-item"><div class="check-date">${new Date(c.createdAt||Date.now()).toLocaleDateString('es-ES')}</div><div class="check-employee">${c.employeeName||'Empleado'}</div><div class="check-status">${c.approved?'Aprobado':'Pendiente'}</div></div>`).join('') || '<div class="empty-state"><p>Sin verificaciones</p></div>';
-}
-
-function loadManagerPurchase() {
-    const container = document.getElementById('mgr-purchase-list');
-    if (!container) return;
-    const items = purchaseInventory.filter(p => p.propertyId === mobileSelectedProperty);
-    container.innerHTML = items.map(item => `<div class="purchase-item"><input type="checkbox" class="purchase-checkbox" ${item.purchased?'checked':''} onclick="togglePurchaseStatus('${item.id}')"><div class="purchase-info"><div class="purchase-name">${item.name||item.item}</div><div class="purchase-details">x${item.qty||1}</div></div></div>`).join('') || '<div class="empty-state"><p>Lista vacía</p></div>';
-}
-
-function togglePurchaseStatus(itemId) {
-    const item = purchaseInventory.find(p => p.id === itemId);
-    if (item) {
-        item.purchased = !item.purchased;
-        saveData();
-        loadManagerPurchase();
-    }
-}
-
-function loadManagerPurchaseHistory() {
-    const container = document.getElementById('mgr-purchase-history-list');
-    if (!container) return;
-    const list = purchaseHistory.filter(h => h.propertyId === mobileSelectedProperty);
-    container.innerHTML = list.map(h => `<div class="history-item"><div class="history-date">${new Date(h.purchaseDate||Date.now()).toLocaleString('es-ES')}</div><div class="history-content">${h.itemName||h.name} · ${h.qty||1}</div></div>`).join('') || '<div class="empty-state"><p>Sin historial</p></div>';
-}
-
-function addManagerSchedule() {
-    const propId = mobileSelectedProperty;
-    const date = document.getElementById('mgr-schedule-date').value;
-    const type = document.getElementById('mgr-schedule-type').value;
-    const employeeId = document.getElementById('mgr-schedule-employee').value;
-    const shift = document.getElementById('mgr-schedule-shift').value;
-    const epicType = document.getElementById('mgr-schedule-epic-type')?.value || 'limpieza_regular';
-    if (!propId) return showToast('Selecciona propiedad');
-    if (!date) return showToast('Selecciona fecha');
-    const prop = properties[propId];
-    const staff = (prop?.staff || []).find(s => s.id === employeeId);
-    scheduledDates.push({
-        id: `schedule_${Date.now()}`,
-        propertyId: propId,
-        date,
-        type,
-        assignedTo: employeeId || null,
-        assignedEmployeeName: staff?.name || null,
-        shift,
-        epicType,
-        completed: false
-    });
-    saveData();
-    document.getElementById('mgr-schedule-date').value = '';
-    loadManagerSchedule();
-    showToast('Fecha agregada');
-}
-
-function loadManagerSchedule() {
-    const container = document.getElementById('mgr-schedule-list');
-    if (!container) return;
-    const list = scheduledDates.filter(s => s.propertyId === mobileSelectedProperty).sort((a,b)=> new Date(a.date)-new Date(b.date));
-    container.innerHTML = list.map(s => {
-        const epicValue = s.epicType || 'limpieza_regular';
-        const hasEpic = s.type === 'epic' || !!s.epicType;
-        const typeLabel = s.type === 'descanso' ? 'descanso' : hasEpic ? 'EPIC D1' : s.type;
-        const epicLabel = hasEpic ? formatEpicType(epicValue) : '';
-        return `
-            <div class="schedule-entry-card">
-                <div class="schedule-entry">
-                    <div class="entry-info">
-                        <div class="entry-date">${formatDateShort(s.date)}</div>
-                        <div class="entry-details">${s.assignedEmployeeName || 'Sin asignar'} · ${s.shift || 'turno'}</div>
-                        ${epicLabel ? `<div class="entry-epic">${epicLabel}</div>` : ''}
-                    </div>
-                    <span class="entry-type ${s.type==='descanso'?'type-descanso':'type-trabajo'}">${typeLabel}</span>
-                </div>
-                <div class="entry-actions">
-                    <button class="btn-secondary btn-small" onclick="openEditSchedule('${s.id}')">✏️ Editar</button>
-                    <button class="btn-warning btn-small" onclick="resetTasksForSchedule('${s.id}')">↻ Tareas</button>
-                    <button class="btn-danger btn-small" onclick="deleteManagerSchedule('${s.id}')">🗑️ Eliminar</button>
-                </div>
-            </div>`;
-    }).join('') || '<div class="empty-state"><p>Sin agenda</p></div>';
-    const staffSel = document.getElementById('mgr-schedule-employee');
-    if (staffSel) {
-        const options = (properties[mobileSelectedProperty]?.staff||[]).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-        staffSel.innerHTML = '<option value="">Sin asignar</option>' + options;
-    }
-}
-
-function addManagerTask() {
-    const text = document.getElementById('mgr-new-task-input').value.trim();
-    const type = document.getElementById('mgr-new-task-type').value;
-    const assignee = document.getElementById('mgr-new-task-assignee').value;
-    if (!text) return showToast('Describe la tarea');
-    const prop = properties[mobileSelectedProperty];
-    const staff = (prop?.staff || []).find(s => s.id === assignee);
-    cleaningTasks.push({
-        id: `task_${Date.now()}`,
-        propertyId: mobileSelectedProperty,
-        sectionKey: type,
-        taskText: text,
-        assignedTo: assignee || null,
-        assignedEmployeeName: staff?.name || null,
-        completed: false,
-        createdAt: new Date().toISOString()
-    });
-    saveData();
-    document.getElementById('mgr-new-task-input').value = '';
-    loadManagerTasks();
-    showToast('Tarea creada');
-}
-
-function reinitializeManagerTasks() {
-    mobileSelectedProperty = mobileSelectedProperty || mobileCurrentUser.propertyId;
-    reinitializeTasks();
-    loadManagerTasks();
-}
-
-function loadManagerTasks() {
-    const containerClean = document.getElementById('mgr-tasks-limpieza-list');
-    const containerMaint = document.getElementById('mgr-tasks-mantenimiento-list');
-    if (!containerClean || !containerMaint) return;
-    const tasks = cleaningTasks.filter(t => t.propertyId === mobileSelectedProperty);
-    const clean = tasks.filter(t => !isMaintenanceTask(t));
-    const maint = tasks.filter(t => isMaintenanceTask(t));
-    containerClean.innerHTML = renderTaskList(clean);
-    containerMaint.innerHTML = renderTaskList(maint);
-}
-
-function sendManagerNotification() {
-    const text = document.getElementById('mgr-new-notification').value.trim();
-    if (!text) return showToast('Escribe mensaje');
-    workDayNotifications.push({
-        id: `notif_${Date.now()}`,
-        propertyId: mobileSelectedProperty,
-        message: text,
-        date: new Date().toLocaleString('es-ES'),
-        createdAt: new Date().toISOString(),
-        read: false
-    });
-    saveData();
-    document.getElementById('mgr-new-notification').value = '';
-    loadManagerNotifications();
-    showToast('Notificación enviada');
-}
-
-function loadManagerNotifications() {
-    const container = document.getElementById('mgr-notifications-list');
-    if (!container) return;
-    
-    // Mostrar notificaciones de tareas completadas
-    loadTaskNotifications();
-    const pending = taskNotifications.filter(n => n.propertyId === mobileSelectedProperty && n.status === 'pending');
-    
-    if (pending.length === 0) {
-        container.innerHTML = '<p style="color: #999;">No hay notificaciones nuevas</p>';
+    container.innerHTML = '';
+    const entries = Object.values(properties || {});
+    if (entries.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">🏠</div><p>Sin propiedades</p></div>';
         return;
     }
-    
-    container.innerHTML = pending.map(n => `
-        <div style="background: #e3f2fd; border: 1px solid #2196f3; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
-            <div style="font-weight: bold; margin-bottom: 0.5rem;">📌 ${n.type === 'task_completed' ? 'Tarea Completada' : 'Tarea No Completada'}</div>
-            <div style="font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>${n.employeeName}</strong></div>
-            <div style="font-size: 0.85rem; margin-bottom: 0.5rem;"><strong>Tarea:</strong> ${n.taskText}</div>
-            ${n.reason ? '<div style="font-size: 0.85rem; margin-bottom: 0.5rem; color: #d32f2f;"><strong>Razón:</strong> ' + n.reason + '</div>' : ''}
-            <div style="font-size: 0.8rem; color: #666; margin-bottom: 1rem;">${n.completedAt || n.timestamp}</div>
-            ${n.type === 'task_completed' ? '<button class="btn-primary" onclick="verifyTaskCompletion(\'' + n.id + '\')" style="background: #4caf50; padding: 0.5rem 1rem; border: none; border-radius: 4px; color: white; cursor: pointer; margin-right: 0.5rem;">Verificar y Cerrar</button>' : ''}
-            <button class="btn-secondary" onclick="dismissTaskNotification(\'' + n.id + '\')" style="background: #757575; padding: 0.5rem 1rem; border: none; border-radius: 4px; color: white; cursor: pointer;">Descartar</button>
-        </div>
-    `).join('');
-}
-
-function loadManagerStaff() {
-    const container = document.getElementById('mgr-staff-list');
-    if (!container) return;
-    const staff = properties[mobileSelectedProperty]?.staff || [];
-    container.innerHTML = staff.map(s => `<div class="staff-card"><div class="staff-avatar">${s.name.charAt(0).toUpperCase()}</div><div class="staff-info"><div class="staff-name">${s.name}</div><div class="staff-role">${getRoleName(s.role)}</div></div></div>`).join('') || '<div class="empty-state"><p>Sin personal</p></div>';
-}
-
-function showAddStaffModalManager() { showAddStaffModal(); }
-
-// ---------- Helpers ----------
-function formatDateShort(dateStr) {
-    // Parsear la fecha en formato YYYY-MM-DD sin convertir zona horaria
-    if (!dateStr) return '';
-    const parts = dateStr.split('-');
-    if (parts.length === 3) {
-        const year = parseInt(parts[0]);
-        const month = parseInt(parts[1]) - 1;
-        const day = parseInt(parts[2]);
-        const d = new Date(year, month, day);
-        const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-        return `${String(d.getDate()).padStart(2, '0')} ${months[d.getMonth()]}`;
-    }
-    return dateStr;
-}
-
-function getRoleName(role) {
-    if (role === 'manager') return 'Gerente';
-    if (role === 'maintenance') return 'Mantenimiento';
-    return 'Empleado';
-}
-
-function fillStaffOptions(selectId, propId) {
-    const select = document.getElementById(selectId);
-    if (!select) return;
-    const staff = (properties[propId]?.staff || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-    select.innerHTML = '<option value="">Sin asignar</option>' + staff;
-}
-
-function showToast(msg, error) {
-    const el = document.getElementById('toast');
-    if (!el) return;
-    el.textContent = msg;
-    el.className = 'toast show' + (error ? ' error' : '');
-    setTimeout(() => el.className = 'toast', 2500);
-}
-
-// ---------- Employee View Additional Functions ----------
-function loadEmployeeDashboard() {
-    const container = document.getElementById('emp-dashboard-stats');
-    if (!container) return;
-    const tasks = cleaningTasks.filter(t => t.propertyId === mobileSelectedProperty && (!t.assignedTo || t.assignedTo === mobileCurrentUser.staffId));
-    const completed = tasks.filter(t => t.completed).length;
-    const pending = tasks.filter(t => !t.completed).length;
-    const today = new Date().toLocaleDateString('es-ES');
-    container.innerHTML = `
-        <div class="stat-card">
-            <div class="stat-icon">✅</div>
-            <div class="stat-value">${completed}</div>
-            <div class="stat-label">Completadas</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">📋</div>
-            <div class="stat-value">${pending}</div>
-            <div class="stat-label">Pendientes</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">📦</div>
-            <div class="stat-value">${inventoryChecks.filter(c => c.propertyId === mobileSelectedProperty && c.employeeId === mobileCurrentUser.staffId).length}</div>
-            <div class="stat-label">Verificadas</div>
-        </div>
-    `;
-}
-
-function completeMobileTask(taskId) {
-    const task = cleaningTasks.find(t => t.id === taskId);
-    if (task) {
-        task.completed = true;
-        saveData();
-        loadEmployeeTasks();
-        showToast('Tarea marcada como completada');
-    }
-}
-
-function deleteTask(taskId) {
-    cleaningTasks = cleaningTasks.filter(t => t.id !== taskId);
-    saveData();
-    loadMobileTasks();
-    showToast('Tarea eliminada');
-}
-
-function loadMobileNotifications() {
-    const container = document.getElementById('notifications-list');
-    if (!container) return;
-    const notifications = workDayNotifications.filter(n => n.propertyId === mobileSelectedProperty);
-    if (!notifications.length) {
-        container.innerHTML = '<div class="empty-state"><p>Sin notificaciones</p></div>';
-        return;
-    }
-    container.innerHTML = notifications.map(n => `
-        <div class="notification-item">
-            <div class="notification-date">${n.date || new Date(n.createdAt || Date.now()).toLocaleDateString('es-ES')}</div>
-            <div class="notification-content">${n.message || n.employeeName || 'Notificación'}</div>
+    container.innerHTML = entries.map(prop => `
+        <div class="property-card">
+            <div class="property-icon">🏠</div>
+            <div class="property-info">
+                <div class="property-name">${prop.name}</div>
+                <div class="property-address">${prop.address || ''}</div>
+            </div>
+            <div class="property-actions">
+                <button title="Seleccionar" onclick="setMobileProperty('${prop.id}')">✅</button>
+                <button title="Eliminar" onclick="deletePropertyMobile('${prop.id}')">🗑️</button>
+            </div>
         </div>`).join('');
 }
 
-function sendMobileNotification() {
-    const text = document.getElementById('new-notification')?.value.trim();
-    if (!text) return showToast('Escribe un mensaje');
-    workDayNotifications.push({
-        id: `notif_${Date.now()}`,
-        propertyId: mobileSelectedProperty,
-        message: text,
-        date: new Date().toLocaleString('es-ES'),
-        createdAt: new Date().toISOString(),
-        read: false
-    });
-    saveData();
-    document.getElementById('new-notification').value = '';
-    loadMobileNotifications();
-    showToast('Notificación enviada');
-}
-
-// ---------- User Management ----------
-function loadMobileUsers() {
-    const container = document.getElementById('users-list');
-    if (!container) return;
-    const allUsers = [];
-    Object.values(properties).forEach(prop => {
-        if (prop.staff) {
-            prop.staff.forEach(user => {
-                allUsers.push({ ...user, propertyName: prop.name, propertyId: prop.id });
-            });
-        }
-    });
-    if (!allUsers.length) {
-        container.innerHTML = '<div class="empty-state"><p>No hay usuarios</p></div>';
-        return;
-    }
-    container.innerHTML = allUsers.map(u => `
-        <div class="user-card">
-            <div class="user-info">
-                <h4>${u.name}</h4>
-                <p>Usuario: ${u.username}</p>
-                <p>Rol: ${u.role === 'owner' ? 'Dueño' : u.role === 'manager' ? 'Gerente' : 'Empleado'}</p>
-                <p>Propiedad: ${u.propertyName}</p>
-            </div>
-            <button class="btn-danger btn-sm" onclick="confirmDeleteUser('${u.id}', '${u.propertyId}')">Eliminar</button>
-        </div>
-    `).join('');
-}
-
-function loadManagerUsers() {
-    const propId = mobileSelectedProperty;
-    const container = document.getElementById('mgr-users-list');
-    if (!container) return;
-    const prop = properties[propId];
-    if (!prop || !prop.staff || !prop.staff.length) {
-        container.innerHTML = '<div class="empty-state"><p>No hay usuarios</p></div>';
-        return;
-    }
-    container.innerHTML = prop.staff.map(u => `
-        <div class="user-card">
-            <div class="user-info">
-                <h4>${u.name}</h4>
-                <p>Usuario: ${u.username}</p>
-                <p>Rol: ${u.role === 'owner' ? 'Dueño' : u.role === 'manager' ? 'Gerente' : 'Empleado'}</p>
-            </div>
-            <button class="btn-danger btn-sm" onclick="confirmDeleteUser('${u.id}', '${propId}')">Eliminar</button>
-        </div>
-    `).join('');
-}
-
-function showAddUserModal() {
-    fillPropertyOptions('new-user-property');
-    toggleUserPropertyField();
-    document.getElementById('modal-add-user').classList.add('open');
-}
-
-function showAddUserModalManager() {
-    const propId = mobileSelectedProperty;
-    const select = document.getElementById('new-user-property');
-    select.innerHTML = `<option value="${propId}">${properties[propId]?.name || 'Propiedad'}</option>`;
-    document.getElementById('new-user-role').value = 'employee';
-    toggleUserPropertyField();
-    document.getElementById('modal-add-user').classList.add('open');
-}
-
-function toggleUserPropertyField() {
-    const role = document.getElementById('new-user-role').value;
-    const propGroup = document.getElementById('user-property-group');
-    if (role === 'owner') {
-        propGroup.style.display = 'none';
-    } else {
-        propGroup.style.display = 'block';
-    }
-}
-
-function addNewUser() {
-    const name = document.getElementById('new-user-name').value.trim();
-    const username = document.getElementById('new-user-username').value.trim();
-    const password = document.getElementById('new-user-password').value.trim();
-    const role = document.getElementById('new-user-role').value;
-    const propId = role === 'owner' ? Object.keys(properties)[0] : document.getElementById('new-user-property').value;
-    
-    if (!name || !username || !password) return showToast('Completa todos los campos', true);
-    if (role !== 'owner' && !propId) return showToast('Selecciona una propiedad', true);
-    
-    // Check if username already exists
-    const exists = Object.values(properties).some(prop => 
-        prop.staff && prop.staff.some(s => s.username === username)
-    );
-    if (exists) return showToast('El usuario ya existe', true);
-    
-    const newUser = { 
-        id: `user_${Date.now()}`, 
-        name, 
-        username, 
-        password, 
-        role,
-        staffId: `staff_${Date.now()}`
-    };
-    
-    if (role === 'owner') {
-        // Add owner to all properties
-        Object.values(properties).forEach(prop => {
-            if (!prop.staff) prop.staff = [];
-            prop.staff.push({ ...newUser });
-        });
-    } else {
-        // Add to specific property
-        const prop = properties[propId];
-        if (!prop.staff) prop.staff = [];
-        prop.staff.push(newUser);
-    }
-    
-    saveData();
-    closeModal('modal-add-user');
-    
-    // Reload appropriate view
-    if (mobileCurrentUser.role === 'owner') {
-        loadMobileUsers();
-    } else {
-        loadManagerUsers();
-    }
-    
-    showToast('Usuario agregado');
-    
-    // Clear form
-    document.getElementById('new-user-name').value = '';
-    document.getElementById('new-user-username').value = '';
-    document.getElementById('new-user-password').value = '';
-}
-
-function confirmDeleteUser(userId, propId) {
-    const prop = properties[propId];
-    const user = prop?.staff?.find(s => s.id === userId);
-    if (!user) return showToast('Usuario no encontrado', true);
-    
-    if (confirm(`¿Eliminar usuario ${user.name}?`)) {
-        deleteUser(userId, propId);
-    }
-}
-
-function deleteUser(userId, propId) {
-    const prop = properties[propId];
-    if (!prop || !prop.staff) return;
-    
-    const user = prop.staff.find(s => s.id === userId);
-    if (!user) return showToast('Usuario no encontrado', true);
-    
-    // If owner, remove from all properties
-    if (user.role === 'owner') {
-        Object.values(properties).forEach(p => {
-            if (p.staff) {
-                p.staff = p.staff.filter(s => s.id !== userId);
-            }
-        });
-    } else {
-        // Remove from specific property
-        prop.staff = prop.staff.filter(s => s.id !== userId);
-    }
-    
-    saveData();
-    
-    // Reload appropriate view
-    if (mobileCurrentUser.role === 'owner') {
-        loadMobileUsers();
-    } else {
-        loadManagerUsers();
-    }
-    
-    showToast('Usuario eliminado');
-}
-
-// ---------- Init ----------
-document.addEventListener('DOMContentLoaded', () => {
-    loadData();
-    ensureAllInventoriesNormalized();
-    const restored = restoreMobileSession();
-    if (!restored) {
-        document.getElementById('mobile-login-view').style.display = 'flex';
-    }
+function setMobileProperty(propId) {
+    mobileSelectedProperty = propId;
     updatePropertySelectors();
-    // Delegate clicks for employee schedule cards in case inline handlers fail
-    const empScheduleList = document.getElementById('emp-schedule-list');
-    if (empScheduleList) {
-        empScheduleList.addEventListener('click', (e) => {
-            const card = e.target.closest('.schedule-entry.clickable[data-sid]');
-            if (card) handleEmployeeScheduleClick(card.dataset.sid);
+    loadDashboardStats();
+    loadMobileInventory();
+    loadInventoryChecks();
+    loadMobilePurchaseList();
+    loadPurchaseHistory();
+    loadMobileSchedule();
+    loadMobileTasks();
+    loadMobileNotifications();
+    loadMobileStaff();
+}
+
+function deletePropertyMobile(propId) {
+    if (!confirm('¿Eliminar esta propiedad?')) return;
+    delete properties[propId];
+    cleaningTasks = cleaningTasks.filter(t => t.propertyId !== propId);
+    scheduledDates = scheduledDates.filter(s => s.propertyId !== propId);
+    purchaseInventory = purchaseInventory.filter(p => p.propertyId !== propId);
+    purchaseHistory = purchaseHistory.filter(p => p.propertyId !== propId);
+    inventoryChecks = inventoryChecks.filter(c => c.propertyId !== propId);
+    saveData();
+    mobileSelectedProperty = Object.keys(properties)[0] || null;
+    updatePropertySelectors();
+    loadPropertiesList();
+    loadDashboardStats();
+}
+
+function showAddPropertyModal() {
+    fillPropertyOptions('new-staff-property');
+    document.getElementById('modal-add-property').classList.add('open');
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('open');
+}
+
+function addNewProperty() {
+    const name = document.getElementById('new-property-name').value.trim();
+    const address = document.getElementById('new-property-address').value.trim();
+    if (!name || !address) return showToast('Completa nombre y dirección');
+    const id = `prop_${Date.now()}`;
+    const prop = { id, name, address, staff: [], inventory: {} };
+    normalizeInventory(prop);
+    properties[id] = prop;
+    cleaningTasks.push(...createDefaultCleaningTasks(id, name));
+    saveData();
+    mobileSelectedProperty = id;
+    closeModal('modal-add-property');
+    updatePropertySelectors();
+    loadPropertiesList();
+    loadMobileTasks();
+    showToast('Propiedad creada');
+}
+
+// ---------- Inventory ----------
+function updatePropertySelectors() {
+    const selects = [
+        'dashboard-property-select', 'inventory-property-select', 'inventory-checks-property-select',
+        'purchase-property-select', 'purchase-history-property-select', 'schedule-property-select',
+        'tasks-property-select', 'notifications-property-select', 'staff-property-filter'
+    ];
+    selects.forEach(id => fillPropertyOptions(id));
+    if (mobileSelectedProperty) {
+        selects.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = mobileSelectedProperty;
         });
-        empScheduleList.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                const card = e.target.closest('.schedule-entry.clickable[data-sid]');
-                if (card) handleEmployeeScheduleClick(card.dataset.sid);
+        // Staff-dependent selectors for current property
+        fillStaffOptions('schedule-employee', mobileSelectedProperty);
+        fillStaffOptions('new-task-assignee', mobileSelectedProperty);
+        fillStaffOptions('mgr-schedule-employee', mobileSelectedProperty);
+        fillStaffOptions('mgr-new-task-assignee', mobileSelectedProperty);
+        // Update category filters according to property (e.g., hide Terraza in Torre Magna)
+        updateCategoryFiltersForProperty(mobileSelectedProperty);
+    }
+    // Manager/employee badges
+    const mgrBadge = document.getElementById('mgr-property-name');
+    if (mgrBadge && mobileCurrentUserType === 'manager') {
+        const prop = properties[mobileSelectedProperty];
+        mgrBadge.textContent = prop ? prop.name : '';
+    }
+    const empProp = document.getElementById('emp-assigned-property');
+    if (empProp && mobileCurrentUserType === 'employee') {
+        const prop = properties[mobileSelectedProperty];
+        empProp.textContent = prop ? prop.name : '';
+    }
+}
+
+function updateCategoryFiltersForProperty(propId) {
+    const propName = properties[propId]?.name || '';
+    const isTorreMagna = propName.trim().toLowerCase() === 'torre magna pi' || propName.trim().toLowerCase() === 'torre magna';
+    const categorySelectIds = ['inventory-category-select','emp-inventory-category','mgr-inventory-category'];
+    categorySelectIds.forEach(id => {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const opts = Array.from(sel.options);
+        const idxTerraza = opts.findIndex(o => (o.text || o.value || '').toLowerCase() === 'terraza');
+        if (isTorreMagna) {
+            if (idxTerraza >= 0) sel.remove(idxTerraza);
+        } else {
+            if (idxTerraza < 0) {
+                const opt = document.createElement('option');
+                opt.value = 'Terraza';
+                opt.text = 'Terraza';
+                sel.appendChild(opt);
             }
-        });
-    }
-});
-
-// Actualizar cantidad de artículo de inventario
-function updateInventoryItemQtyMobile(propId, catKey, itemId, newQty) {
-    const prop = properties[propId];
-    if (!prop) return;
-    const items = prop.inventory[catKey];
-    if (!items) return;
-    const item = items.find(i => i.id === itemId);
-    if (item) {
-        item.qty = parseInt(newQty) || 0;
-        saveToLocalStorage();
-        if (currentUserType === 'owner') {
-            loadMobileInventory();
-        } else if (currentUserType === 'manager') {
-            loadManagerInventory();
         }
-    }
+    });
 }
 
-// Eliminar artículo de inventario
-function deleteInventoryItemMobile(propId, catKey, itemId) {
-    const prop = properties[propId];
-    if (!prop) return;
-    const items = prop.inventory[catKey];
-    if (!items) return;
-    const idx = items.findIndex(i => i.id === itemId);
-    if (idx >= 0) {
-        items.splice(idx, 1);
-        saveToLocalStorage();
-        if (currentUserType === 'owner') {
-            loadMobileInventory();
-        } else if (currentUserType === 'manager') {
-            loadManagerInventory();
-        }
-    }
+function fillPropertyOptions(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    const entries = Object.values(properties || {});
+    select.innerHTML = '<option value="">Seleccione propiedad</option>' + entries.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
 }
 
-// ========== Sistema de Notificaciones de Tareas ==========
-
-function loadTaskNotifications() {
-    const stored = localStorage.getItem(TASK_NOTIFICATIONS_KEY);
-    taskNotifications = stored ? JSON.parse(stored) : [];
-}
-
-function saveTaskNotifications() {
-    localStorage.setItem(TASK_NOTIFICATIONS_KEY, JSON.stringify(taskNotifications));
-}
-
-function markTaskCompleted(taskId) {
-    const task = cleaningTasks.find(t => t.id === taskId);
-    if (!task) return;
-    
-    task.completed = true;
-    task.completedAt = new Date().toISOString();
-    task.completionReason = null;
-    
-    const notification = {
-        id: 'notif_' + Date.now(),
-        taskId: taskId,
-        taskText: task.taskText || task.task,
-        employeeId: mobileCurrentUser.staffId,
-        employeeName: mobileCurrentUser.name,
-        propertyId: mobileSelectedProperty,
-        propertyName: properties[mobileSelectedProperty]?.name,
-        completedAt: new Date().toLocaleString(),
-        status: 'pending',
-        type: 'task_completed'
-    };
-    
-    taskNotifications.push(notification);
-    saveTaskNotifications();
-    saveData();
-    
-    showToast('Tarea marcada como completada');
-    loadEmployeeTasks();
-}
-
-function showTaskNotCompletedModal(taskId) {
-    document.getElementById('modal-task-not-completed').classList.add('open');
-    document.getElementById('task-not-completed-id').value = taskId;
-    document.getElementById('task-not-completed-reason').value = '';
-}
-
-function submitTaskNotCompleted() {
-    const taskId = document.getElementById('task-not-completed-id').value;
-    const reason = document.getElementById('task-not-completed-reason').value.trim();
-    
-    if (!reason) {
-        showToast('Por favor escribe la razón', true);
-        return;
-    }
-    
-    const task = cleaningTasks.find(t => t.id === taskId);
-    if (!task) return;
-    
-    task.completed = false;
-    task.completionReason = reason;
-    task.notCompletedAt = new Date().toISOString();
-    
-    const notification = {
-        id: 'notif_' + Date.now(),
-        taskId: taskId,
-        taskText: task.taskText || task.task,
-        employeeId: mobileCurrentUser.staffId,
-        employeeName: mobileCurrentUser.name,
-        propertyId: mobileSelectedProperty,
-        propertyName: properties[mobileSelectedProperty]?.name,
-        reason: reason,
-        timestamp: new Date().toLocaleString(),
-        status: 'pending',
-        type: 'task_not_completed'
-    };
-    
-    taskNotifications.push(notification);
-    saveTaskNotifications();
-    saveData();
-    
-    closeModal('modal-task-not-completed');
-    showToast('Razón registrada');
-    loadEmployeeTasks();
-}
-
-function loadOwnerNotifications() {
-    loadTaskNotifications();
-    const container = document.getElementById('owner-notifications-container');
+let mobileInventoryUnsubscribe = null;
+function loadMobileInventory() {
+    const propId = document.getElementById('inventory-property-select')?.value || mobileSelectedProperty;
+    const rawCategory = document.getElementById('inventory-category-select')?.value || '';
+    const category = normalizeCategoryFilter(rawCategory);
+    if (propId) mobileSelectedProperty = propId;
+    const container = document.getElementById('inventory-list');
     if (!container) return;
-    
-    const pending = taskNotifications.filter(n => n.status === 'pending');
-    
-    if (pending.length === 0) {
-        container.innerHTML = '<p style="color: #999;">No hay notificaciones nuevas</p>';
+    if (!propId) {
+        container.innerHTML = '<div class="empty-state"><p>Selecciona una propiedad</p></div>';
         return;
     }
-    
-    container.innerHTML = pending.map(n => `
-        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
-            <div style="font-weight: bold; margin-bottom: 0.5rem;">📌 ${n.type === 'task_completed' ? 'Tarea Completada' : 'Tarea No Completada'}</div>
-            <div style="font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>${n.employeeName}</strong> - ${n.propertyName}</div>
-            <div style="font-size: 0.85rem; margin-bottom: 0.5rem;"><strong>Tarea:</strong> ${n.taskText}</div>
-            ${n.reason ? '<div style="font-size: 0.85rem; margin-bottom: 0.5rem; color: #d32f2f;"><strong>Razón:</strong> ' + n.reason + '</div>' : ''}
-            <div style="font-size: 0.8rem; color: #666; margin-bottom: 1rem;">${n.completedAt || n.timestamp}</div>
-            ${n.type === 'task_completed' ? '<button class="btn-primary" onclick="verifyTaskCompletion(\'' + n.id + '\')" style="background: #4caf50; padding: 0.5rem 1rem; border: none; border-radius: 4px; color: white; cursor: pointer; margin-right: 0.5rem;">Verificar y Cerrar</button>' : ''}
-            <button class="btn-secondary" onclick="dismissTaskNotification(\'' + n.id + '\')" style="background: #757575; padding: 0.5rem 1rem; border: none; border-radius: 4px; color: white; cursor: pointer;">Descartar</button>
-        </div>
-    `).join('');
-}
-
-function verifyTaskCompletion(notificationId) {
-    const notif = taskNotifications.find(n => n.id === notificationId);
-    if (!notif) return;
-    
-    notif.status = 'verified';
-    saveTaskNotifications();
-    
-    showToast('Tarea verificada y cerrada');
-    
-    if (mobileCurrentUserType === 'owner') {
-        loadOwnerNotifications();
-    } else if (mobileCurrentUserType === 'manager') {
-        loadManagerNotifications();
-    }
-}
-
-function dismissTaskNotification(notificationId) {
-    taskNotifications = taskNotifications.filter(n => n.id !== notificationId);
-    saveTaskNotifications();
-    
-    if (mobileCurrentUserType === 'owner') {
-        loadOwnerNotifications();
-    } else if (mobileCurrentUserType === 'manager') {
-        loadManagerNotifications();
-    }
-}
-
-// ---------- Profile Management ----------
-const PROFILE_PHOTOS_KEY = 'airbnbmanager_profile_photos';
-let currentProfilePhoto = null;
-
-function loadProfilePhotos() {
-    try {
-        const raw = localStorage.getItem(PROFILE_PHOTOS_KEY);
-        return raw ? JSON.parse(raw) : {};
-    } catch (e) {
-        console.error('Error loading profile photos', e);
-        return {};
-    }
-}
-
-function saveProfilePhotos(photos) {
-    try {
-        localStorage.setItem(PROFILE_PHOTOS_KEY, JSON.stringify(photos));
-    } catch (e) {
-        console.error('Error saving profile photos', e);
-    }
-}
-
-function getUserId() {
-    if (mobileCurrentUserType === 'owner') {
-        return 'owner';
-    } else if (mobileCurrentUser?.staffId) {
-        return mobileCurrentUser.staffId;
-    }
-    return null;
-}
-
-function showProfileModal() {
-    if (!mobileCurrentUser) return;
-    
-    const modal = document.getElementById('profile-modal');
-    const nameInput = document.getElementById('profile-name-input');
-    const usernameInput = document.getElementById('profile-username-input');
-    const roleInput = document.getElementById('profile-role-input');
-    const photoPreview = document.getElementById('profile-photo-preview');
-    const propertySection = document.getElementById('profile-property-section');
-    const propertyName = document.getElementById('profile-property-name');
-    const propertyAddress = document.getElementById('profile-property-address');
-    
-    // Load current user data
-    nameInput.value = mobileCurrentUser.name || '';
-    usernameInput.value = mobileCurrentUser.username || '';
-    
-    if (mobileCurrentUserType === 'owner') {
-        roleInput.value = 'Propietario';
-        propertySection.style.display = 'none';
-    } else if (mobileCurrentUserType === 'manager') {
-        roleInput.value = 'Manager';
-        propertySection.style.display = 'block';
-        const prop = properties[mobileCurrentUser.propertyId];
-        if (prop) {
-            propertyName.textContent = prop.name || 'Sin nombre';
-            propertyAddress.textContent = prop.address || 'Sin dirección';
-        }
-    } else {
-        roleInput.value = 'Empleado';
-        propertySection.style.display = 'block';
-        const prop = properties[mobileCurrentUser.propertyId];
-        if (prop) {
-            propertyName.textContent = prop.name || 'Sin nombre';
-            propertyAddress.textContent = prop.address || 'Sin dirección';
-        }
-    }
-    
-    // Load profile photo
-    const photos = loadProfilePhotos();
-    const userId = getUserId();
-    if (userId && photos[userId]) {
-        photoPreview.innerHTML = `<img src="${photos[userId]}" style="width: 100%; height: 100%; object-fit: cover;">`;
-    } else {
-        photoPreview.innerHTML = `
-            <svg width="60" height="60" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="20" cy="20" r="18" fill="#ddd"/>
-                <circle cx="20" cy="12" r="6" fill="#999"/>
-                <path d="M 20 18 Q 10 22 10 30 Q 10 32 12 34 L 28 34 Q 30 32 30 30 Q 30 22 20 18 Z" fill="#999"/>
-            </svg>
-        `;
-    }
-    
-    modal.style.display = 'flex';
-    toggleMobileMenu(); // Close side menu
-}
-
-function closeProfileModal() {
-    document.getElementById('profile-modal').style.display = 'none';
-    currentProfilePhoto = null;
-}
-
-function handleProfilePhotoUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    if (!file.type.startsWith('image/')) {
-        showToast('Por favor selecciona una imagen válida', true);
-        return;
-    }
-    
-    if (file.size > 2 * 1024 * 1024) {
-        showToast('La imagen es muy grande. Máximo 2MB', true);
-        return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        currentProfilePhoto = e.target.result;
-        document.getElementById('profile-photo-preview').innerHTML = 
-            `<img src="${currentProfilePhoto}" style="width: 100%; height: 100%; object-fit: cover;">`;
-    };
-    reader.readAsDataURL(file);
-}
-
-function saveProfile() {
-    const newName = document.getElementById('profile-name-input').value.trim();
-    
-    if (!newName) {
-        showToast('El nombre no puede estar vacío', true);
-        return;
-    }
-    
-    // Update user name
-    mobileCurrentUser.name = newName;
-    
-    // Save profile photo if changed
-    if (currentProfilePhoto) {
-        const photos = loadProfilePhotos();
-        const userId = getUserId();
-        if (userId) {
-            photos[userId] = currentProfilePhoto;
-            saveProfilePhotos(photos);
-        }
-    }
-    
-    // Update staff data in properties if not owner
-    if (mobileCurrentUserType !== 'owner' && mobileCurrentUser.propertyId && mobileCurrentUser.staffId) {
-        const prop = properties[mobileCurrentUser.propertyId];
-        if (prop && prop.staff) {
-            const staffMember = prop.staff.find(s => s.id === mobileCurrentUser.staffId);
-            if (staffMember) {
-                staffMember.name = newName;
-                saveData();
-            }
-        }
-    }
-    
-    // Update session
-    persistMobileSession(true);
-    
-    // Update header display
-    updateUserHeaderDisplay();
-    
-    showToast('Perfil actualizado correctamente');
-    closeProfileModal();
-}
-
-function updateUserHeaderDisplay() {
-    const photos = loadProfilePhotos();
-    const userId = getUserId();
-    const photoUrl = (userId && photos[userId]) ? photos[userId] : null;
-    
-    // Update name in header
-    if (mobileCurrentUserType === 'owner') {
-        const nameSpan = document.getElementById('mobile-owner-name');
-        if (nameSpan) {
-            nameSpan.textContent = mobileCurrentUser.name;
-        }
-    } else if (mobileCurrentUserType === 'manager') {
-        const nameSpan = document.getElementById('mobile-manager-name');
-        if (nameSpan) {
-            nameSpan.textContent = mobileCurrentUser.name;
-        }
-    } else if (mobileCurrentUserType === 'employee') {
-        const nameSpan = document.getElementById('mobile-employee-name');
-        if (nameSpan) {
-            nameSpan.textContent = mobileCurrentUser.name;
-        }
-    }
-    
-    // Update photo in menu header
-    const menuHeader = document.querySelector('#mobile-side-menu .menu-header svg');
-    if (menuHeader && photoUrl) {
-        menuHeader.outerHTML = `<img src="${photoUrl}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid white; flex-shrink: 0;">`;
-    }
-}
-
-// ---------- Data Synchronization ----------
-function showSyncDataModal() {
-    document.getElementById('sync-data-modal').style.display = 'flex';
-    toggleMobileMenu(); // Close side menu
-}
-
-function closeSyncModal() {
-    document.getElementById('sync-data-modal').style.display = 'none';
-}
-
-function exportDataToFile() {
-    try {
-        // Recopilar todos los datos relevantes
-        const exportData = {
-            properties: properties,
-            cleaningTasks: cleaningTasks,
-            purchaseInventory: purchaseInventory,
-            scheduledDates: scheduledDates,
-            purchaseHistory: purchaseHistory,
-            purchaseRequests: purchaseRequests,
-            inventoryChecks: inventoryChecks,
-            exportDate: new Date().toISOString(),
-            appVersion: '1.0'
-        };
-        
-        // Convertir a JSON
-        const dataStr = JSON.stringify(exportData, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        
-        // Crear enlace de descarga
-        const url = URL.createObjectURL(dataBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `LIMPIEZA360PRO_datos_${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        showToast('✅ Datos exportados correctamente. Comparte este archivo con tu equipo.');
-    } catch (e) {
-        console.error('Error al exportar datos:', e);
-        showToast('❌ Error al exportar datos', true);
-    }
-}
-
-function importDataFromFile(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    if (!file.name.endsWith('.json')) {
-        showToast('❌ Por favor selecciona un archivo JSON válido', true);
-        return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const importedData = JSON.parse(e.target.result);
-            
-            // Validar que tenga la estructura correcta
-            if (!importedData.properties || typeof importedData.properties !== 'object') {
-                throw new Error('Formato de datos inválido');
-            }
-            
-            // Confirmar antes de sobrescribir
-            if (!confirm('⚠️ Esto reemplazará todos los datos actuales. ¿Deseas continuar?')) {
-                event.target.value = ''; // Reset input
+    // Limpiar listener anterior si existe
+    if (typeof mobileInventoryUnsubscribe === 'function') mobileInventoryUnsubscribe();
+    // Escuchar inventario en tiempo real desde Firestore
+    mobileInventoryUnsubscribe = window.db.collection('inventoryChecks')
+        .where('propertyId', '==', propId)
+        .onSnapshot(snapshot => {
+            const inventory = {};
+            snapshot.forEach(doc => {
+                const item = doc.data();
+                if (!inventory[item.categoryKey]) inventory[item.categoryKey] = [];
+                inventory[item.categoryKey].push(item);
+            });
+            const groups = Object.keys(inventory)
+                .filter(catKey => {
+                    if (!category) return true;
+                    return catKey === category;
+                })
+                .map(catKey => {
+                    const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
+                    const itemsHtml = (inventory[catKey] || []).map(it => `
+                        <div class="inventory-item">
+                            <div class="item-info">
+                                <div class="item-name">${it.name}</div>
+                                <div class="item-details">${catName}</div>
+                            </div>
+                            <div class="item-qty-edit">
+                                <input type="number" min="0" value="${it.qty ?? 0}" onchange="updateInventoryItemQtyMobile('${propId}','${catKey}','${it.id}', this.value)" style="width: 60px; padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                                <button class="btn-icon" onclick="deleteInventoryItemMobile('${propId}','${catKey}','${it.id}')" style="background: #ff4444; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; margin-left: 0.5rem;">🗑️</button>
+                            </div>
+                        </div>
+                    `).join('');
+                    return `
+                        <div class="inventory-zone">
+                            <h3 class="zone-title">${catName}</h3>
+                            <div class="inventory-grid">${itemsHtml || '<div class="empty-state"><p>Sin items</p></div>'}</div>
+                        </div>
+                    `;
+                });
+            if (!groups.length) {
+                container.innerHTML = '<div class="empty-state"><p>Sin items en esta categoría</p></div>';
                 return;
             }
-            
-            // Importar datos
-            properties = importedData.properties || {};
-            cleaningTasks = importedData.cleaningTasks || [];
-            purchaseInventory = importedData.purchaseInventory || [];
-            scheduledDates = importedData.scheduledDates || [];
-            purchaseHistory = importedData.purchaseHistory || [];
-            purchaseRequests = importedData.purchaseRequests || [];
-            inventoryChecks = importedData.inventoryChecks || [];
-            
-            // Guardar en localStorage
-            saveData();
-            
-            showToast('✅ Datos importados correctamente. Recarga la página para ver los cambios.');
-            
-            // Recargar página después de 2 segundos
-            setTimeout(() => {
-                location.reload();
-            }, 2000);
-            
-        } catch (e) {
-            console.error('Error al importar datos:', e);
-            showToast('❌ Error al importar datos. Verifica que el archivo sea válido.', true);
-        }
-        
-        event.target.value = ''; // Reset input
+            container.innerHTML = groups.join('');
+        });
+}
+
+function showAddInventoryModal() {
+    document.getElementById('modal-add-inventory').classList.add('open');
+}
+
+function addInventoryItem() {
+    const propId = mobileSelectedProperty || document.getElementById('inventory-property-select')?.value;
+    const name = document.getElementById('new-item-name').value.trim();
+    const qty = Math.max(0, parseInt(document.getElementById('new-item-qty').value, 10) || 0);
+    const category = document.getElementById('new-item-category').value;
+    if (!propId) return showToast('Selecciona propiedad', true);
+    if (!name || !category) return showToast('Completa nombre y categoría', true);
+    const item = { id: `${category}-${Date.now()}`, propertyId: propId, categoryKey: category, name, qty };
+    window.db.collection('inventoryChecks').add(item).then(() => {
+        closeModal('modal-add-inventory');
+        showToast('Artículo agregado');
+    });
+}
+
+function deleteInventoryItemMobile(propId, catKey, itemId) {
+    window.db.collection('inventoryChecks')
+        .where('propertyId', '==', propId)
+        .where('categoryKey', '==', catKey)
+        .where('id', '==', itemId)
+        .get()
+        .then(snapshot => {
+            snapshot.forEach(doc => {
+                doc.ref.delete();
+            });
+            showToast('Artículo eliminado');
+        });
+}
+
+function resetInventoryVerification() {
+    if (!mobileSelectedProperty) return showToast('Selecciona propiedad');
+    window.db.collection('inventoryChecks')
+        .where('propertyId', '==', mobileSelectedProperty)
+        .get()
+        .then(snapshot => {
+            const batch = window.db.batch();
+            snapshot.forEach(doc => batch.delete(doc.ref));
+            batch.commit().then(() => {
+                showToast('Verificación reseteada');
+            });
+        });
+}
+
+function setMobileInventoryCheck(catKey, itemId, realQty) {
+    const propId = mobileSelectedProperty;
+    const checkId = `check_${propId}_${catKey}_${itemId}_${mobileCurrentUser.staffId}`;
+    const checkData = {
+        id: checkId,
+        propertyId: propId,
+        categoryKey: catKey,
+        itemId: itemId,
+        employeeId: mobileCurrentUser.staffId,
+        employeeName: mobileCurrentUser.name,
+        realQty: parseInt(realQty, 10) || 0,
+        status: 'pending',
+        comment: '',
+        checkDate: new Date().toISOString()
     };
+    window.db.collection('inventoryChecks').doc(checkId).set(checkData);
+}
+
+function setMobileInventoryStatus(catKey, itemId, status) {
+    const propId = mobileSelectedProperty;
+    const checkId = `check_${propId}_${catKey}_${itemId}_${mobileCurrentUser.staffId}`;
+    const realQtyInput = document.getElementById(`real_${catKey}_${itemId}`);
+    const realQty = realQtyInput ? parseInt(realQtyInput.value, 10) || 0 : 0;
+    const checkData = {
+        id: checkId,
+        propertyId: propId,
+        categoryKey: catKey,
+        itemId: itemId,
+        employeeId: mobileCurrentUser.staffId,
+        employeeName: mobileCurrentUser.name,
+        realQty: realQty,
+        status: status,
+        comment: '',
+        checkDate: new Date().toISOString()
+    };
+    window.db.collection('inventoryChecks').doc(checkId).set(checkData);
+    loadEmployeeInventory();
+}
+
+function setMobileInventoryComment(catKey, itemId, comment) {
+    const propId = mobileSelectedProperty;
+    const checkId = `check_${propId}_${catKey}_${itemId}_${mobileCurrentUser.staffId}`;
+    window.db.collection('inventoryChecks').doc(checkId).update({
+        comment,
+        checkDate: new Date().toISOString()
+    });
+}
+
+// ---------- Session & Login ----------
+function mobileLogin() {
+    loadData();
     
-    reader.readAsText(file);
-}
+    // Si no hay propiedades, crear datos de ejemplo para permitir acceso
+    if (Object.keys(properties).length === 0) {
+        initializeDemoData();
+    }
+    
+    ensureAllInventoriesNormalized();
+    const type = document.getElementById('mobile-login-type').value;
+    const username = document.getElementById('mobile-username').value.trim();
+    const password = document.getElementById('mobile-password').value.trim();
+    const remember = document.getElementById('mobile-remember').checked;
 
-function showImportOptionLogin() {
-    if (confirm('¿Tienes un archivo de datos compartido por el propietario?\n\nSi es así, selecciónalo para cargar los datos antes de iniciar sesión.')) {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        input.onchange = function(e) {
-            importDataFromFile(e);
-        };
-        input.click();
+    if (!type || !username || !password) {
+        return showToast('Completa usuario y contraseña');
+    }
+
+    if (type === 'owner') {
+        if (username === OWNER_CREDENTIALS.username && password === OWNER_CREDENTIALS.password) {
+            mobileCurrentUserType = 'owner';
+            mobileCurrentUser = { name: OWNER_CREDENTIALS.name, username, loginTime: new Date().toISOString() };
+            mobileSelectedProperty = mobileSelectedProperty || Object.keys(properties)[0] || null;
+            persistMobileSession(remember);
+            showMobileOwnerView();
+            return;
+        }
+        return showToast('Credenciales incorrectas', true);
+    }
+
+    // staff login
+    const match = findStaffByCredentials(username, password, type);
+    if (!match) {
+        return showToast('Usuario o contraseña incorrectos. Contacta al administrador para verificar tus credenciales.', true);
+    }
+
+    mobileCurrentUserType = type;
+    mobileCurrentUser = {
+        staffId: match.staff.id,
+        propertyId: match.property.id,
+        name: match.staff.name,
+        username: match.staff.username,
+        role: match.staff.role,
+        loginTime: new Date().toISOString()
+    };
+    mobileSelectedProperty = match.property.id;
+    persistMobileSession(remember);
+
+    if (type === 'manager') {
+        showMobileManagerView();
+    } else {
+        showMobileEmployeeView();
     }
 }
 
-// ==================== MOBILE CLOUD SYNC ====================
+function persistMobileSession(remember) {
+    const payload = {
+        type: mobileCurrentUserType,
+        user: mobileCurrentUser,
+        selectedProperty: mobileSelectedProperty,
+        remember: !!remember
+    };
+    localStorage.setItem(MOBILE_SESSION_KEY, JSON.stringify(payload));
+}
 
-// Escuchar cambios de otros dispositivos/tabs
-window.addEventListener('storage', function(e) {
-    if (e.key === 'airbnbmanager_data_update' || e.key === STORAGE_KEYS.cloudSync) {
-        console.log('🔄 Datos actualizados desde otro dispositivo');
-        
-        // Mostrar indicador
-        const indicator = document.getElementById('sync-indicator');
-        if (indicator) indicator.style.display = 'inline-block';
-        
-        // Recargar datos
-        loadData();
-        
-        // Actualizar vista actual si hay usuario logueado
-        if (mobileCurrentUser && mobileCurrentUserType) {
-            if (mobileCurrentUserType === 'owner') {
-                loadDashboardStats();
-                loadPropertiesList();
-                loadMobileInventory();
-                loadMobileSchedule();
-                loadMobileTasks();
-            } else if (mobileCurrentUserType === 'manager') {
-                loadManagerDashboard();
-                loadManagerInventory();
-                loadManagerSchedule();
-                loadManagerTasks();
-            } else if (mobileCurrentUserType === 'employee') {
-                loadEmployeeDashboard();
-                loadEmployeeSchedule();
-                loadEmployeeInventory();
-                loadEmployeeTasks();
+function restoreMobileSession() {
+    const raw = localStorage.getItem(MOBILE_SESSION_KEY);
+    if (!raw) return false;
+    try {
+        ensureAllInventoriesNormalized();
+        const session = JSON.parse(raw);
+        if (!session?.type || !session?.user) return false;
+        mobileCurrentUserType = session.type;
+        mobileCurrentUser = session.user;
+        mobileSelectedProperty = session.selectedProperty || null;
+        if (mobileCurrentUserType === 'owner') {
+            showMobileOwnerView(true);
+        } else if (mobileCurrentUserType === 'manager') {
+            showMobileManagerView(true);
+        } else {
+            showMobileEmployeeView(true);
+        }
+        return true;
+    } catch (e) {
+        console.error('No se pudo restaurar sesión', e);
+        return false;
+    }
+}
+
+function mobileLogout() {
+    mobileCurrentUser = null;
+    mobileCurrentUserType = null;
+    mobileSelectedProperty = null;
+    localStorage.removeItem(MOBILE_SESSION_KEY);
+    document.getElementById('mobile-login-view').style.display = 'flex';
+    document.getElementById('mobile-owner-view').style.display = 'none';
+    document.getElementById('mobile-employee-view').style.display = 'none';
+    document.getElementById('mobile-manager-view').style.display = 'none';
+}
+
+function refreshMobileApp() {
+    // Guardar sesión temporal para restaurar después del reload
+    const temp = {
+        type: mobileCurrentUserType,
+        user: mobileCurrentUser,
+        selectedProperty: mobileSelectedProperty
+    };
+    localStorage.setItem('airbnbmanager_mobile_session_temp', JSON.stringify(temp));
+    location.reload();
+}
+
+// ---------- Menu Toggles ----------
+function toggleMobileMenu() {
+    const menu = document.getElementById('mobile-side-menu');
+    const overlay = document.getElementById('menu-overlay');
+    const btn = document.querySelector('#mobile-owner-view .hamburger-btn');
+    const isOpen = menu.classList.contains('open');
+    menu.classList.toggle('open', !isOpen);
+    overlay.classList.toggle('open', !isOpen);
+    btn?.classList.toggle('active', !isOpen);
+}
+
+function toggleEmployeeMenu() {
+    const menu = document.getElementById('employee-side-menu');
+    const overlay = document.getElementById('employee-menu-overlay');
+    const btn = document.querySelector('#mobile-employee-view .hamburger-btn');
+    const open = menu.classList.contains('open');
+    menu.classList.toggle('open', !open);
+    overlay.classList.toggle('open', !open);
+    btn?.classList.toggle('active', !open);
+}
+
+function toggleManagerMenu() {
+    const menu = document.getElementById('manager-side-menu');
+    const overlay = document.getElementById('manager-menu-overlay');
+    const btn = document.querySelector('#mobile-manager-view .hamburger-btn');
+    const open = menu.classList.contains('open');
+    menu.classList.toggle('open', !open);
+    overlay.classList.toggle('open', !open);
+    btn?.classList.toggle('active', !open);
+}
+
+// ---------- Navigation ----------
+function showMobileSection(section) {
+    mobileActiveSection = section;
+    document.querySelectorAll('#mobile-owner-view .content-section').forEach(sec => sec.classList.remove('active'));
+    const target = document.getElementById(`section-${section}`);
+    if (target) target.classList.add('active');
+    document.querySelectorAll('#mobile-side-menu .menu-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.section === section);
+    });
+    toggleMobileMenu();
+    // Lazy load sections
+    switch (section) {
+        case 'dashboard':
+            loadDashboardStats();
+            break;
+        case 'properties':
+            loadPropertiesList();
+            break;
+        case 'inventory':
+            loadMobileInventory();
+            break;
+        case 'inventory-checks':
+            loadInventoryChecks();
+            break;
+        case 'purchase':
+            loadMobilePurchaseList();
+            break;
+        case 'purchase-history':
+            loadPurchaseHistory();
+            break;
+        case 'schedule':
+            loadMobileSchedule();
+            break;
+        case 'tasks':
+            loadMobileTasks();
+            break;
+        case 'notifications':
+            loadMobileNotifications();
+            break;
+        case 'staff':
+            loadMobileStaff();
+            break;
+        case 'users':
+            loadMobileUsers();
+            break;
+    }
+}
+
+function showEmployeeSection(section) {
+    document.querySelectorAll('#mobile-employee-view .content-section').forEach(sec => sec.classList.remove('active'));
+    const target = document.getElementById(`section-${section}`);
+    if (target) target.classList.add('active');
+    document.querySelectorAll('#employee-side-menu .menu-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.section === section.replace('section-',''));
+    });
+    toggleEmployeeMenu();
+    if (section === 'emp-schedule') {
+        mobileActiveScheduleId = null; // viewing calendar resets filter
+        loadEmployeeSchedule();
+    }
+    if (section === 'emp-inventory') loadEmployeeInventory();
+    if (section === 'emp-tasks') {
+        mobileActiveScheduleId = mobilePendingScheduleId || null; // apply pending schedule filter if any
+        mobilePendingScheduleId = null;
+        loadEmployeeTasks();
+    }
+    if (section === 'emp-purchase') loadEmployeePurchaseRequests();
+    if (section === 'emp-end-day') loadEndDaySummary();
+}
+
+function showManagerSection(section) {
+    document.querySelectorAll('#mobile-manager-view .content-section').forEach(sec => sec.classList.remove('active'));
+    const target = document.getElementById(`section-${section}`);
+    if (target) target.classList.add('active');
+    document.querySelectorAll('#manager-side-menu .menu-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.section === section.replace('section-',''));
+    });
+    toggleManagerMenu();
+    if (section === 'mgr-inventory') loadManagerInventory();
+    if (section === 'mgr-inventory-checks') loadManagerInventoryChecks();
+    if (section === 'mgr-purchase') loadManagerPurchase();
+    if (section === 'mgr-purchase-history') loadManagerPurchaseHistory();
+    if (section === 'mgr-schedule') loadManagerSchedule();
+    if (section === 'mgr-tasks') loadManagerTasks();
+    if (section === 'mgr-notifications') loadManagerNotifications();
+    if (section === 'mgr-staff') loadManagerStaff();
+    if (section === 'mgr-users') loadManagerUsers();
+}
+
+// ---------- Owner View ----------
+function showMobileOwnerView(skipLoad) {
+    document.getElementById('mobile-login-view').style.display = 'none';
+    document.getElementById('mobile-owner-view').style.display = 'flex';
+    document.getElementById('mobile-employee-view').style.display = 'none';
+    document.getElementById('mobile-manager-view').style.display = 'none';
+    document.getElementById('mobile-owner-name').textContent = mobileCurrentUser?.name || 'Propietario';
+    updateUserHeaderDisplay();
+    updatePropertySelectors();
+    
+    // Mostrar opción de sincronización solo para propietario
+    const syncOption = document.querySelector('.menu-item.owner-only[data-section="sync"]');
+    if (syncOption) syncOption.style.display = 'flex';
+    
+    if (!skipLoad) {
+        loadDashboardStats();
+        loadPropertiesList();
+        loadMobileInventory();
+        loadInventoryChecks();
+        loadMobilePurchaseList();
+        loadPurchaseHistory();
+        loadMobileSchedule();
+        loadMobileTasks();
+        loadMobileNotifications();
+        loadMobileStaff();
+        loadOwnerNotifications();
+    }
+}
+
+function loadDashboardStats() {
+    const propSelect = document.getElementById('dashboard-property-select');
+    const target = document.getElementById('dashboard-stats');
+    if (!propSelect || !target) return;
+    const propId = propSelect.value || mobileSelectedProperty;
+    if (!propSelect.value && mobileSelectedProperty) propSelect.value = mobileSelectedProperty;
+    const tasks = cleaningTasks.filter(t => !propId || t.propertyId === propId);
+    const completedTasks = tasks.filter(t => t.completed).length;
+    const pendingTasks = tasks.filter(t => !t.completed).length;
+    const schedules = scheduledDates.filter(s => !propId || s.propertyId === propId).length;
+    const purchases = purchaseInventory.filter(p => !propId || p.propertyId === propId).length;
+    const staffCount = Object.values(properties || {}).reduce((acc, prop) => {
+        if (propId && prop.id !== propId) return acc;
+        return acc + (prop.staff ? prop.staff.length : 0);
+    }, 0);
+
+    target.innerHTML = `
+        <div class="stat-card" onclick="showMobileSection('tasks')">
+            <div class="stat-icon">✅</div>
+            <div class="stat-value">${completedTasks}</div>
+            <div class="stat-label">Tareas completadas</div>
+        </div>
+        <div class="stat-card" onclick="showMobileSection('tasks')">
+            <div class="stat-icon">📝</div>
+            <div class="stat-value">${pendingTasks}</div>
+            <div class="stat-label">Tareas pendientes</div>
+        </div>
+        <div class="stat-card" onclick="showMobileSection('schedule')">
+            <div class="stat-icon">📅</div>
+            <div class="stat-value">${schedules}</div>
+            <div class="stat-label">Fechas agendadas</div>
+        </div>
+        <div class="stat-card" onclick="showMobileSection('purchase')">
+            <div class="stat-icon">🛒</div>
+            <div class="stat-value">${purchases}</div>
+            <div class="stat-label">Items compra</div>
+        </div>
+        <div class="stat-card" onclick="showMobileSection('staff')">
+            <div class="stat-icon">👥</div>
+            <div class="stat-value">${staffCount}</div>
+            <div class="stat-label">Personal</div>
+        </div>`;
+}
+
+function loadPropertiesList() {
+    const container = document.getElementById('properties-list');
+    if (!container) return;
+    container.innerHTML = '';
+    const entries = Object.values(properties || {});
+    if (entries.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">🏠</div><p>Sin propiedades</p></div>';
+        return;
+    }
+    container.innerHTML = entries.map(prop => `
+        <div class="property-card">
+            <div class="property-icon">🏠</div>
+            <div class="property-info">
+                <div class="property-name">${prop.name}</div>
+                <div class="property-address">${prop.address || ''}</div>
+            </div>
+            <div class="property-actions">
+                <button title="Seleccionar" onclick="setMobileProperty('${prop.id}')">✅</button>
+                <button title="Eliminar" onclick="deletePropertyMobile('${prop.id}')">🗑️</button>
+            </div>
+        </div>`).join('');
+}
+
+function setMobileProperty(propId) {
+    mobileSelectedProperty = propId;
+    updatePropertySelectors();
+    loadDashboardStats();
+    loadMobileInventory();
+    loadInventoryChecks();
+    loadMobilePurchaseList();
+    loadPurchaseHistory();
+    loadMobileSchedule();
+    loadMobileTasks();
+    loadMobileNotifications();
+    loadMobileStaff();
+}
+
+function deletePropertyMobile(propId) {
+    if (!confirm('¿Eliminar esta propiedad?')) return;
+    delete properties[propId];
+    cleaningTasks = cleaningTasks.filter(t => t.propertyId !== propId);
+    scheduledDates = scheduledDates.filter(s => s.propertyId !== propId);
+    purchaseInventory = purchaseInventory.filter(p => p.propertyId !== propId);
+    purchaseHistory = purchaseHistory.filter(p => p.propertyId !== propId);
+    inventoryChecks = inventoryChecks.filter(c => c.propertyId !== propId);
+    saveData();
+    mobileSelectedProperty = Object.keys(properties)[0] || null;
+    updatePropertySelectors();
+    loadPropertiesList();
+    loadDashboardStats();
+}
+
+function showAddPropertyModal() {
+    fillPropertyOptions('new-staff-property');
+    document.getElementById('modal-add-property').classList.add('open');
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('open');
+}
+
+function addNewProperty() {
+    const name = document.getElementById('new-property-name').value.trim();
+    const address = document.getElementById('new-property-address').value.trim();
+    if (!name || !address) return showToast('Completa nombre y dirección');
+    const id = `prop_${Date.now()}`;
+    const prop = { id, name, address, staff: [], inventory: {} };
+    normalizeInventory(prop);
+    properties[id] = prop;
+    cleaningTasks.push(...createDefaultCleaningTasks(id, name));
+    saveData();
+    mobileSelectedProperty = id;
+    closeModal('modal-add-property');
+    updatePropertySelectors();
+    loadPropertiesList();
+    loadMobileTasks();
+    showToast('Propiedad creada');
+}
+
+// ---------- Inventory ----------
+function updatePropertySelectors() {
+    const selects = [
+        'dashboard-property-select', 'inventory-property-select', 'inventory-checks-property-select',
+        'purchase-property-select', 'purchase-history-property-select', 'schedule-property-select',
+        'tasks-property-select', 'notifications-property-select', 'staff-property-filter'
+    ];
+    selects.forEach(id => fillPropertyOptions(id));
+    if (mobileSelectedProperty) {
+        selects.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = mobileSelectedProperty;
+        });
+        // Staff-dependent selectors for current property
+        fillStaffOptions('schedule-employee', mobileSelectedProperty);
+        fillStaffOptions('new-task-assignee', mobileSelectedProperty);
+        fillStaffOptions('mgr-schedule-employee', mobileSelectedProperty);
+        fillStaffOptions('mgr-new-task-assignee', mobileSelectedProperty);
+        // Update category filters according to property (e.g., hide Terraza in Torre Magna)
+        updateCategoryFiltersForProperty(mobileSelectedProperty);
+    }
+    // Manager/employee badges
+    const mgrBadge = document.getElementById('mgr-property-name');
+    if (mgrBadge && mobileCurrentUserType === 'manager') {
+        const prop = properties[mobileSelectedProperty];
+        mgrBadge.textContent = prop ? prop.name : '';
+    }
+    const empProp = document.getElementById('emp-assigned-property');
+    if (empProp && mobileCurrentUserType === 'employee') {
+        const prop = properties[mobileSelectedProperty];
+        empProp.textContent = prop ? prop.name : '';
+    }
+}
+
+function updateCategoryFiltersForProperty(propId) {
+    const propName = properties[propId]?.name || '';
+    const isTorreMagna = propName.trim().toLowerCase() === 'torre magna pi' || propName.trim().toLowerCase() === 'torre magna';
+    const categorySelectIds = ['inventory-category-select','emp-inventory-category','mgr-inventory-category'];
+    categorySelectIds.forEach(id => {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const opts = Array.from(sel.options);
+        const idxTerraza = opts.findIndex(o => (o.text || o.value || '').toLowerCase() === 'terraza');
+        if (isTorreMagna) {
+            if (idxTerraza >= 0) sel.remove(idxTerraza);
+        } else {
+            if (idxTerraza < 0) {
+                const opt = document.createElement('option');
+                opt.value = 'Terraza';
+                opt.text = 'Terraza';
+                sel.appendChild(opt);
             }
-            
-            showToast('✅ Sincronizado con otros dispositivos');
         }
-        
-        // Ocultar indicador
-        setTimeout(() => {
-            if (indicator) indicator.style.display = 'none';
-        }, 2000);
-    }
-});
+    });
+}
 
-// Iniciar sincronización automática en mobile
-window.addEventListener('load', function() {
-    // Esperar a que app.js se cargue
-    setTimeout(() => {
-        if (typeof startAutoSync === 'function') {
-            startAutoSync();
-            console.log('📱 Sincronización móvil activada');
-        }
-    }, 3000);
-});
+function fillPropertyOptions(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    const entries = Object.values(properties || {});
+    select.innerHTML = '<option value="">Seleccione propiedad</option>' + entries.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+}
+
+let mobileInventoryUnsubscribe = null;
+function loadMobileInventory() {
+    const propId = document.getElementById('inventory-property-select')?.value || mobileSelectedProperty;
+    const rawCategory = document.getElementById('inventory-category-select')?.value || '';
+    const category = normalizeCategoryFilter(rawCategory);
+    if (propId) mobileSelectedProperty = propId;
+    const container = document.getElementById('inventory-list');
+    if (!container) return;
+    if (!propId) {
+        container.innerHTML = '<div class="empty-state"><p>Selecciona una propiedad</p></div>';
+        return;
+    }
+    // Limpiar listener anterior si existe
+    if (typeof mobileInventoryUnsubscribe === 'function') mobileInventoryUnsubscribe();
+    // Escuchar inventario en tiempo real desde Firestore
+    mobileInventoryUnsubscribe = window.db.collection('inventoryChecks')
+        .where('propertyId', '==', propId)
+        .onSnapshot(snapshot => {
+            const inventory = {};
+            snapshot.forEach(doc => {
+                const item = doc.data();
+                if (!inventory[item.categoryKey]) inventory[item.categoryKey] = [];
+                inventory[item.categoryKey].push(item);
+            });
+            const groups = Object.keys(inventory)
+                .filter(catKey => {
+                    if (!category) return true;
+                    return catKey === category;
+                })
+                .map(catKey => {
+                    const catName = INVENTORY_CATEGORIES[catKey]?.name || catKey;
+                    const itemsHtml = (inventory[catKey] || []).map(it => `
+                        <div class="inventory-item">
+                            <div class="item-info">
+                                <div class="item-name">${it.name}</div>
+                                <div class="item-details">${catName}</div>
+                            </div>
+                            <div class="item-qty-edit">
+                                <input type="number" min="0" value="${it.qty ?? 0}" onchange="updateInventoryItemQtyMobile('${propId}','${catKey}','${it.id}', this.value)" style="width: 60px; padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                                <button class="btn-icon" onclick="deleteInventoryItemMobile('${propId}','${catKey}','${it.id}')" style="background: #ff4444; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; margin-left: 0.5rem;">🗑️</button>
+                            </div>
+                        </div>
+                    `).join('');
+                    return `
+                        <div class="inventory-zone">
+                            <h3 class="zone-title">${catName}</h3>
+                            <div class="inventory-grid">${itemsHtml || '<div class="empty-state"><p>Sin items</p></div>'}</div>
+                        </div>
+                    `;
+                });
+            if (!groups.length) {
+                container.innerHTML = '<div class="empty-state"><p>Sin items en esta categoría</p></div>';
+                return;
+            }
+            container.innerHTML = groups.join('');
+        });
+}
+
+function showAddInventoryModal() {
+    document.getElementById('modal-add-inventory').classList.add('open');
+}
+
+function addInventoryItem() {
+    const propId = mobileSelectedProperty || document.getElementById('inventory-property-select')?.value;
+    const name = document.getElementById('new-item-name').value.trim();
+    const qty = Math.max(0, parseInt(document.getElementById('new-item-qty').value, 10) || 0);
+    const category = document.getElementById('new-item-category').value;
+    if (!propId) return showToast('Selecciona propiedad', true);
+    if (!name || !category) return showToast('Completa nombre y categoría', true);
+    const item = { id: `${category}-${Date.now()}`, propertyId: propId, categoryKey: category, name, qty };
+    window.db.collection('inventoryChecks').add(item).then(() => {
+        closeModal('modal-add-inventory');
+        showToast('Artículo agregado');
+    });
+}
+
+function deleteInventoryItemMobile(propId, catKey, itemId) {
+    window.db.collection('inventoryChecks')
+        .where('propertyId', '==', propId)
+        .where('categoryKey', '==', catKey)
+        .where('id', '==', itemId)
+        .get()
+        .then(snapshot => {
+            snapshot.forEach(doc => {
+                doc.ref.delete();
+            });
+            showToast('Artículo eliminado');
+        });
+}
+
+function resetInventoryVerification() {
+    if (!mobileSelectedProperty) return showToast('Selecciona propiedad');
+    window.db.collection('inventoryChecks')
+        .where('propertyId', '==', mobileSelectedProperty)
+        .get()
+        .then(snapshot => {
+            const batch = window.db.batch();
+            snapshot.forEach(doc => batch.delete(doc.ref));
+            batch.commit().then(() => {
+                showToast('Verificación reseteada');
+            });
+        });
+}
+
+function setMobileInventoryCheck(catKey, itemId, realQty) {
+    const propId = mobileSelectedProperty;
+    const checkId = `check_${propId}_${catKey}_${itemId}_${mobileCurrentUser.staffId}`;
+    const checkData = {
+        id: checkId,
+        propertyId: propId,
+        categoryKey: catKey,
+        itemId: itemId,
+        employeeId: mobileCurrentUser.staffId,
+        employeeName: mobileCurrentUser.name,
+        realQty: parseInt(realQty, 10) || 0,
+        status: 'pending',
+        comment: '',
+        checkDate: new Date().toISOString()
+    };
+    window.db.collection('inventoryChecks').doc(checkId).set(checkData);
+}
+
+function setMobileInventoryStatus(catKey, itemId, status) {
+    const propId = mobileSelectedProperty;
+    const checkId = `check_${propId}_${catKey}_${itemId}_${mobileCurrentUser.staffId}`;
+    const realQtyInput = document.getElementById(`real_${catKey}_${itemId}`);
+    const realQty = realQtyInput ? parseInt(realQtyInput.value, 10) || 0 : 0;
+    const checkData = {
+        id: checkId,
+        propertyId: propId,
+        categoryKey: catKey,
+        itemId: itemId,
+        employeeId: mobileCurrentUser.staffId,
+        employeeName: mobileCurrentUser.name,
+        realQty: realQty,
+        status: status,
+        comment: '',
+        checkDate: new Date().toISOString()
+    };
+    window.db.collection('inventoryChecks').doc(checkId).set(checkData);
+    loadEmployeeInventory();
+}
+
+function setMobileInventoryComment(catKey, itemId, comment) {
+    const propId = mobileSelectedProperty;
+    const checkId = `check_${propId}_${catKey}_${itemId}_${mobileCurrentUser.staffId}`;
+    window.db.collection('inventoryChecks').doc(checkId).update({
+        comment,
+        checkDate: new Date().toISOString()
+    });
+}

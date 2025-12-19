@@ -1,3 +1,180 @@
+// --- Firestore: Sincronización de staff/usuarios ---
+let staffUnsubscribe = null;
+let staff = [];
+function loadStaffFromFirestore() {
+    if (staffUnsubscribe) staffUnsubscribe();
+    staffUnsubscribe = window.db.collection('staff').onSnapshot(snapshot => {
+        staff = [];
+        snapshot.forEach(doc => {
+            staff.push({ id: doc.id, ...doc.data() });
+        });
+        if (typeof renderStaff === 'function') renderStaff();
+    });
+}
+
+function saveStaffToFirestore(member) {
+    if (!member.id) {
+        return window.db.collection('staff').add(member);
+    } else {
+        const s = { ...member };
+        delete s.id;
+        return window.db.collection('staff').doc(member.id).set(s);
+    }
+}
+
+function deleteStaffFromFirestore(staffId) {
+    return window.db.collection('staff').doc(staffId).delete();
+}
+// --- Fin Firestore staff ---
+// --- Firestore: Sincronización de inventario y verificaciones ---
+let inventoryChecksUnsubscribe = null;
+let deletedInventoryChecksUnsubscribe = null;
+function loadInventoryChecksFromFirestore() {
+    if (inventoryChecksUnsubscribe) inventoryChecksUnsubscribe();
+    inventoryChecksUnsubscribe = window.db.collection('inventoryChecks').onSnapshot(snapshot => {
+        inventoryChecks = [];
+        snapshot.forEach(doc => {
+            inventoryChecks.push({ id: doc.id, ...doc.data() });
+        });
+        if (typeof renderInventoryChecks === 'function') renderInventoryChecks();
+        if (typeof renderManagerInventoryChecks === 'function') renderManagerInventoryChecks();
+    });
+}
+
+function loadDeletedInventoryChecksFromFirestore() {
+    if (deletedInventoryChecksUnsubscribe) deletedInventoryChecksUnsubscribe();
+    deletedInventoryChecksUnsubscribe = window.db.collection('deletedInventoryChecks').onSnapshot(snapshot => {
+        deletedInventoryChecks = [];
+        snapshot.forEach(doc => {
+            deletedInventoryChecks.push({ id: doc.id, ...doc.data() });
+        });
+    });
+}
+
+function saveInventoryCheckToFirestore(check) {
+    if (!check.id) {
+        return window.db.collection('inventoryChecks').add(check);
+    } else {
+        const c = { ...check };
+        delete c.id;
+        return window.db.collection('inventoryChecks').doc(check.id).set(c);
+    }
+}
+
+function deleteInventoryCheckFromFirestore(checkId) {
+    return window.db.collection('inventoryChecks').doc(checkId).delete();
+}
+
+function saveDeletedInventoryCheckToFirestore(check) {
+    if (!check.id) {
+        return window.db.collection('deletedInventoryChecks').add(check);
+    } else {
+        const c = { ...check };
+        delete c.id;
+        return window.db.collection('deletedInventoryChecks').doc(check.id).set(c);
+    }
+}
+
+function deleteDeletedInventoryCheckFromFirestore(checkId) {
+    return window.db.collection('deletedInventoryChecks').doc(checkId).delete();
+}
+// --- Fin Firestore inventario ---
+// --- Firestore: Sincronización de horarios ---
+let scheduledDatesUnsubscribe = null;
+function loadScheduledDatesFromFirestore() {
+    if (scheduledDatesUnsubscribe) scheduledDatesUnsubscribe();
+    scheduledDatesUnsubscribe = window.db.collection('schedules').onSnapshot(snapshot => {
+        scheduledDates = [];
+        snapshot.forEach(doc => {
+            scheduledDates.push({ id: doc.id, ...doc.data() });
+        });
+        if (typeof renderSchedule === 'function') renderSchedule();
+        if (typeof renderManagerSchedule === 'function') renderManagerSchedule();
+        if (typeof renderEmployeeSchedule === 'function') renderEmployeeSchedule();
+    });
+}
+
+function saveScheduleToFirestore(schedule) {
+    if (!schedule.id) {
+        return window.db.collection('schedules').add(schedule);
+    } else {
+        const s = { ...schedule };
+        delete s.id;
+        return window.db.collection('schedules').doc(schedule.id).set(s);
+    }
+}
+
+function deleteScheduleFromFirestore(scheduleId) {
+    return window.db.collection('schedules').doc(scheduleId).delete();
+}
+// --- Fin Firestore horarios ---
+// --- Firestore: Sincronización de compras ---
+let purchaseInventoryUnsubscribe = null; // Listener Firestore
+function loadPurchaseInventoryFromFirestore() {
+    if (purchaseInventoryUnsubscribe) purchaseInventoryUnsubscribe();
+    purchaseInventoryUnsubscribe = window.db.collection('purchases').onSnapshot(snapshot => {
+        purchaseInventory = [];
+        snapshot.forEach(doc => {
+            purchaseInventory.push({ id: doc.id, ...doc.data() });
+        });
+        if (typeof renderPurchaseInventory === 'function') renderPurchaseInventory();
+        if (typeof renderManagerPurchaseInventory === 'function') renderManagerPurchaseInventory();
+    });
+}
+
+function savePurchaseToFirestore(purchase) {
+    if (!purchase.id) {
+        return window.db.collection('purchases').add(purchase);
+    } else {
+        const p = { ...purchase };
+        delete p.id;
+        return window.db.collection('purchases').doc(purchase.id).set(p);
+    }
+}
+
+function deletePurchaseFromFirestore(purchaseId) {
+    return window.db.collection('purchases').doc(purchaseId).delete();
+}
+// --- Fin Firestore compras ---
+// --- Firebase Configuración e Inicialización ---
+// Reemplaza los valores con los de tu proyecto si es necesario
+const firebaseConfig = {
+    apiKey: "[TU_API_KEY]",
+    authDomain: "[TU_AUTH_DOMAIN]",
+    projectId: "[TU_PROJECT_ID]",
+    storageBucket: "[TU_STORAGE_BUCKET]",
+    messagingSenderId: "[TU_MESSAGING_SENDER_ID]",
+    appId: "[TU_APP_ID]"
+};
+
+// Cargar SDK de Firebase si no está presente
+if (typeof firebase === 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js';
+    script.onload = () => {
+        const firestoreScript = document.createElement('script');
+        firestoreScript.src = 'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js';
+        firestoreScript.onload = initFirebase;
+        document.head.appendChild(firestoreScript);
+    };
+    document.head.appendChild(script);
+} else {
+    initFirebase();
+}
+
+function initFirebase() {
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    window.db = firebase.firestore();
+    // Aquí puedes llamar a funciones para cargar/sincronizar tareas, compras, etc.
+    loadCleaningTasksFromFirestore();
+    loadPurchaseInventoryFromFirestore();
+    loadScheduledDatesFromFirestore();
+    loadInventoryChecksFromFirestore();
+    loadDeletedInventoryChecksFromFirestore();
+    loadStaffFromFirestore();
+}
 // AirbnbManager - lógica principal
 // Estado global
 const OWNER_CREDENTIALS = {
@@ -11,6 +188,7 @@ let currentUserType = null; // 'owner' | 'manager' | 'employee'
 let selectedProperty = null;
 let properties = {};
 let cleaningTasks = [];
+let cleaningTasksUnsubscribe = null; // Para detener el listener de Firestore
 let purchaseInventory = []; // Inventario de compra
 let scheduledDates = []; // Fechas programadas de limpieza/mantenimiento
 let purchaseHistory = []; // Registro de compras con fechas
@@ -38,6 +216,17 @@ const STORAGE_KEYS = {
 };
 
 // Cloud Sync Configuration
+    if (cleaningTasksUnsubscribe) cleaningTasksUnsubscribe();
+    cleaningTasksUnsubscribe = window.db.collection('tasks').onSnapshot(snapshot => {
+        cleaningTasks = [];
+        snapshot.forEach(doc => {
+            cleaningTasks.push({ id: doc.id, ...doc.data() });
+        });
+        // Refrescar vistas si es necesario
+        if (typeof renderTasks === 'function') renderTasks();
+        if (typeof renderEmployeeTasks === 'function') renderEmployeeTasks();
+        if (typeof renderManagerTasks === 'function') renderManagerTasks();
+    });
 const CLOUD_SYNC_CONFIG = {
     enabled: true,
     gistId: 'limpieza360pro_shared_data', // ID único para todos los dispositivos
@@ -557,7 +746,8 @@ function loadData() {
             if (item.date && item.date.includes('-')) {
                 const parts = item.date.split('-');
                 if (parts.length === 3) {
-                    // Verificar si al parsear con new Date() retrocede un día
+            // cleaningTasks = storedTasks ? JSON.parse(storedTasks) : [];
+            // Ahora se cargan desde Firestore
                     const utcDate = new Date(item.date);
                     const [year, month, day] = parts.map(Number);
                     const localDate = new Date(year, month - 1, day);
@@ -585,6 +775,7 @@ function loadData() {
         inventoryChecks = [];
         deletedInventoryChecks = [];
     }
+            // Ahora las tareas se guardan en Firestore
     
     // Migrar datos antiguos: convertir 'limpieza' a 'limpieza-regular'
     scheduledDates.forEach(item => {
@@ -592,20 +783,19 @@ function loadData() {
             item.type = 'limpieza-regular';
         }
     });
-}
-
-function saveData() {
-    localStorage.setItem(STORAGE_KEYS.properties, JSON.stringify(properties));
-    localStorage.setItem(STORAGE_KEYS.cleaningTasks, JSON.stringify(cleaningTasks));
-    localStorage.setItem(STORAGE_KEYS.purchaseInventory, JSON.stringify(purchaseInventory));
-    localStorage.setItem(STORAGE_KEYS.scheduledDates, JSON.stringify(scheduledDates));
-    localStorage.setItem(STORAGE_KEYS.purchaseHistory, JSON.stringify(purchaseHistory));
-    localStorage.setItem(STORAGE_KEYS.purchaseRequests, JSON.stringify(purchaseRequests));
-    localStorage.setItem(STORAGE_KEYS.inventoryChecks, JSON.stringify(inventoryChecks));
-    localStorage.setItem(STORAGE_KEYS.deletedInventoryChecks, JSON.stringify(deletedInventoryChecks));
-    localStorage.setItem(STORAGE_KEYS.workDayNotifications, JSON.stringify(workDayNotifications));
-    
-    // Marcar timestamp de última modificación
+            const newTask = {
+                propertyId: selectedProperty,
+                sectionKey: 'general',
+                taskText: text,
+                assignedTo,
+                completed: false,
+                verified: false,
+                notes: ''
+            };
+            saveTaskToFirestore(newTask).then(() => {
+                document.getElementById('taskInput').value = '';
+                document.getElementById('employeeSelect').value = '';
+            });
     localStorage.setItem(STORAGE_KEYS.lastSyncTime, new Date().getTime().toString());
     
     // Sincronizar con la nube si está habilitado
@@ -613,30 +803,26 @@ function saveData() {
         syncToCloud();
     }
 }
-
-// Normaliza inventario con ítems base
-function normalizeInventory(prop) {
-    if (!prop.inventory) prop.inventory = {};
-    
-    // Definir exclusiones por propiedad
-    const excludedCategories = {};
-    if (prop.name === 'Torre Magna PI') {
-        excludedCategories.bbq = true;
-        excludedCategories.pasillo = true;
-        excludedCategories.terraza = true; // Quitar Terraza en Torre Magna
-    }
-    
-    Object.keys(INVENTORY_CATEGORIES).forEach(catKey => {
+            const newTask = {
+                propertyId: currentUser.propertyId,
+                sectionKey: 'general',
+                taskText: text,
+                assignedTo,
+                completed: false,
+                verified: false,
+                notes: ''
+            };
+            saveTaskToFirestore(newTask).then(() => {
+                document.getElementById('managerTaskInput').value = '';
+                document.getElementById('managerEmployeeSelect').value = '';
+            });
         // Saltar categorías excluidas para esta propiedad
         if (excludedCategories[catKey]) {
             // Si ya existe, eliminarla
             if (prop.inventory[catKey]) {
-                delete prop.inventory[catKey];
-            }
-            return;
-        }
-        
-        if (!prop.inventory[catKey]) {
+            deleteTaskFromFirestore(taskId).then(() => {
+                restoreOpenSections(openSections);
+            });
             prop.inventory[catKey] = INVENTORY_CATEGORIES[catKey].items.map(item => ({
                 id: `${catKey}-${item.toLowerCase().replace(/\s+/g, '-')}`,
                 name: item,
@@ -644,10 +830,11 @@ function normalizeInventory(prop) {
             }));
         }
     });
-}
-
-function cleanupDeletedInventoryChecks() {
-    const now = new Date().getTime();
+            const updatedTask = { ...task, completed: !!done };
+            saveTaskToFirestore(updatedTask).then(() => {
+                renderEmployeeTasks();
+                restoreOpenSections(openSections);
+            });
     const threeDaysMs = 3 * 24 * 60 * 60 * 1000; // 3 días en milisegundos
     
     deletedInventoryChecks = deletedInventoryChecks.filter(deleted => {
@@ -656,37 +843,36 @@ function cleanupDeletedInventoryChecks() {
         
         if (timePassed > threeDaysMs) {
             return false; // Eliminar permanentemente
-        }
-        return true; // Mantener en respaldo
-    });
-    
-    saveData();
+            const updatedTask = { ...task, verified: true };
+            saveTaskToFirestore(updatedTask).then(() => {
+                renderTasks();
+                renderEmployeeTasks();
+                renderManagerTasks();
+                restoreOpenSections(openSections);
+            });
 }
 
-function deleteInventoryReport(propertyId) {
+async function deleteInventoryReport(propertyId) {
     if (!confirm('⚠️ ¿Eliminar este reporte de inventario? Se guardará un respaldo por 3 días.')) return;
-    
+
     const checksToDelete = inventoryChecks.filter(c => c.propertyId === propertyId);
     if (checksToDelete.length === 0) {
         alert('No hay verificaciones para eliminar');
         return;
     }
-    
-    // Guardar en respaldo antes de eliminar
-    checksToDelete.forEach(check => {
-        deletedInventoryChecks.push({
+
+    // Guardar en respaldo en Firestore antes de eliminar
+    for (const check of checksToDelete) {
+        const backup = {
             ...check,
             deletedAt: new Date().toISOString(),
             deletedBy: currentUser.name
-        });
-    });
-    
-    // Eliminar del inventario actual
-    inventoryChecks = inventoryChecks.filter(c => c.propertyId !== propertyId);
-    
-    saveData();
-    renderInventoryChecks();
-    renderManagerInventoryChecks();
+        };
+        await saveDeletedInventoryCheckToFirestore(backup);
+        await deleteInventoryCheckFromFirestore(check.id);
+    }
+
+    // El listener de Firestore actualizará la UI automáticamente
     showDeletedReportsOption();
     alert('✅ Reporte eliminado. Disponible en respaldo por 3 días.');
 }
@@ -762,27 +948,23 @@ function showRestoreReportDialog() {
     restoreInventoryReport(selectedPropId);
 }
 
-function restoreInventoryReport(propertyId) {
-    const backupIndex = deletedInventoryChecks.findIndex(d => d.propertyId === propertyId);
-    if (backupIndex === -1) {
+async function restoreInventoryReport(propertyId) {
+    // Restaurar todos los reportes de esta propiedad desde Firestore
+    const backupsForProp = deletedInventoryChecks.filter(d => d.propertyId === propertyId);
+    if (backupsForProp.length === 0) {
         alert('No se encontró respaldo para restaurar');
         return;
     }
-    
-    // Restaurar todos los reportes de esta propiedad desde el respaldo
-    const backupsForProp = deletedInventoryChecks.filter(d => d.propertyId === propertyId);
-    
-    backupsForProp.forEach(backup => {
+
+    for (const backup of backupsForProp) {
         const { deletedAt, deletedBy, ...originalData } = backup;
-        inventoryChecks.push(originalData);
-    });
-    
-    // Eliminar del respaldo
-    deletedInventoryChecks = deletedInventoryChecks.filter(d => d.propertyId !== propertyId);
-    
-    saveData();
-    renderInventoryChecks();
-    renderManagerInventoryChecks();
+        await saveInventoryCheckToFirestore(originalData);
+        if (backup.id) {
+            await deleteDeletedInventoryCheckFromFirestore(backup.id);
+        }
+    }
+
+    // El listener de Firestore actualizará la UI automáticamente
     alert('✅ Reporte restaurado exitosamente');
 }
 
@@ -1210,34 +1392,30 @@ function addStaffMember() {
     const password = document.getElementById('staffPasswordInput').value.trim();
     if (!name || !username || !password) { alert('Completa nombre, usuario y contraseña'); return; }
 
-    const prop = properties[selectedProperty];
-    const exists = (prop.staff || []).some(s => s.username === username);
+    // Verificar si ya existe usuario con ese username en Firestore
+    const exists = staff.some(s => s.username === username && s.propertyId === selectedProperty);
     if (exists) { alert('Ese usuario ya existe en la propiedad'); return; }
 
-    prop.staff.push({
-        id: `staff_${Date.now()}`,
+    const prop = properties[selectedProperty];
+    const newStaff = {
+        propertyId: selectedProperty,
         name,
         role: role,
         username,
         password,
         lastLoginTime: null,
         assignmentType: prop.name === 'EPIC D1' ? (role === 'maintenance' ? 'mantenimiento' : role === 'manager' ? 'ambas' : 'limpieza') : null
+    };
+    saveStaffToFirestore(newStaff).then(() => {
+        document.getElementById('staffNameInput').value = '';
+        document.getElementById('staffUsernameInput').value = '';
+        document.getElementById('staffPasswordInput').value = '';
     });
-
-    document.getElementById('staffNameInput').value = '';
-    document.getElementById('staffUsernameInput').value = '';
-    document.getElementById('staffPasswordInput').value = '';
-
-    saveData();
-    renderStaff();
 }
 
 function removeStaffMember(staffId) {
     if (!selectedProperty) return;
-    const prop = properties[selectedProperty];
-    prop.staff = (prop.staff || []).filter(s => s.id !== staffId);
-    saveData();
-    renderStaff();
+    deleteStaffFromFirestore(staffId);
 }
 
 function renderStaff() {
@@ -1562,58 +1740,36 @@ function addPurchaseItem(source) {
     
     if (!name) { alert('Ingresa el nombre del artículo'); return; }
     
-    purchaseInventory.push({
-        id: `purchase_${Date.now()}`,
+    const newPurchase = {
         propertyId,
         name,
         qty,
         purchased: false,
         createdDate: new Date().toLocaleString()
+    };
+    savePurchaseToFirestore(newPurchase).then(() => {
+        if (source === 'manager') {
+            document.getElementById('managerPurchaseInput').value = '';
+            document.getElementById('managerPurchaseQty').value = '1';
+        } else {
+            document.getElementById('purchaseItemName').value = '';
+            document.getElementById('purchaseItemQty').value = '1';
+        }
     });
-    
-    if (source === 'manager') {
-        document.getElementById('managerPurchaseInput').value = '';
-        document.getElementById('managerPurchaseQty').value = '1';
-        renderManagerPurchaseInventory();
-    } else {
-        document.getElementById('purchaseItemName').value = '';
-        document.getElementById('purchaseItemQty').value = '1';
-        renderPurchaseInventory();
-    }
-    
-    saveData();
 }
 
 function togglePurchaseStatus(purchaseId) {
     const item = purchaseInventory.find(p => p.id === purchaseId);
     if (item) {
-        item.purchased = !item.purchased;
-        
-        // Si se marca como comprado, registrar en historial
-        if (item.purchased) {
-            const now = new Date();
-            purchaseHistory.push({
-                id: `purchase_history_${Date.now()}`,
-                propertyId: item.propertyId,
-                itemName: item.name,
-                qty: item.qty,
-                purchaseDate: now.toISOString(),
-                category: 'aseo' // Por ahora marcamos como aseo, pero puede ser más genérico
-            });
-        }
-        
-        saveData();
-        renderPurchaseInventory();
-        renderManagerPurchaseInventory();
+        const updated = { ...item, purchased: !item.purchased };
+        savePurchaseToFirestore(updated);
+        // TODO: registrar en historial en Firestore (próximo paso)
     }
 }
 
 function removePurchaseItem(purchaseId) {
     if (!confirm('¿Eliminar este artículo de la lista de compra?')) return;
-    purchaseInventory = purchaseInventory.filter(p => p.id !== purchaseId);
-    saveData();
-    renderPurchaseInventory();
-    renderManagerPurchaseInventory();
+    deletePurchaseFromFirestore(purchaseId);
 }
 
 function renderPurchaseInventory() {
@@ -2153,8 +2309,7 @@ function addScheduledDate(source) {
         }
     }
     
-    scheduledDates.push({
-        id: `schedule_${Date.now()}`,
+    const newSchedule = {
         propertyId,
         date,
         type, // 'limpieza' o 'mantenimiento'
@@ -2164,23 +2319,20 @@ function addScheduledDate(source) {
         completed: false,
         completedTime: null, // Hora en que el empleado marcó como completado
         notes: ''
+    };
+    saveScheduleToFirestore(newSchedule).then(() => {
+        if (source === 'manager') {
+            document.getElementById('managerScheduleDate').value = '';
+            document.getElementById('managerScheduleType').value = 'limpieza-regular';
+            document.getElementById('managerScheduleEmployee').value = '';
+            document.getElementById('managerScheduleTime').value = '';
+        } else {
+            document.getElementById('scheduleDate').value = '';
+            document.getElementById('scheduleType').value = 'limpieza-regular';
+            document.getElementById('scheduleEmployee').value = '';
+            document.getElementById('scheduleTime').value = '';
+        }
     });
-    
-    if (source === 'manager') {
-        document.getElementById('managerScheduleDate').value = '';
-        document.getElementById('managerScheduleType').value = 'limpieza-regular';
-        document.getElementById('managerScheduleEmployee').value = '';
-        document.getElementById('managerScheduleTime').value = '';
-        renderManagerSchedule();
-    } else {
-        document.getElementById('scheduleDate').value = '';
-        document.getElementById('scheduleType').value = 'limpieza-regular';
-        document.getElementById('scheduleEmployee').value = '';
-        document.getElementById('scheduleTime').value = '';
-        renderSchedule();
-    }
-    
-    saveData();
 }
 
 function scheduleDeepCleanEvery3Months(propertyId, propertyName) {
@@ -2193,8 +2345,7 @@ function scheduleDeepCleanEvery3Months(propertyId, propertyName) {
     const existing = scheduledDates.find(s => s.propertyId === propertyId && s.notes?.includes('Limpieza profunda'));
     if (existing) return;
 
-    scheduledDates.push({
-        id: `schedule_${Date.now()}`,
+    const newSchedule = {
         propertyId,
         date: dateStr,
         type: 'limpieza-profunda',
@@ -2204,7 +2355,8 @@ function scheduleDeepCleanEvery3Months(propertyId, propertyName) {
         completed: false,
         completedTime: null,
         notes: 'Limpieza profunda (cada 3 meses)' + (propertyName ? ` - ${propertyName}` : '')
-    });
+    };
+    saveScheduleToFirestore(newSchedule);
 }
 
 function ensureEpicPropertyExists() {
@@ -2386,21 +2538,14 @@ function ensureTorreMagnaMaintenanceTasks() {
 function toggleScheduleComplete(scheduleId) {
     const item = scheduledDates.find(s => s.id === scheduleId);
     if (item) {
-        item.completed = !item.completed;
-        saveData();
-        renderSchedule();
-        renderManagerSchedule();
-        renderEmployeeSchedule();
+        const updated = { ...item, completed: !item.completed };
+        saveScheduleToFirestore(updated);
     }
 }
 
 function removeScheduledDate(scheduleId) {
     if (!confirm('¿Eliminar esta fecha programada?')) return;
-    scheduledDates = scheduledDates.filter(s => s.id !== scheduleId);
-    saveData();
-    renderSchedule();
-    renderManagerSchedule();
-    renderEmployeeSchedule();
+    deleteScheduleFromFirestore(scheduleId);
 }
 
 function markScheduleCompleted(scheduleId) {

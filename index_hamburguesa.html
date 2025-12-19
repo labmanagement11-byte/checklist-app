@@ -1,0 +1,237 @@
+<!--
+  Nueva versión unificada de la app checklist con menú hamburguesa y dashboard responsive.
+  Este archivo replica la experiencia mobile en PC y mobile, evitando duplicidad y facilitando mantenimiento.
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checklist App - Unificada</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Estilos responsive y menú hamburguesa */
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f7f7f7;
+    }
+    .hamburger-btn {
+      background: none;
+      border: none;
+      font-size: 2rem;
+      cursor: pointer;
+      margin: 1rem;
+      z-index: 1001;
+    }
+    .side-menu {
+      position: fixed;
+      top: 0; left: 0;
+      width: 260px;
+      height: 100vh;
+      background: #222;
+      color: #fff;
+      transform: translateX(-100%);
+      transition: transform 0.3s;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      padding-top: 2rem;
+    }
+    .side-menu.open {
+      transform: translateX(0);
+    }
+    .side-menu nav {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+      margin-top: 2rem;
+    }
+    .side-menu nav button {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.1rem;
+      text-align: left;
+      padding: 0.7rem 2rem;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+    .side-menu nav button.active,
+    .side-menu nav button:hover {
+      background: #444;
+    }
+    .menu-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.3);
+      z-index: 999;
+      display: none;
+    }
+    .menu-overlay.open {
+      display: block;
+    }
+    .main-content {
+      margin-left: 0;
+      transition: margin-left 0.3s;
+      padding: 1.5rem 1rem 2rem 1rem;
+      min-height: 100vh;
+    }
+    @media (min-width: 900px) {
+      .side-menu {
+        transform: translateX(0);
+        position: relative;
+        width: 260px;
+        height: 100vh;
+      }
+      .main-content {
+        margin-left: 260px;
+      }
+      .hamburger-btn {
+        display: none;
+      }
+      .menu-overlay {
+        display: none !important;
+      }
+    }
+    .dashboard {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px #0001;
+      padding: 1.2rem 2rem;
+      min-width: 180px;
+      flex: 1 1 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: box-shadow 0.2s;
+      cursor: pointer;
+    }
+    .stat-card:hover {
+      box-shadow: 0 4px 16px #0002;
+    }
+    .stat-icon {
+      font-size: 2.2rem;
+      margin-bottom: 0.5rem;
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #1a7f37;
+    }
+    .stat-label {
+      font-size: 1.1rem;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <button class="hamburger-btn" id="hamburgerBtn">☰</button>
+  <div class="side-menu" id="sideMenu">
+    <nav>
+      <button id="menu-dashboard" class="active">Dashboard</button>
+      <button id="menu-inventory">Inventario</button>
+      <button id="menu-tasks">Tareas</button>
+      <button id="menu-schedule">Horarios</button>
+      <button id="menu-purchases">Compras</button>
+      <button id="menu-staff">Personal</button>
+      <button id="menu-settings">Configuración</button>
+      <button id="menu-logout">Cerrar sesión</button>
+    </nav>
+  </div>
+  <div class="menu-overlay" id="menuOverlay"></div>
+  <div class="main-content" id="mainContent">
+    <!-- Dashboard por defecto -->
+    <div id="dashboardSection" class="dashboard-section">
+      <h2>Dashboard</h2>
+      <div class="dashboard" id="dashboardStats">
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-value" id="statCompleted">0</div>
+          <div class="stat-label">Tareas completadas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📝</div>
+          <div class="stat-value" id="statPending">0</div>
+          <div class="stat-label">Tareas pendientes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📅</div>
+          <div class="stat-value" id="statSchedules">0</div>
+          <div class="stat-label">Horarios</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🛒</div>
+          <div class="stat-value" id="statPurchases">0</div>
+          <div class="stat-label">Compras</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-value" id="statStaff">0</div>
+          <div class="stat-label">Personal</div>
+        </div>
+      </div>
+    </div>
+    <!-- Secciones dinámicas -->
+    <div id="inventorySection" class="section" style="display:none"></div>
+    <div id="tasksSection" class="section" style="display:none"></div>
+    <div id="scheduleSection" class="section" style="display:none"></div>
+    <div id="purchasesSection" class="section" style="display:none"></div>
+    <div id="staffSection" class="section" style="display:none"></div>
+    <div id="settingsSection" class="section" style="display:none"></div>
+  </div>
+  <script src="app.js"></script>
+  <script>
+    // Menú hamburguesa y navegación responsive
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const sideMenu = document.getElementById('sideMenu');
+    const menuOverlay = document.getElementById('menuOverlay');
+    const mainContent = document.getElementById('mainContent');
+    const sections = {
+      dashboard: document.getElementById('dashboardSection'),
+      inventory: document.getElementById('inventorySection'),
+      tasks: document.getElementById('tasksSection'),
+      schedule: document.getElementById('scheduleSection'),
+      purchases: document.getElementById('purchasesSection'),
+      staff: document.getElementById('staffSection'),
+      settings: document.getElementById('settingsSection'),
+    };
+    function closeMenu() {
+      sideMenu.classList.remove('open');
+      menuOverlay.classList.remove('open');
+    }
+    hamburgerBtn.addEventListener('click', () => {
+      sideMenu.classList.add('open');
+      menuOverlay.classList.add('open');
+    });
+    menuOverlay.addEventListener('click', closeMenu);
+    // Navegación
+    sideMenu.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', e => {
+        sideMenu.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        Object.values(sections).forEach(sec => sec.style.display = 'none');
+        if (btn.id === 'menu-dashboard') sections.dashboard.style.display = '';
+        if (btn.id === 'menu-inventory') sections.inventory.style.display = '';
+        if (btn.id === 'menu-tasks') sections.tasks.style.display = '';
+        if (btn.id === 'menu-schedule') sections.schedule.style.display = '';
+        if (btn.id === 'menu-purchases') sections.purchases.style.display = '';
+        if (btn.id === 'menu-staff') sections.staff.style.display = '';
+        if (btn.id === 'menu-settings') sections.settings.style.display = '';
+        closeMenu();
+      });
+    });
+    // Por defecto dashboard
+    Object.values(sections).forEach((sec, i) => sec.style.display = i === 0 ? '' : 'none');
+    // TODO: Integrar lógica de dashboard, inventario, tareas, etc. usando app.js
+  </script>
+</body>
+</html>
