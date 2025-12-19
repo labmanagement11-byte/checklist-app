@@ -1075,7 +1075,9 @@ function login() {
                 savedOwnerCreds = null;
                 localStorage.removeItem(STORAGE_KEYS.savedOwnerCreds);
             }
-            showOwnerView();
+            mostrarVideoBienvenida(() => {
+                showOwnerView();
+            });
             return;
         }
         alert('Usuario o contraseña incorrectos para dueño');
@@ -1119,10 +1121,46 @@ function login() {
     }
 
     if (type === 'manager') {
-        showManagerView();
+        mostrarVideoBienvenida(() => {
+            showManagerView();
+        });
     } else {
-        showEmployeeView();
+        mostrarVideoBienvenida(() => {
+            showEmployeeView();
+        });
     }
+// Muestra el video de bienvenida post-login y luego ejecuta el callback
+function mostrarVideoBienvenida(callback) {
+    const videoView = document.getElementById('welcomeVideoView');
+    const loginView = document.getElementById('loginView');
+    const ownerView = document.getElementById('ownerView');
+    const managerView = document.getElementById('managerView');
+    const employeeView = document.getElementById('employeeView');
+    // Ocultar todas las vistas principales
+    if (loginView) loginView.style.display = 'none';
+    if (ownerView) ownerView.style.display = 'none';
+    if (managerView) managerView.style.display = 'none';
+    if (employeeView) employeeView.style.display = 'none';
+    // Mostrar video
+    if (videoView) {
+        videoView.style.display = 'flex';
+        const video = document.getElementById('welcomeVideo');
+        if (video) {
+            video.currentTime = 0;
+            video.play();
+            video.onended = function() {
+                videoView.style.display = 'none';
+                if (typeof callback === 'function') callback();
+            };
+        } else {
+            // Si no hay video, continuar de inmediato
+            videoView.style.display = 'none';
+            if (typeof callback === 'function') callback();
+        }
+    } else {
+        if (typeof callback === 'function') callback();
+    }
+}
 }
 
 function findStaffByCredentials(username, password, expectedRole) {
