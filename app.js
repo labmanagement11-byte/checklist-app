@@ -1,3 +1,115 @@
+// --- Categorías de Inventario ---
+const INVENTORY_CATEGORIES = {
+    cocina: {
+        name: 'Cocina',
+        icon: '🍳',
+        items: [
+            'Tenedores', 'Cuchillos', 'Cucharas', 'Platos', 'Vasos', 'Copas',
+            'Sartenes', 'Ollas', 'Cafetera', 'Tazas', 'Cucharón', 'Espumadera',
+            'Tabla de picar', 'Destapador', 'Microondas', 'Licuadora', 'Tetera',
+            'Bowls', 'Colador', 'Abrelatas', 'Sacacorchos', 'Bandeja', 'Pyrex',
+            'Rallador', 'Pelador', 'Pinzas cocina', 'Espátula'
+        ]
+    },
+    habitaciones: {
+        name: 'Habitaciones',
+        icon: '🛏️',
+        items: [
+            'Almohadas', 'Sabanas', 'Colchas', 'Mantas', 'Cortinas', 'Lámparas',
+            'Percheros', 'Mesas de noche', 'Espejo', 'Cobijas', 'Protector de colchón',
+            'Cojines decorativos', 'Despertador', 'Ganchos ropa'
+        ]
+    },
+    banos: {
+        name: 'Baños',
+        icon: '🚿',
+        items: [
+            'Toallas', 'Toallones', 'Jabón', 'Champú', 'Papel higiénico',
+            'Espejo', 'Tapete', 'Cortina de ducha', 'Accesorios baño',
+            'Acondicionador', 'Jabón líquido', 'Cepillo de baño', 'Destapador',
+            'Canasta basura', 'Ambientador', 'Escobilla inodoro'
+        ]
+    },
+    sala: {
+        name: 'Sala',
+        icon: '🛋️',
+        items: [
+            'Sofás', 'Mesas de centro', 'Sillas', 'Lámparas', 'Cuadros',
+            'Cortinas', 'Cojines', 'Alfombras', 'Control remoto TV',
+            'Cobijas decorativas', 'Jarrones', 'Plantas decorativas'
+        ]
+    },
+    comedor: {
+        name: 'Comedor',
+        icon: '🍽️',
+        items: [
+            'Sillas', 'Mesa', 'Mantel', 'Servilletas', 'Lámparas', 'Cortinas',
+            'Decoración', 'Individuales', 'Salero y pimentero', 'Centro de mesa',
+            'Servilletero'
+        ]
+    },
+    lavanderia: {
+        name: 'Lavandería',
+        icon: '🧺',
+        items: [
+            'Detergente', 'Suavizante', 'Cloro', 'Cesto ropa', 'Escobilla', 'Trapos',
+            'Jabón en polvo', 'Jabón líquido', 'Quitamanchas', 'Perchas',
+            'Tendedero', 'Pinzas ropa', 'Blanqueador'
+        ]
+    },
+    limpieza: {
+        name: 'Implementos de Limpieza',
+        icon: '🧹',
+        items: [
+            'Escoba', 'Trapeador', 'Recogedor', 'Balde', 'Desinfectante', 'Limpiador multiusos',
+            'Limpiavidrios', 'Esponjas', 'Paños microfibra', 'Guantes', 'Cepillos',
+            'Bolsas de basura', 'Lustramuebles', 'Ambientador', 'Papel toalla',
+            'Cloro', 'Creolina', 'Jabón líquido para pisos', 'Alcohol',
+            'Plumero', 'Escobillón', 'Atomizador', 'Cera para pisos'
+        ]
+    },
+    bbq: {
+        name: 'Zona BBQ',
+        icon: '🔥',
+        items: [
+            'Parrilla', 'Pinzas largas', 'Espátula parrilla', 'Cepillo limpieza parrilla',
+            'Carbón', 'Encendedor', 'Guantes térmicos', 'Bandeja aluminio',
+            'Platos desechables', 'Vasos plásticos', 'Servilletas', 'Mantel',
+            'Cubiertos desechables', 'Sillas plegables', 'Mesa auxiliar',
+            'Bolsas basura grandes', 'Papel aluminio', 'Encendedor largo'
+        ]
+    },
+    pasillo: {
+        name: 'Pasillo',
+        icon: '🚪',
+        items: [
+            'Alfombra pasillo', 'Lámpara pasillo', 'Cuadros decorativos', 'Espejo',
+            'Consola o mueble', 'Perchero', 'Plantas decorativas', 'Macetas',
+            'Paragüero', 'Zapatero', 'Cortinas', 'Ambientador', 'Reloj pared',
+            'Sensor movimiento', 'Portarretratos'
+        ]
+    },
+    terraza: {
+        name: 'Terraza',
+        icon: '🌿',
+        items: [
+            'Mesa exterior', 'Sillas exterior', 'Sombrilla', 'Cojines exteriores',
+            'Plantas en macetas', 'Maceteros', 'Regadera', 'Manguera',
+            'Escoba exterior', 'Luces decorativas', 'Alfombra exterior',
+            'Cenicero', 'Porta velas', 'Cubre sillas', 'Toldo', 'Ventilador exterior',
+            'Calefactor exterior', 'Repelente mosquitos', 'Cortinas exteriores'
+        ]
+    },
+    otras: {
+        name: 'Otras áreas',
+        icon: '📦',
+        items: [
+            'Extintores', 'Botiquín', 'Herramientas básicas', 'Linterna', 'Llaves', 'Cerraduras',
+            'Pilas', 'Fósforos', 'Velas', 'Cinta adhesiva', 'Tijeras', 'Bombillos',
+            'Cable extensión', 'Candados', 'Kit costura básico'
+        ]
+    }
+};
 // --- Firestore: Sincronización de staff/usuarios ---
 let staffUnsubscribe = null;
 let staff = [];
