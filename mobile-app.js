@@ -358,6 +358,7 @@ function loadDashboardStats() {
     const propId = propSelect.value || mobileSelectedProperty;
     if (!propSelect.value && mobileSelectedProperty) propSelect.value = mobileSelectedProperty;
     const tasks = cleaningTasks.filter(t => !propId || t.propertyId === propId);
+    const completedTasks = tasks.filter(t => t.completed).length;
     const pendingTasks = tasks.filter(t => !t.completed).length;
     const schedules = scheduledDates.filter(s => !propId || s.propertyId === propId).length;
     const purchases = purchaseInventory.filter(p => !propId || p.propertyId === propId).length;
@@ -367,6 +368,11 @@ function loadDashboardStats() {
     }, 0);
 
     target.innerHTML = `
+        <div class="stat-card" onclick="showMobileSection('tasks')">
+            <div class="stat-icon">✅</div>
+            <div class="stat-value">${completedTasks}</div>
+            <div class="stat-label">Tareas completadas</div>
+        </div>
         <div class="stat-card" onclick="showMobileSection('tasks')">
             <div class="stat-icon">📝</div>
             <div class="stat-value">${pendingTasks}</div>
