@@ -82,22 +82,22 @@ function deleteInventoryCheckFromFirestore(checkId) {
             'Cojines decorativos', 'Despertador', 'Ganchos ropa'
         ]
     },
-    banos: {
-        name: 'Baños',
-        icon: '🚿',
-        items: [
-            'Toallas', 'Toallones', 'Jabón', 'Champú', 'Papel higiénico',
-            'Espejo', 'Tapete', 'Cortina de ducha', 'Accesorios baño',
-            'Acondicionador', 'Jabón líquido', 'Cepillo de baño', 'Destapador',
-            'Canasta basura', 'Ambientador', 'Escobilla inodoro'
-        ]
-    },
-    sala: {
-        name: 'Sala',
-        icon: '🛋️',
-        items: [
-            'Sofás', 'Mesas de centro', 'Sillas', 'Lámparas', 'Cuadros',
-            'Cortinas', 'Cojines', 'Alfombras', 'Control remoto TV',
+        banos: {
+            name: 'Baños',
+            icon: '🚿',
+            items: [
+                'Toallas', 'Toallones', 'Jabón', 'Champú', 'Papel higiénico',
+                'Espejo', 'Tapete', 'Cortina de ducha', 'Accesorios baño',
+                'Acondicionador', 'Jabón líquido', 'Cepillo de baño', 'Destapador',
+                'Canasta basura', 'Ambientador', 'Escobilla inodoro'
+            ]
+        },
+        sala: {
+            name: 'Sala',
+            icon: '🛋️',
+            items: [
+                'Sofás', 'Mesas de centro', 'Sillas', 'Lámparas', 'Cuadros',
+                'Cortinas', 'Cojines', 'Alfombras', 'Control remoto TV',
             'Cobijas decorativas', 'Jarrones', 'Plantas decorativas'
         ]
     },
@@ -838,7 +838,7 @@ function createDefaultCleaningTasks(propId, propertyName) {
 }
 
 // Login
-function updateLoginForm() {
+window.updateLoginForm = function updateLoginForm() {
     const type = document.getElementById('userType').value;
     const ownerFields = ['ownerUsernameGroup', 'ownerPasswordGroup'];
     const staffFields = ['staffUsernameGroup', 'staffPasswordGroup'];
