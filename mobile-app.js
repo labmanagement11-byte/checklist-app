@@ -884,15 +884,18 @@ function renderTaskList(list) {
             </div>`).join('');
     }
     // Para manager/owner, mostrar estado simple
-    return list.map(t => `
-        <div class="task-item">
+    return list.map(t => {
+        const isEpicD1Profunda = t.subsectionTitle && t.subsectionTitle.includes('EPIC D1') && t.subsectionTitle.includes('Limpieza Profunda');
+        return `<div class="task-item" style="${isEpicD1Profunda ? 'border:2px solid #2196F3; background:#e3f2fd;' : ''}">
             <input type="checkbox" class="task-checkbox" ${t.completed ? 'checked' : ''} onclick="toggleTaskComplete('${t.id}')">
             <div class="task-content">
                 <div class="task-name ${t.completed ? 'completed' : ''}">${t.taskText || t.task || 'Tarea'}</div>
-                <div class="task-meta">${t.subsectionTitle || t.sectionKey || ''}</div>
+                <div class="task-meta">${t.subsectionTitle || t.sectionKey || ''}${isEpicD1Profunda ? ' <span style=\"color:#2196F3; font-weight:600;\">(Limpieza Profunda EPIC D1)</span>' : ''}</div>
+                ${t.assignedEmployeeName ? `<div class="task-employee" style="color:#0d47a1; font-size:0.9rem; margin-top:0.3rem;">👤 ${t.assignedEmployeeName}</div>` : ''}
                 ${t.completionReason ? `<div class="task-reason" style="color: #ff6b6b; font-size: 0.85rem; margin-top: 0.5rem;">Razón: ${t.completionReason}</div>` : ''}
             </div>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 }
 
 function resetTasksForSchedule(scheduleId) {
