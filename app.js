@@ -1054,19 +1054,12 @@ function login() {
         const user = document.getElementById('ownerCode').value.trim();
         const pass = document.getElementById('ownerPassword').value.trim();
         if (user === OWNER_CREDENTIALS.username && pass === OWNER_CREDENTIALS.password) {
-            // Si no hay propiedades, crear una demo automáticamente
+            // Solo permitir login si existen propiedades reales
             if (!properties || Object.keys(properties).length === 0) {
-                const demoPropertyId = 'prop_demo_' + Date.now();
-                properties[demoPropertyId] = {
-                    id: demoPropertyId,
-                    name: 'Casa Demo - Configura tus propiedades',
-                    address: 'Esta es una propiedad de ejemplo. El propietario debe agregar propiedades reales.',
-                    staff: [],
-                    inventory: {}
-                };
-                selectedProperty = demoPropertyId;
-                saveData();
-            } else if (!selectedProperty) {
+                alert('No existen propiedades registradas. Por favor, registre al menos una propiedad real antes de ingresar.');
+                return;
+            }
+            if (!selectedProperty) {
                 selectedProperty = Object.keys(properties)[0] || null;
             }
             currentUserType = 'owner';
