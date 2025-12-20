@@ -19,15 +19,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-// ...existing code...
-            {
-                title: '🏠 Limpieza General',
-                tasks: [
-                    'Barrer y trapear toda la casa',
-                    'Quitar polvo de superficies y decoración con trapo húmedo',
-                    'Limpiar televisores sin dejar marcas en pantalla',
-                    'Revisar zócalos y esquinas que queden limpios',
-                    'Retirar telarañas'
                 ]
             },
             {
