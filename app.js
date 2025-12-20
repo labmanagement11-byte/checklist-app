@@ -1,3 +1,5 @@
+// --- VARIABLES GLOBALES ---
+var scheduledDates = [];
 // --- FORMULARIO DE REPORTES PARA EMPLEADO ---
 document.addEventListener('DOMContentLoaded', function() {
     const addReportFormEmployee = document.getElementById('addReportFormEmployee');
