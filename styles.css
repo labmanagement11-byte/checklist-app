@@ -46,8 +46,12 @@
     color: #fff;
 }
 /* Ocultar vistas por defecto */
-#mainNav, #ownerView, #managerView, #employeeView {
-    display: none;
+#mainNav, #mainContent, #ownerView, #managerView, #employeeView {
+    display: none !important;
+}
+
+#loginView {
+    display: flex !important;
 }
 
 /* Mostrar gradiente y centrar login */
