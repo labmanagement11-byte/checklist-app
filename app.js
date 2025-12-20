@@ -816,6 +816,7 @@ window.updateLoginForm = function updateLoginForm() {
 }
 
 function login() {
+    window.login = login;
     const type = document.getElementById('userType').value;
     if (!type) { alert('Selecciona el tipo de usuario'); return; }
 
@@ -4322,6 +4323,7 @@ function restoreOpenSections(openSections) {
 
 // Tema
 function toggleTheme() {
+    window.toggleTheme = toggleTheme;
     const isDark = document.body.classList.toggle('dark-theme');
     localStorage.setItem('airbnbmanager_theme', isDark ? 'dark' : 'light');
     updateThemeButtonText();
