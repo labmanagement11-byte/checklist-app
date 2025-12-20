@@ -13,24 +13,77 @@
     <div id="app">
 
         <!-- LOGIN NUEVO CON FIREBASE AUTH -->
-        <div id="loginView" class="view" style="background: #f8fafc; min-height: 100vh; display: flex; align-items: center; justify-content: center;">
-            <div class="login-container" style="max-width: 350px; width: 100%; background: #fff; border-radius: 12px; box-shadow: 0 2px 16px #0002; padding: 2rem;">
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                    <img src="logo-new.png?v=1" alt="LIMPIEZA-360PRO-APP" width="120" height="120" style="flex-shrink: 0;">
-                    <h1 style="margin: 0; color: #1E3A8A; font-size: 1.5rem; text-align: center;">LIMPIEZA-360PRO-APP</h1>
-                </div>
-                <form id="firebaseLoginForm" autocomplete="on" style="display: flex; flex-direction: column; gap: 1rem;">
-                    <div class="form-group">
-                        <label for="loginUsername">Usuario</label>
-                        <input type="text" id="loginUsername" placeholder="Usuario" required autocomplete="username">
+
+
+        <div id="loginView" class="view" style="background: linear-gradient(135deg, #1E3A8A 0%, #60A5FA 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; animation: gradientMove 8s ease-in-out infinite alternate;">
+            <style>
+                @keyframes gradientMove {
+                    0% { background-position: 0% 50%; }
+                    100% { background-position: 100% 50%; }
+                }
+                .login-container-pro {
+                    max-width: 420px; width: 100%; background: #fff; border-radius: 22px; box-shadow: 0 12px 40px #1e3a8a44; padding: 2.7rem 2.2rem; display: flex; flex-direction: column; align-items: center; position: relative;
+                }
+                .login-logo {
+                    margin-bottom: 1.2rem; border-radius: 50%; box-shadow: 0 4px 18px #1e3a8a33; width: 110px; height: 110px; object-fit: cover;
+                }
+                .login-title {
+                    margin: 0; color: #1E3A8A; font-size: 2.2rem; font-weight: 800; text-align: center; letter-spacing: 1.5px;
+                }
+                .login-subtitle {
+                    color: #2563eb; font-size: 1.15rem; margin: 0.7rem 0 2.2rem 0; text-align: center; font-weight: 500;
+                }
+                .login-form-pro {
+                    width: 100%; display: flex; flex-direction: column; gap: 1.7rem;
+                }
+                .form-group-pro {
+                    display: flex; flex-direction: column; gap: 0.5rem;
+                }
+                .form-group-pro label {
+                    font-weight: 600; color: #1E3A8A; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;
+                }
+                .form-group-pro label .icon {
+                    font-size: 1.2rem;
+                }
+                .form-group-pro input {
+                    padding: 0.85rem 1.1rem; border-radius: 10px; border: 1.5px solid #dbeafe; font-size: 1.08rem; transition: border 0.2s, box-shadow 0.2s;
+                }
+                .form-group-pro input:focus {
+                    border-color: #2563eb; box-shadow: 0 0 0 2px #60A5FA44;
+                }
+                .btn-primary-pro {
+                    background: linear-gradient(90deg, #1E3A8A 0%, #60A5FA 100%); color: #fff; font-weight: 700; font-size: 1.15rem; border: none; border-radius: 10px; padding: 1rem 0; box-shadow: 0 2px 12px #1e3a8a22; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+                }
+                .btn-primary-pro:hover {
+                    transform: translateY(-2px) scale(1.03); box-shadow: 0 6px 18px #1e3a8a33;
+                    background: linear-gradient(90deg, #2563eb 0%, #60A5FA 100%);
+                }
+                .loginError-pro {
+                    color: #e00; margin-top: 1.5rem; display: none; font-size: 1.05rem; text-align: center;
+                }
+                .login-footer-pro {
+                    margin-top: 2.2rem; text-align: center; color: #6b7280; font-size: 1rem; font-weight: 500;
+                }
+            </style>
+            <div class="login-container-pro">
+                <img src="logo-new.png?v=1" alt="LIMPIEZA-360PRO-APP" class="login-logo">
+                <h1 class="login-title">LIMPIEZA-360PRO-APP</h1>
+                <p class="login-subtitle">Bienvenido a la plataforma profesional de gestión y limpieza.<br>Acceso seguro para propietarios, managers y empleados.</p>
+                <form id="firebaseLoginForm" autocomplete="on" class="login-form-pro">
+                    <div class="form-group-pro">
+                        <label for="loginUsername"><span class="icon">👤</span>Usuario</label>
+                        <input type="text" id="loginUsername" placeholder="Tu usuario" required autocomplete="username">
                     </div>
-                    <div class="form-group">
-                        <label for="loginPassword">Contraseña</label>
-                        <input type="password" id="loginPassword" placeholder="Contraseña" required autocomplete="current-password">
+                    <div class="form-group-pro">
+                        <label for="loginPassword"><span class="icon">🔒</span>Contraseña</label>
+                        <input type="password" id="loginPassword" placeholder="Tu contraseña" required autocomplete="current-password">
                     </div>
-                    <button type="submit" class="btn-primary">Ingresar</button>
+                    <button type="submit" class="btn-primary-pro">Ingresar</button>
                 </form>
-                <div id="loginError" style="color: #e00; margin-top: 1rem; display: none;"></div>
+                <div id="loginError" class="loginError-pro"></div>
+                <div class="login-footer-pro">
+                    ¿Olvidaste tu contraseña? <span style="color:#2563eb;">Contacta al administrador.</span>
+                </div>
             </div>
         </div>
 
