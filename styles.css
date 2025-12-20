@@ -1,3 +1,74 @@
+.nav-avatar-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.7rem;
+}
+.nav-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 3px solid #60A5FA;
+    box-shadow: 0 4px 18px #1e3a8a33;
+    object-fit: cover;
+    background: #fff;
+    animation: avatarPulse 2.5s infinite alternate, avatarFloat 4s ease-in-out infinite;
+}
+@keyframes avatarPulse {
+    0% { box-shadow: 0 4px 18px #1e3a8a33; filter: brightness(1); }
+    100% { box-shadow: 0 8px 32px #60A5FA66; filter: brightness(1.08); }
+}
+@keyframes avatarFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+.nav-links li a {
+    /* ...existing code... */
+    position: relative;
+    overflow: hidden;
+    transition: background 0.2s, color 0.2s, transform 0.18s;
+}
+.nav-links li a::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; width: 100%; height: 100%;
+    background: linear-gradient(90deg, #60A5FA33 0%, #1E3A8A11 100%);
+    opacity: 0;
+    transition: opacity 0.25s;
+    pointer-events: none;
+}
+.nav-links li a:hover::after, .nav-links li a.active::after {
+    opacity: 1;
+}
+.nav-links li a:hover, .nav-links li a.active {
+    transform: scale(1.04) translateX(4px);
+    color: #fff;
+}
+/* Ocultar vistas por defecto */
+#mainNav, #ownerView, #managerView, #employeeView {
+    display: none;
+}
+
+/* Mostrar gradiente y centrar login */
+.login-gradient-center {
+    background: linear-gradient(135deg, #1E3A8A 0%, #60A5FA 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: gradientMove 8s ease-in-out infinite alternate;
+}
+
+/* Permitir resize vertical en textareas */
+.resize-vertical {
+    resize: vertical;
+}
+
+/* Color de acento para textos */
+.text-accent {
+    color: #2563eb;
+}
 /* --- Formularios y listas del panel del dueño --- */
 .owner-form {
     background: #fff;
@@ -46,14 +117,78 @@
     color: #1E3A8A;
     font-size: 1.08rem;
 }
-/* --- MENÚ HAMBURGUESA Y LAYOUT PRINCIPAL --- */
-.main-nav {
-    width: 100%;
+/* --- SIDEBAR HAMBURGUESA Y LAYOUT PRINCIPAL --- */
+.main-nav.sidebar {
+    width: 220px;
+    min-height: 100vh;
     background: #1E3A8A;
     color: #fff;
     position: fixed;
     top: 0; left: 0; z-index: 1000;
-    box-shadow: 0 2px 12px #1e3a8a22;
+    box-shadow: 2px 0 12px #1e3a8a22;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    transition: width 0.2s;
+}
+
+.main-content {
+    margin-left: 220px;
+    padding: 2rem 1.5rem 1rem 1.5rem;
+    min-height: 100vh;
+    background: #f8fafc;
+    transition: margin-left 0.2s;
+}
+
+@media (max-width: 900px) {
+    .main-nav.sidebar {
+        width: 64px;
+        min-width: 64px;
+    }
+    .main-content {
+        margin-left: 64px;
+        padding: 1.2rem 0.5rem;
+    }
+    .nav-links {
+        flex-direction: column;
+        align-items: flex-start;
+        padding-left: 0.5rem;
+    }
+    .nav-links li a {
+        padding: 0.7rem 0.7rem;
+        font-size: 1rem;
+    }
+}
+
+.nav-links {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    padding-left: 0.5rem;
+}
+.nav-links li {
+    width: 100%;
+}
+.nav-links li a {
+    display: block;
+    width: 100%;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.08rem;
+    padding: 0.7rem 1.1rem;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+.nav-links li a:hover, .nav-links li a.active {
+    background: #2563eb;
+}
+
+/* Oculta el menú hamburguesa en desktop */
+.hamburger { display: none; }
+@media (max-width: 900px) {
+    .hamburger { display: flex; }
 }
 .nav-header {
     display: flex;

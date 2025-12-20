@@ -12,9 +12,12 @@
 </head>
 <body>
     <div id="app">
-        <!-- MENÚ HAMBURGUESA PROFESIONAL -->
-        <nav id="mainNav" class="main-nav">
+        <!-- MENÚ HAMBURGUESA PROFESIONAL (oculto por defecto, visible tras login) -->
+        <nav id="mainNav" class="main-nav sidebar" style="display:none;">
             <div class="nav-header">
+                <div class="nav-avatar-container">
+                    <img src="avatar-pro.png" alt="Usuario" class="nav-avatar" />
+                </div>
                 <img src="logo.svg" alt="Logo" class="nav-logo" />
                 <button id="hamburgerBtn" class="hamburger" aria-label="Abrir menú">
                     <span></span><span></span><span></span>
@@ -31,9 +34,14 @@
             </ul>
         </nav>
 
-        <!-- VISTAS PRINCIPALES (solo placeholders, se mostrarán según el usuario) -->
-        <main id="mainContent">
-            <section id="ownerView" class="view">
+        <!-- LOGIN NUEVO CON FIREBASE AUTH (visible por defecto) -->
+        <div id="loginView" class="view login-gradient-center" style="display:block;">
+            <!-- ...login HTML como ya tienes... -->
+        </div>
+
+        <!-- VISTAS PRINCIPALES (ocultas por defecto, se muestran tras login según usuario) -->
+        <main id="mainContent" class="main-content" style="display:none;">
+            <section id="ownerView" class="view" style="display:none;">
                                                                 <!-- Formulario para agregar reporte -->
                                                                 <form id="addReportForm" class="owner-form">
                                                                     <h3>Agregar reporte</h3>
@@ -139,7 +147,7 @@
                   </div>
                 </div>
             </section>
-            <section id="managerView" class="view">
+            <section id="managerView" class="view" style="display:none;">
                                                                 <div id="reportsListManager" class="owner-list">
                                                                     <!-- Aquí se listarán los reportes del manager -->
                                                                 </div>
@@ -169,7 +177,7 @@
                 <h2>Panel de Manager</h2>
                 <div class="dashboard-placeholder">Bienvenido, manager. Aquí verás tareas, inventario y reportes.</div>
             </section>
-            <section id="employeeView" class="view">
+            <section id="employeeView" class="view" style="display:none;">
                                 <!-- Formulario para agregar reporte (empleado) -->
                                 <form id="addReportFormEmployee" class="owner-form">
                                     <h3>Agregar reporte</h3>
