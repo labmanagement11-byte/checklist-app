@@ -1,0 +1,10 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Abrir app en navegador",
+			"type": "shell",
+			"command": "start msedge index.html"
+		}
+	]
+}
