@@ -786,6 +786,7 @@ function createDefaultCleaningTasks(propId, propertyName) {
 
 // Login
 window.updateLoginForm = function updateLoginForm() {
+    window.updateLoginForm = updateLoginForm;
     const type = document.getElementById('userType').value;
     const ownerFields = ['ownerUsernameGroup', 'ownerPasswordGroup'];
     const staffFields = ['staffUsernameGroup', 'staffPasswordGroup'];
