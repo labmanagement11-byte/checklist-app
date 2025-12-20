@@ -89,7 +89,6 @@ function login() {
             showEmployeeView();
         });
     }
-    },
     limpieza: {
         name: 'Implementos de Limpieza',
         icon: '🧹',
