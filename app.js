@@ -21,44 +21,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 // ...existing code...
-        name: 'Implementos de Limpieza',
-        icon: '🧹',
-        items: [
-            'Escoba', 'Trapeador', 'Recogedor', 'Balde', 'Desinfectante', 'Limpiador multiusos',
-            'Limpiavidrios', 'Esponjas', 'Paños microfibra', 'Guantes', 'Cepillos',
-            'Bolsas de basura', 'Lustramuebles', 'Ambientador', 'Papel toalla',
-            // ...existing code...
-                    'Limpieza de gabinete TV y cajones',
-                    'Limpieza de sofá cama, cojines y cajones',
-                    'Limpieza de mesa de centro',
-                    'Limpieza de control remoto, sonido y lámparas',
-                    'Cortinas y rieles (polvo)',
-                    'Pisos aspirados y trapeados'
-                ]
-            },
-            {
-                title: '🍳 Cocina',
-                tasks: [
-                    'Limpieza exterior/interior de gabinetes',
-                    'Limpieza de counter de granito',
-                    'Lavaplatos, grifería y backsplash',
-                    'Electrodomésticos (exterior/interior)',
-                    'Lavadora (tambor, puerta, filtro)',
-                    'Basurero limpio y con bolsa nueva',
-                    'Pisos aspirados y trapeados'
-                ]
-            },
-            {
-                title: '🚿 Baño',
-                tasks: [
-                    'Lavamanos, grifería y gabinete',
-                    'Inodoro (base, tapa, interior)',
-                    'Regadera, vidrio y base de jabón',
-                    'Espejos y accesorios',
-                    'Toallas limpias y organizadas',
-                    'Pisos desinfectados'
-                ]
-            },
             {
                 title: '✅ General',
                 tasks: [
