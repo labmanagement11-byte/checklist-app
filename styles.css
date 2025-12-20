@@ -1,3 +1,109 @@
+/* --- LOGIN PROFESIONAL Y COMPACTO --- */
+.login-logo-small {
+    width: 70px;
+    margin-bottom: 1.2rem;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px #1e3a8a22;
+}
+.clean-login {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 8px 32px #1e3a8a22, 0 1.5px 8px #60A5FA22;
+    padding: 2.2rem 2.2rem 1.7rem 2.2rem;
+    max-width: 340px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+.login-title-pro {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1E3A8A;
+    margin-bottom: 0.2rem;
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+.login-subtitle-pro {
+    font-size: 0.98rem;
+    color: #2563eb;
+    margin-bottom: 1.1rem;
+    text-align: center;
+    font-weight: 400;
+}
+.login-acceso {
+    font-size: 0.92em;
+    color: #1e3a8a;
+    font-weight: 400;
+}
+.clean-login-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    margin-bottom: 0.7rem;
+}
+.login-input-pro {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    border: 1.5px solid #60A5FA;
+    border-radius: 8px;
+    font-size: 1rem;
+    color: #1e3a8a;
+    background: #f8fafc;
+    margin-bottom: 0.1rem;
+    outline: none;
+    transition: border 0.2s;
+}
+.login-input-pro:focus {
+    border: 1.5px solid #1E3A8A;
+    background: #fff;
+}
+.btn-login-pro {
+    background: linear-gradient(90deg, #1E3A8A 0%, #60A5FA 100%);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.65rem 0;
+    font-size: 1.08rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #1e3a8a22;
+    transition: background 0.2s, box-shadow 0.2s;
+    margin-top: 0.2rem;
+}
+.btn-login-pro:hover {
+    background: linear-gradient(90deg, #60A5FA 0%, #1E3A8A 100%);
+    box-shadow: 0 4px 16px #1e3a8a33;
+}
+.loginError-pro {
+    color: #d32f2f;
+    font-size: 0.98rem;
+    margin-bottom: 0.5rem;
+    text-align: center;
+    min-height: 1.2em;
+}
+.login-footer-pro {
+    font-size: 0.93rem;
+    color: #1e3a8a;
+    margin-top: 0.7rem;
+    text-align: center;
+}
+/* Centrado vertical absoluto para el login */
+#loginView.login-gradient-center {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1E3A8A 0%, #60A5FA 100%);
+    animation: gradientMove 8s ease-in-out infinite alternate;
+}
 .nav-avatar-container {
     display: flex;
     align-items: center;
