@@ -1,4 +1,3 @@
-// Login con Firebase Auth
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.getElementById('firebaseLoginForm');
     const loginError = document.getElementById('loginError');
@@ -219,6 +218,28 @@ function loadData() {
         deletedInventoryChecks = storedDeletedChecks ? JSON.parse(storedDeletedChecks) : [];
         workDayNotifications = storedNotifications ? JSON.parse(storedNotifications) : [];
         
+// Login con Firebase Auth
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.getElementById('firebaseLoginForm');
+    const loginError = document.getElementById('loginError');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            loginError.style.display = 'none';
+            window.auth.signInWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    document.getElementById('loginView').style.display = 'none';
+                    if (document.getElementById('ownerView')) document.getElementById('ownerView').style.display = 'block';
+                })
+                .catch(error => {
+                    loginError.textContent = error.message;
+                    loginError.style.display = 'block';
+                });
+        });
+    }
+});
         // Limpiar reportes eliminados que han pasado 3 días
         cleanupDeletedInventoryChecks();
         
