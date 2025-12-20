@@ -1,3 +1,6 @@
+// Asegura que las funciones estén disponibles globalmente
+window.updateLoginForm = updateLoginForm;
+window.login = login;
 // Firestore: Sincronización de propiedades
 let propertiesUnsubscribe = null;
 let properties = {};
