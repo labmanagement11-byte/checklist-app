@@ -5,15 +5,28 @@ document.addEventListener('DOMContentLoaded', function() {
     if (loginForm) {
         loginForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            const email = document.getElementById('loginEmail').value.trim();
+            const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
             loginError.style.display = 'none';
-            window.auth.signInWithEmailAndPassword(email, password)
-                .then(userCredential => {
-                    // Usuario autenticado
-                    document.getElementById('loginView').style.display = 'none';
-                    // Aquí puedes mostrar la vista principal, por ejemplo:
-                    if (document.getElementById('ownerView')) document.getElementById('ownerView').style.display = 'block';
+            // Buscar el correo en Firestore usando el nombre de usuario
+            window.db.collection('users').where('username', '==', username).limit(1).get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        loginError.textContent = 'Usuario no encontrado.';
+                        loginError.style.display = 'block';
+                        return;
+                    }
+                    const userDoc = snapshot.docs[0].data();
+                    const email = userDoc.email;
+                    window.auth.signInWithEmailAndPassword(email, password)
+                        .then(userCredential => {
+                            document.getElementById('loginView').style.display = 'none';
+                            if (document.getElementById('ownerView')) document.getElementById('ownerView').style.display = 'block';
+                        })
+                        .catch(error => {
+                            loginError.textContent = error.message;
+                            loginError.style.display = 'block';
+                        });
                 })
                 .catch(error => {
                     loginError.textContent = error.message;
