@@ -19,25 +19,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-
-// Mapeo de tareas personalizadas por nombre de propiedad
-const CUSTOM_TASKS_BY_PROPERTY = {
-    'Torre Magna PI': CUSTOM_TASKS,
-    'EPIC D1': EPIC_D1_TASKS
-};
-
-// Utils de almacenamiento
-function loadData() {
-    try {
-        const storedProps = localStorage.getItem(STORAGE_KEYS.properties);
-        const storedTasks = localStorage.getItem(STORAGE_KEYS.cleaningTasks);
-        const storedPurchase = localStorage.getItem(STORAGE_KEYS.purchaseInventory);
-        const storedSchedule = localStorage.getItem(STORAGE_KEYS.scheduledDates);
-        const storedHistory = localStorage.getItem(STORAGE_KEYS.purchaseHistory);
-        const storedRequests = localStorage.getItem(STORAGE_KEYS.purchaseRequests);
-        const storedChecks = localStorage.getItem(STORAGE_KEYS.inventoryChecks);
-        const storedDeletedChecks = localStorage.getItem(STORAGE_KEYS.deletedInventoryChecks);
-        const storedNotifications = localStorage.getItem(STORAGE_KEYS.workDayNotifications);
         properties = storedProps ? JSON.parse(storedProps) : {};
         cleaningTasks = storedTasks ? JSON.parse(storedTasks) : [];
         purchaseInventory = storedPurchase ? JSON.parse(storedPurchase) : [];
