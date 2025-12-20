@@ -4637,7 +4637,6 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // --- FIN DEL ARCHIVO ---
-
 // Exponer funciones globales al final para asegurar disponibilidad
 window.updateLoginForm = updateLoginForm;
 window.login = login;
