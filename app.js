@@ -631,28 +631,58 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 // Menú hamburguesa: abrir/cerrar en móvil
 document.addEventListener('DOMContentLoaded', function() {
+    // Ocultar todo menos login al cargar (restaurado)
+    const loginView = document.getElementById('loginView');
+    const ownerView = document.getElementById('ownerView');
+    const managerView = document.getElementById('managerView');
+    const employeeView = document.getElementById('employeeView');
+    const mainNav = document.getElementById('mainNav');
+    const navDashboard = document.getElementById('navDashboard');
+    const navTasks = document.getElementById('navTasks');
+    const navInventory = document.getElementById('navInventory');
+    const navReports = document.getElementById('navReports');
+    const navUsers = document.getElementById('navUsers');
+    const navSettings = document.getElementById('navSettings');
+    if (loginView) loginView.style.display = 'flex';
+    if (ownerView) ownerView.style.display = 'none';
+    if (managerView) managerView.style.display = 'none';
+    if (employeeView) employeeView.style.display = 'none';
+    if (mainNav) mainNav.style.display = 'none';
+    if (navDashboard) navDashboard.style.display = 'none';
+    if (navTasks) navTasks.style.display = 'none';
+    if (navInventory) navInventory.style.display = 'none';
+    if (navReports) navReports.style.display = 'none';
+    if (navUsers) navUsers.style.display = 'none';
+    if (navSettings) navSettings.style.display = 'none';
+
+    // Menú hamburguesa
     const hamburgerBtn = document.getElementById('hamburgerBtn');
     const navLinks = document.getElementById('navLinks');
     if (hamburgerBtn && navLinks) {
         hamburgerBtn.addEventListener('click', function() {
             navLinks.classList.toggle('open');
         });
-        // Cerrar menú al hacer click en un link (en móvil)
         navLinks.querySelectorAll('a').forEach(link => {
             link.addEventListener('click', () => navLinks.classList.remove('open'));
         });
     }
 
-    // Cerrar sesión (placeholder)
+    // Cerrar sesión (restaurado)
     const logoutBtn = document.getElementById('navLogout');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            // Aquí puedes limpiar sesión y mostrar login
-            document.getElementById('loginView').style.display = 'flex';
-            document.getElementById('ownerView').style.display = 'none';
-            document.getElementById('managerView').style.display = 'none';
-            document.getElementById('employeeView').style.display = 'none';
+            if (loginView) loginView.style.display = 'flex';
+            if (ownerView) ownerView.style.display = 'none';
+            if (managerView) managerView.style.display = 'none';
+            if (employeeView) employeeView.style.display = 'none';
+            if (mainNav) mainNav.style.display = 'none';
+            if (navDashboard) navDashboard.style.display = 'none';
+            if (navTasks) navTasks.style.display = 'none';
+            if (navInventory) navInventory.style.display = 'none';
+            if (navReports) navReports.style.display = 'none';
+            if (navUsers) navUsers.style.display = 'none';
+            if (navSettings) navSettings.style.display = 'none';
         });
     }
 });
@@ -672,6 +702,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const ownerView = document.getElementById('ownerView');
                     const managerView = document.getElementById('managerView');
                     const employeeView = document.getElementById('employeeView');
+                    const mainNav = document.getElementById('mainNav');
                     const navDashboard = document.getElementById('navDashboard');
                     const navTasks = document.getElementById('navTasks');
                     const navInventory = document.getElementById('navInventory');
@@ -680,15 +711,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     const navSettings = document.getElementById('navSettings');
 
                     // Ocultar todo por defecto
-                    ownerView.style.display = 'none';
-                    managerView.style.display = 'none';
-                    employeeView.style.display = 'none';
-                    navDashboard.style.display = 'none';
-                    navTasks.style.display = 'none';
-                    navInventory.style.display = 'none';
-                    navReports.style.display = 'none';
-                    navUsers.style.display = 'none';
-                    navSettings.style.display = 'none';
+                    if (ownerView) ownerView.style.display = 'none';
+                    if (managerView) managerView.style.display = 'none';
+                    if (employeeView) employeeView.style.display = 'none';
+                    if (mainNav) mainNav.style.display = 'block';
+                    if (navDashboard) navDashboard.style.display = 'none';
+                    if (navTasks) navTasks.style.display = 'none';
+                    if (navInventory) navInventory.style.display = 'none';
+                    if (navReports) navReports.style.display = 'none';
+                    if (navUsers) navUsers.style.display = 'none';
+                    if (navSettings) navSettings.style.display = 'none';
 
                     // Consultar usuario en Firestore para obtener rol y propiedad asignada
                     db.collection('users').where('email', '==', email).get().then(snapshot => {
@@ -696,47 +728,47 @@ document.addEventListener('DOMContentLoaded', function() {
                         snapshot.forEach(doc => user = doc.data());
                         if (!user) {
                             // Si no está en la colección, asumir dueño
-                            ownerView.style.display = 'block';
-                            navDashboard.style.display = 'inline-block';
-                            navReports.style.display = 'inline-block';
-                            navUsers.style.display = 'inline-block';
-                            navSettings.style.display = 'inline-block';
+                            if (ownerView) ownerView.style.display = 'block';
+                            if (navDashboard) navDashboard.style.display = 'inline-block';
+                            if (navReports) navReports.style.display = 'inline-block';
+                            if (navUsers) navUsers.style.display = 'inline-block';
+                            if (navSettings) navSettings.style.display = 'inline-block';
                             return;
                         }
                         if (user.role === 'manager') {
-                            managerView.style.display = 'block';
-                            navDashboard.style.display = 'inline-block';
-                            navTasks.style.display = 'inline-block';
-                            navInventory.style.display = 'inline-block';
-                            navReports.style.display = 'inline-block';
-                            navSettings.style.display = 'inline-block';
+                            if (managerView) managerView.style.display = 'block';
+                            if (navDashboard) navDashboard.style.display = 'inline-block';
+                            if (navTasks) navTasks.style.display = 'inline-block';
+                            if (navInventory) navInventory.style.display = 'inline-block';
+                            if (navReports) navReports.style.display = 'inline-block';
+                            if (navSettings) navSettings.style.display = 'inline-block';
                             // Mostrar solo propiedades asignadas
                             db.collection('properties').doc(user.propertyId).get().then(doc => {
                                 const p = doc.data();
-                                managerView.innerHTML = `<h2>Panel de Manager</h2><div class='dashboard-placeholder'>Propiedad asignada: <b>${p ? p.name : 'N/A'}</b></div>`;
+                                if (managerView) managerView.innerHTML = `<h2>Panel de Manager</h2><div class='dashboard-placeholder'>Propiedad asignada: <b>${p ? p.name : 'N/A'}</b></div>`;
                             });
                         } else if (user.role === 'employee') {
-                            employeeView.style.display = 'block';
-                            navDashboard.style.display = 'inline-block';
-                            navTasks.style.display = 'inline-block';
-                            navSettings.style.display = 'inline-block';
+                            if (employeeView) employeeView.style.display = 'block';
+                            if (navDashboard) navDashboard.style.display = 'inline-block';
+                            if (navTasks) navTasks.style.display = 'inline-block';
+                            if (navSettings) navSettings.style.display = 'inline-block';
                             // Mostrar solo propiedades asignadas
                             db.collection('properties').doc(user.propertyId).get().then(doc => {
                                 const p = doc.data();
-                                employeeView.innerHTML = `<h2>Panel de Empleado</h2><div class='dashboard-placeholder'>Propiedad asignada: <b>${p ? p.name : 'N/A'}</b></div>`;
+                                if (employeeView) employeeView.innerHTML = `<h2>Panel de Empleado</h2><div class='dashboard-placeholder'>Propiedad asignada: <b>${p ? p.name : 'N/A'}</b></div>`;
                             });
                         } else {
                             // Dueño
-                            ownerView.style.display = 'block';
-                            navDashboard.style.display = 'inline-block';
-                            navReports.style.display = 'inline-block';
-                            navUsers.style.display = 'inline-block';
-                            navSettings.style.display = 'inline-block';
+                            if (ownerView) ownerView.style.display = 'block';
+                            if (navDashboard) navDashboard.style.display = 'inline-block';
+                            if (navReports) navReports.style.display = 'inline-block';
+                            if (navUsers) navUsers.style.display = 'inline-block';
+                            if (navSettings) navSettings.style.display = 'inline-block';
                         }
                     });
                 })
                 .catch(error => {
-                    loginError.textContent = error.message;
+                    loginError.textContent = 'Error: ' + error.message;
                     loginError.style.display = 'block';
                 });
         });
@@ -4776,7 +4808,17 @@ window.addEventListener('DOMContentLoaded', () => {
     loadTheme();
     updateThemeButtonText();
     initializeApp();
+
+    // Mostrar solo login al inicio
+    document.getElementById('loginView').style.display = 'block';
+    document.getElementById('mainNav').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'none';
+    if (document.getElementById('ownerView')) document.getElementById('ownerView').style.display = 'none';
+    if (document.getElementById('managerView')) document.getElementById('managerView').style.display = 'none';
+    if (document.getElementById('employeeView')) document.getElementById('employeeView').style.display = 'none';
 });
+
+
 
 // --- FIN DEL ARCHIVO ---
 // Exponer funciones globales al final para asegurar disponibilidad
