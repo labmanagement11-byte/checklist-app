@@ -11,93 +11,47 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
-    <div id="app">
-        <!-- MENÚ HAMBURGUESA PROFESIONAL (oculto por defecto, visible tras login) -->
-        <nav id="mainNav" class="main-nav sidebar" style="display:none;">
-            <div class="nav-header">
-                <div class="nav-avatar-container">
-                    <img src="avatar-pro.png" alt="Usuario" class="nav-avatar" />
+    <!-- LOGIN CLÁSICO CON FIREBASE AUTH (visible por defecto) -->
+    <div id="loginView" class="view login-gradient-center" style="display:block;">
+        <div class="login-container-pro">
+            <img src="logo-new.png?v=1" alt="LIMPIEZA-360PRO-APP" class="login-logo">
+            <h1 class="login-title">LIMPIEZA-360PRO-APP</h1>
+            <p class="login-subtitle">Bienvenido a la plataforma profesional de gestión y limpieza.<br>Acceso seguro para propietarios, managers y empleados.</p>
+            <form id="firebaseLoginForm" autocomplete="on" class="login-form-pro">
+                <div class="form-group-pro">
+                    <label for="loginEmail"><span class="icon">📧</span>Email</label>
+                    <input type="email" id="loginEmail" placeholder="Tu correo electrónico" required autocomplete="username">
                 </div>
-                <img src="logo.svg" alt="Logo" class="nav-logo" />
-                <button id="hamburgerBtn" class="hamburger" aria-label="Abrir menú">
-                    <span></span><span></span><span></span>
-                </button>
+                <div class="form-group-pro">
+                    <label for="loginPassword"><span class="icon">🔒</span>Contraseña</label>
+                    <input type="password" id="loginPassword" placeholder="Tu contraseña" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn-primary-pro">Ingresar</button>
+            </form>
+            <div id="loginError" class="loginError-pro"></div>
+            <div class="login-footer-pro">
+                ¿Olvidaste tu contraseña? <span class="text-accent">Contacta al administrador.</span>
             </div>
-            <ul class="nav-links" id="navLinks">
-                <li><a href="#" id="navDashboard">Dashboard</a></li>
-                <li><a href="#" id="navTasks">Tareas</a></li>
-                <li><a href="#" id="navInventory">Inventario</a></li>
-                <li><a href="#" id="navReports">Reportes</a></li>
-                <li><a href="#" id="navUsers">Usuarios</a></li>
-                <li><a href="#" id="navSettings">Configuración</a></li>
-                <li><a href="#" id="navLogout">Cerrar sesión</a></li>
-            </ul>
-        </nav>
-
-        <!-- LOGIN NUEVO CON FIREBASE AUTH (visible por defecto) -->
-        <div id="loginView" class="view login-gradient-center" style="display:block;">
-            <!-- ...login HTML como ya tienes... -->
         </div>
+    </div>
 
-        <!-- VISTAS PRINCIPALES (ocultas por defecto, se muestran tras login según usuario) -->
-        <main id="mainContent" class="main-content" style="display:none;">
-            <section id="ownerView" class="view" style="display:none;">
-                                                                <!-- Formulario para agregar reporte -->
-                                                                <form id="addReportForm" class="owner-form">
-                                                                    <h3>Agregar reporte</h3>
-                                                                    <input type="text" id="reportTitle" placeholder="Título del reporte" required />
-                                                                    <select id="reportType" required>
-                                                                        <option value="">Tipo de reporte</option>
-                                                                        <option value="inventario">Inventario</option>
-                                                                        <option value="tarea">Tarea</option>
-                                                                        <option value="otro">Otro</option>
-                                                                    </select>
-                                                                    <select id="reportProperty" required>
-                                                                        <option value="">Asignar a propiedad</option>
-                                                                    </select>
-                                                                    <textarea id="reportDesc" placeholder="Descripción" rows="2" class="resize-vertical"></textarea>
-                                                                    <button type="submit">Agregar reporte</button>
-                                                                </form>
-                                                <!-- Formulario para agregar inventario -->
-                                                <form id="addInventoryForm" class="owner-form">
-                                                    <h3>Agregar artículo de inventario</h3>
-                                                    <input type="text" id="inventoryName" placeholder="Nombre del artículo" required />
-                                                    <input type="number" id="inventoryQty" placeholder="Cantidad" min="1" required />
-                                                    <select id="inventoryProperty" required>
-                                                        <option value="">Asignar a propiedad</option>
-                                                    </select>
-                                                    <button type="submit">Agregar artículo</button>
-                                                </form>
-                                                <div id="inventoryList" class="owner-list">
-                                                    <!-- Aquí se listará el inventario -->
-                                                </div>
-                                                <!-- Reportes -->
-                                                <div id="reportsList" class="owner-list">
-                                                    <!-- Aquí se listarán los reportes -->
-                                                </div>
-                                <!-- Formulario para agregar tarea -->
-                                <form id="addTaskForm" class="owner-form">
-                                    <h3>Agregar tarea</h3>
-                                    <input type="text" id="taskTitle" placeholder="Título de la tarea" required />
-                                    <textarea id="taskDesc" placeholder="Descripción" rows="2" class="resize-vertical"></textarea>
-                                    <select id="taskProperty" required>
-                                        <option value="">Asignar a propiedad</option>
-                                    </select>
-                                    <select id="taskUser" required>
-                                        <option value="">Asignar a usuario</option>
-                                    </select>
-                                    <button type="submit">Agregar tarea</button>
-                                </form>
-                                <div id="tasksList" class="owner-list">
-                                    <!-- Aquí se listarán las tareas -->
-                                </div>
-                <h2 class="dashboard-title">Panel de Dueño</h2>
-                <div class="dashboard-welcome">Bienvenido, dueño. Aquí puedes gestionar propiedades y usuarios.</div>
-
-                <div class="dashboard-grid">
-                  <!-- Tarjeta de Propiedades -->
-                  <div class="dashboard-card">
-                    <h3 class="card-title">🏠 Propiedades</h3>
+    <!-- VISTAS PRINCIPALES (ocultas por defecto, se muestran tras login según usuario) -->
+    <nav id="mainNav" class="main-nav sidebar" style="display:none;">
+        <ul class="nav-links" id="navLinks">
+            <li><a href="#" id="navDashboard">Dashboard</a></li>
+            <li><a href="#" id="navTasks">Tareas</a></li>
+            <li><a href="#" id="navInventory">Inventario</a></li>
+            <li><a href="#" id="navReports">Reportes</a></li>
+            <li><a href="#" id="navUsers">Usuarios</a></li>
+            <li><a href="#" id="navSettings">Configuración</a></li>
+            <li><a href="#" id="navLogout">Cerrar sesión</a></li>
+        </ul>
+    </nav>
+    <main id="mainContent" class="main-content" style="display:none;">
+        <section id="ownerView" class="view" style="display:none;"></section>
+        <section id="managerView" class="view" style="display:none;"></section>
+        <section id="employeeView" class="view" style="display:none;"></section>
+    </main>
                     <form id="addPropertyForm" class="owner-form card-form">
                         <input type="text" id="propertyName" placeholder="Nombre de la propiedad" required />
                         <input type="text" id="propertyAddress" placeholder="Dirección" required />
@@ -199,82 +153,7 @@
             </section>
         </main>
 
-        <!-- LOGIN NUEVO CON FIREBASE AUTH -->
-        <div id="loginView" class="view login-gradient-center">
-            <style>
-                @keyframes gradientMove {
-                    0% { background-position: 0% 50%; }
-                    100% { background-position: 100% 50%; }
-                }
-                .login-container-pro {
-                    max-width: 420px; width: 100%; background: #fff; border-radius: 22px; box-shadow: 0 12px 40px #1e3a8a44; padding: 2.7rem 2.2rem; display: flex; flex-direction: column; align-items: center; position: relative;
-                }
-                .login-logo {
-                    margin-bottom: 1.2rem; border-radius: 50%; box-shadow: 0 4px 18px #1e3a8a33; width: 110px; height: 110px; object-fit: cover;
-                }
-                .login-title {
-                    margin: 0; color: #1E3A8A; font-size: 2.2rem; font-weight: 800; text-align: center; letter-spacing: 1.5px;
-                }
-                .login-subtitle {
-                    color: #2563eb; font-size: 1.15rem; margin: 0.7rem 0 2.2rem 0; text-align: center; font-weight: 500;
-                }
-                .login-form-pro {
-                    width: 100%; display: flex; flex-direction: column; gap: 1.7rem;
-                }
-                .form-group-pro {
-                    display: flex; flex-direction: column; gap: 0.5rem;
-                }
-                .form-group-pro label {
-                    font-weight: 600; color: #1E3A8A; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;
-                }
-                .form-group-pro label .icon {
-                    font-size: 1.2rem;
-                }
-                .form-group-pro input {
-                    padding: 0.85rem 1.1rem; border-radius: 10px; border: 1.5px solid #dbeafe; font-size: 1.08rem; transition: border 0.2s, box-shadow 0.2s;
-                }
-                .form-group-pro input:focus {
-                    border-color: #2563eb; box-shadow: 0 0 0 2px #60A5FA44;
-                }
-                .btn-primary-pro {
-                    background: linear-gradient(90deg, #1E3A8A 0%, #60A5FA 100%); color: #fff; font-weight: 700; font-size: 1.15rem; border: none; border-radius: 10px; padding: 1rem 0; box-shadow: 0 2px 12px #1e3a8a22; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
-                }
-                .btn-primary-pro:hover {
-                    transform: translateY(-2px) scale(1.03); box-shadow: 0 6px 18px #1e3a8a33;
-                    background: linear-gradient(90deg, #2563eb 0%, #60A5FA 100%);
-                }
-                .loginError-pro {
-                    color: #e00; margin-top: 1.5rem; display: none; font-size: 1.05rem; text-align: center;
-                }
-                .login-footer-pro {
-                    margin-top: 2.2rem; text-align: center; color: #6b7280; font-size: 1rem; font-weight: 500;
-                }
-            </style>
-            <div class="login-container-pro">
-                <img src="logo-new.png?v=1" alt="LIMPIEZA-360PRO-APP" class="login-logo">
-                <h1 class="login-title">LIMPIEZA-360PRO-APP</h1>
-                <p class="login-subtitle">Bienvenido a la plataforma profesional de gestión y limpieza.<br>Acceso seguro para propietarios, managers y empleados.</p>
-                <form id="firebaseLoginForm" autocomplete="on" class="login-form-pro">
-                    <div class="form-group-pro">
-                        <label for="loginEmail"><span class="icon">📧</span>Email</label>
-                        <input type="email" id="loginEmail" placeholder="Tu correo electrónico" required autocomplete="username">
-                    </div>
-                    <div class="form-group-pro">
-                        <label for="loginPassword"><span class="icon">🔒</span>Contraseña</label>
-                        <input type="password" id="loginPassword" placeholder="Tu contraseña" required autocomplete="current-password">
-                    </div>
-                    <button type="submit" class="btn-primary-pro">Ingresar</button>
-                </form>
-                <div id="loginError" class="loginError-pro"></div>
-                <div class="login-footer-pro">
-                    ¿Olvidaste tu contraseña? <span class="text-accent">Contacta al administrador.</span>
-                </div>
-            </div>
-        </div>
 
-        <!-- VISTA DUEÑO -->
-        <div id="ownerView" class="view">
-    </div>
 
     <script src="firebase-init.js"></script>
     <script src="app.js"></script>
