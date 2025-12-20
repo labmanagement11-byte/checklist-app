@@ -1,3 +1,30 @@
+// Firestore: Sincronización de propiedades
+let propertiesUnsubscribe = null;
+let properties = {};
+function loadPropertiesFromFirestore() {
+    if (propertiesUnsubscribe) propertiesUnsubscribe();
+    propertiesUnsubscribe = window.db.collection('properties').onSnapshot(snapshot => {
+        properties = {};
+        snapshot.forEach(doc => {
+            properties[doc.id] = { id: doc.id, ...doc.data() };
+        });
+        if (typeof renderProperties === 'function') renderProperties();
+    });
+}
+
+function savePropertyToFirestore(prop) {
+    if (!prop.id) {
+        return window.db.collection('properties').add(prop);
+    } else {
+        const p = { ...prop };
+        delete p.id;
+        return window.db.collection('properties').doc(prop.id).set(p);
+    }
+}
+
+function deletePropertyFromFirestore(propId) {
+    return window.db.collection('properties').doc(propId).delete();
+}
 // --- Categorías de Inventario ---
 const INVENTORY_CATEGORIES = {
     cocina: {
@@ -992,14 +1019,15 @@ function selectProperty(propId) {
 }
 
 function deleteProperty(propId) {
-    delete properties[propId];
-    cleaningTasks = cleaningTasks.filter(t => t.propertyId !== propId);
-    saveData();
-    if (!selectedProperty) {
-        selectedProperty = Object.keys(properties)[0] || null;
-    }
-    renderProperties();
-    refreshOwnerContent();
+    deletePropertyFromFirestore(propId).then(() => {
+        cleaningTasks = cleaningTasks.filter(t => t.propertyId !== propId);
+        saveData();
+        if (!selectedProperty) {
+            selectedProperty = Object.keys(properties)[0] || null;
+        }
+        renderProperties();
+        refreshOwnerContent();
+    });
 }
 
 function showAddProperty() {
@@ -1022,22 +1050,19 @@ function saveProperty() {
     const id = `prop_${Date.now()}`;
     const prop = { id, name, address, staff: [], inventory: {} };
     normalizeInventory(prop);
-    properties[id] = prop;
-
-    cleaningTasks.push(...createDefaultCleaningTasks(id, name));
-
-    // Programar limpieza profunda inicial para EPIC D1 cada 3 meses (arranque en 90 días)
-    if (name === 'EPIC D1') {
-        scheduleDeepCleanEvery3Months(id, name);
-    }
-
+    savePropertyToFirestore(prop).then(() => {
+        cleaningTasks.push(...createDefaultCleaningTasks(id, name));
+        if (name === 'EPIC D1') {
+            scheduleDeepCleanEvery3Months(id, name);
+        }
         savedOwnerCreds = storedOwnerCreds ? JSON.parse(storedOwnerCreds) : null;
         savedStaffCreds = storedStaffCreds ? JSON.parse(storedStaffCreds) : null;
-    selectedProperty = id;
-    saveData();
-    closeModal();
-    renderProperties();
-    refreshOwnerContent();
+        selectedProperty = id;
+        saveData();
+        closeModal();
+        renderProperties();
+        refreshOwnerContent();
+    });
 }
 
 function refreshOwnerContent() {
@@ -4328,6 +4353,7 @@ function populateCategorySelect() {
 
 function initializeApp() {
     loadData();
+    loadPropertiesFromFirestore();
     // Restaurar sesión antes de definir la propiedad seleccionada
     const session = localStorage.getItem('airbnbmanager_session');
     if (session) {
