@@ -2,90 +2,93 @@
 window.updateLoginForm = updateLoginForm;
 window.login = login;
 // Firestore: Sincronización de propiedades
-let propertiesUnsubscribe = null;
-let properties = {};
-function loadPropertiesFromFirestore() {
-    if (propertiesUnsubscribe) propertiesUnsubscribe();
-    propertiesUnsubscribe = window.db.collection('properties').onSnapshot(snapshot => {
-        properties = {};
-        snapshot.forEach(doc => {
-            properties[doc.id] = { id: doc.id, ...doc.data() };
+function login() {
+    window.login = login;
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+    if (!username || !password) { alert('Ingresa usuario y contraseña'); return; }
+
+    // 1. Verificar si es dueño
+    if (username === OWNER_CREDENTIALS.username && password === OWNER_CREDENTIALS.password) {
+        if (!properties || Object.keys(properties).length === 0) {
+            alert('No existen propiedades registradas. Por favor, registre al menos una propiedad real antes de ingresar.');
+            return;
+        }
+        if (!selectedProperty) {
+            selectedProperty = Object.keys(properties)[0] || null;
+        }
+        currentUserType = 'owner';
+        currentUser = { name: OWNER_CREDENTIALS.name, username, loginTime: new Date() };
+        localStorage.setItem('airbnbmanager_session', JSON.stringify({ type: 'owner', user: currentUser, selectedProperty }));
+
+        // Guardar credenciales si se marcó recordar
+        const remember = document.getElementById('rememberLogin').checked;
+        if (remember) {
+            savedOwnerCreds = { username, password };
+            localStorage.setItem(STORAGE_KEYS.savedOwnerCreds, JSON.stringify(savedOwnerCreds));
+        } else {
+            savedOwnerCreds = null;
+            localStorage.removeItem(STORAGE_KEYS.savedOwnerCreds);
+        }
+        mostrarVideoBienvenida(() => {
+            showOwnerView();
         });
-        if (typeof renderProperties === 'function') renderProperties();
-    });
-}
-
-function savePropertyToFirestore(prop) {
-    if (!prop.id) {
-        return window.db.collection('properties').add(prop);
-    } else {
-        const p = { ...prop };
-        delete p.id;
-        return window.db.collection('properties').doc(prop.id).set(p);
+        return;
     }
-}
 
-function deletePropertyFromFirestore(propId) {
-    return window.db.collection('properties').doc(propId).delete();
-}
-// --- Categorías de Inventario ---
-const INVENTORY_CATEGORIES = {
-    cocina: {
-        name: 'Cocina',
-        icon: '🍳',
-        items: [
-            'Tenedores', 'Cuchillos', 'Cucharas', 'Platos', 'Vasos', 'Copas',
-            'Sartenes', 'Ollas', 'Cafetera', 'Tazas', 'Cucharón', 'Espumadera',
-            'Tabla de picar', 'Destapador', 'Microondas', 'Licuadora', 'Tetera',
-            'Bowls', 'Colador', 'Abrelatas', 'Sacacorchos', 'Bandeja', 'Pyrex',
-            'Rallador', 'Pelador', 'Pinzas cocina', 'Espátula'
-        ]
-    },
-    habitaciones: {
-        name: 'Habitaciones',
-        icon: '🛏️',
-        items: [
-            'Almohadas', 'Sabanas', 'Colchas', 'Mantas', 'Cortinas', 'Lámparas',
-            'Percheros', 'Mesas de noche', 'Espejo', 'Cobijas', 'Protector de colchón',
-            'Cojines decorativos', 'Despertador', 'Ganchos ropa'
-        ]
-    },
-    banos: {
-        name: 'Baños',
-        icon: '🚿',
-        items: [
-            'Toallas', 'Toallones', 'Jabón', 'Champú', 'Papel higiénico',
-            'Espejo', 'Tapete', 'Cortina de ducha', 'Accesorios baño',
-            'Acondicionador', 'Jabón líquido', 'Cepillo de baño', 'Destapador',
-            'Canasta basura', 'Ambientador', 'Escobilla inodoro'
-        ]
-    },
-    sala: {
-        name: 'Sala',
-        icon: '🛋️',
-        items: [
-            'Sofás', 'Mesas de centro', 'Sillas', 'Lámparas', 'Cuadros',
-            'Cortinas', 'Cojines', 'Alfombras', 'Control remoto TV',
-            'Cobijas decorativas', 'Jarrones', 'Plantas decorativas'
-        ]
-    },
-    comedor: {
-        name: 'Comedor',
-        icon: '🍽️',
-        items: [
-            'Sillas', 'Mesa', 'Mantel', 'Servilletas', 'Lámparas', 'Cortinas',
-            'Decoración', 'Individuales', 'Salero y pimentero', 'Centro de mesa',
-            'Servilletero'
-        ]
-    },
-    lavanderia: {
-        name: 'Lavandería',
-        icon: '🧺',
-        items: [
-            'Detergente', 'Suavizante', 'Cloro', 'Cesto ropa', 'Escobilla', 'Trapos',
-            'Jabón en polvo', 'Jabón líquido', 'Quitamanchas', 'Perchas',
-            'Tendedero', 'Pinzas ropa', 'Blanqueador'
-        ]
+    // 2. Buscar en staff de todas las propiedades
+    let found = null;
+    let foundType = null;
+    for (const propId of Object.keys(properties)) {
+        const prop = properties[propId];
+        const staff = (prop.staff || []).find(s => s.username === username && s.password === password);
+        if (staff) {
+            found = { staff, property: prop };
+            if (staff.role === 'manager') foundType = 'manager';
+            else if (staff.role === 'employee' || staff.role === 'maintenance') foundType = 'employee';
+            break;
+        }
+    }
+    if (!found || !foundType) {
+        alert('Credenciales no válidas');
+        return;
+    }
+    currentUserType = foundType;
+    currentUser = {
+        staffId: found.staff.id,
+        propertyId: found.property.id,
+        name: found.staff.name,
+        username: found.staff.username,
+        role: found.staff.role,
+        loginTime: new Date()
+    };
+    localStorage.setItem('airbnbmanager_session', JSON.stringify({ type: foundType, user: currentUser, selectedProperty: currentUser.propertyId }));
+
+    // Guardar credenciales si se marcó recordar
+    const rememberStaff = document.getElementById('rememberLogin').checked;
+    const existing = savedStaffCreds || {};
+    if (rememberStaff) {
+        existing[foundType] = { username, password };
+        savedStaffCreds = existing;
+        localStorage.setItem(STORAGE_KEYS.savedStaffCreds, JSON.stringify(savedStaffCreds));
+    } else {
+        if (existing[foundType]) delete existing[foundType];
+        savedStaffCreds = existing;
+        if (Object.keys(existing).length === 0) {
+            localStorage.removeItem(STORAGE_KEYS.savedStaffCreds);
+        } else {
+            localStorage.setItem(STORAGE_KEYS.savedStaffCreds, JSON.stringify(savedStaffCreds));
+        }
+    }
+    if (foundType === 'manager') {
+        mostrarVideoBienvenida(() => {
+            showManagerView();
+        });
+    } else {
+        mostrarVideoBienvenida(() => {
+            showEmployeeView();
+        });
+    }
     },
     limpieza: {
         name: 'Implementos de Limpieza',
