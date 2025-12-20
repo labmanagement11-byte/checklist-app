@@ -12,10 +12,164 @@
 </head>
 <body>
     <div id="app">
+        <!-- MENÚ HAMBURGUESA PROFESIONAL -->
+        <nav id="mainNav" class="main-nav">
+            <div class="nav-header">
+                <img src="logo.svg" alt="Logo" class="nav-logo" />
+                <button id="hamburgerBtn" class="hamburger" aria-label="Abrir menú">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="#" id="navDashboard">Dashboard</a></li>
+                <li><a href="#" id="navTasks">Tareas</a></li>
+                <li><a href="#" id="navInventory">Inventario</a></li>
+                <li><a href="#" id="navReports">Reportes</a></li>
+                <li><a href="#" id="navUsers">Usuarios</a></li>
+                <li><a href="#" id="navSettings">Configuración</a></li>
+                <li><a href="#" id="navLogout">Cerrar sesión</a></li>
+            </ul>
+        </nav>
+
+        <!-- VISTAS PRINCIPALES (solo placeholders, se mostrarán según el usuario) -->
+        <main id="mainContent">
+            <section id="ownerView" class="view" style="display:none">
+                                                                <!-- Formulario para agregar reporte -->
+                                                                <form id="addReportForm" class="owner-form">
+                                                                    <h3>Agregar reporte</h3>
+                                                                    <input type="text" id="reportTitle" placeholder="Título del reporte" required />
+                                                                    <select id="reportType" required>
+                                                                        <option value="">Tipo de reporte</option>
+                                                                        <option value="inventario">Inventario</option>
+                                                                        <option value="tarea">Tarea</option>
+                                                                        <option value="otro">Otro</option>
+                                                                    </select>
+                                                                    <select id="reportProperty" required>
+                                                                        <option value="">Asignar a propiedad</option>
+                                                                    </select>
+                                                                    <textarea id="reportDesc" placeholder="Descripción" rows="2" style="resize:vertical"></textarea>
+                                                                    <button type="submit">Agregar reporte</button>
+                                                                </form>
+                                                <!-- Formulario para agregar inventario -->
+                                                <form id="addInventoryForm" class="owner-form">
+                                                    <h3>Agregar artículo de inventario</h3>
+                                                    <input type="text" id="inventoryName" placeholder="Nombre del artículo" required />
+                                                    <input type="number" id="inventoryQty" placeholder="Cantidad" min="1" required />
+                                                    <select id="inventoryProperty" required>
+                                                        <option value="">Asignar a propiedad</option>
+                                                    </select>
+                                                    <button type="submit">Agregar artículo</button>
+                                                </form>
+                                                <div id="inventoryList" class="owner-list">
+                                                    <!-- Aquí se listará el inventario -->
+                                                </div>
+                                                <!-- Reportes -->
+                                                <div id="reportsList" class="owner-list">
+                                                    <!-- Aquí se listarán los reportes -->
+                                                </div>
+                                <!-- Formulario para agregar tarea -->
+                                <form id="addTaskForm" class="owner-form">
+                                    <h3>Agregar tarea</h3>
+                                    <input type="text" id="taskTitle" placeholder="Título de la tarea" required />
+                                    <textarea id="taskDesc" placeholder="Descripción" rows="2" style="resize:vertical"></textarea>
+                                    <select id="taskProperty" required>
+                                        <option value="">Asignar a propiedad</option>
+                                    </select>
+                                    <select id="taskUser" required>
+                                        <option value="">Asignar a usuario</option>
+                                    </select>
+                                    <button type="submit">Agregar tarea</button>
+                                </form>
+                                <div id="tasksList" class="owner-list">
+                                    <!-- Aquí se listarán las tareas -->
+                                </div>
+                <h2>Panel de Dueño</h2>
+                <div class="dashboard-placeholder">Bienvenido, dueño. Aquí puedes gestionar propiedades y usuarios.</div>
+
+                <!-- Formulario para agregar propiedad -->
+                <form id="addPropertyForm" class="owner-form">
+                    <h3>Agregar nueva propiedad</h3>
+                    <input type="text" id="propertyName" placeholder="Nombre de la propiedad" required />
+                    <input type="text" id="propertyAddress" placeholder="Dirección" required />
+                    <button type="submit">Agregar propiedad</button>
+                </form>
+                <div id="propertiesList" class="owner-list">
+                    <!-- Aquí se listarán las propiedades -->
+                </div>
+
+                <!-- Formulario para agregar usuario -->
+                <form id="addUserForm" class="owner-form">
+                    <h3>Agregar usuario</h3>
+                    <input type="text" id="userName" placeholder="Nombre completo" required />
+                    <input type="email" id="userEmail" placeholder="Correo electrónico" required />
+                    <select id="userRole" required>
+                        <option value="">Selecciona rol</option>
+                        <option value="manager">Manager</option>
+                        <option value="employee">Empleado</option>
+                    </select>
+                    <select id="userProperty" required>
+                        <option value="">Asignar a propiedad</option>
+                        <!-- Opciones dinámicas -->
+                    </select>
+                    <button type="submit">Agregar usuario</button>
+                </form>
+                <div id="usersList" class="owner-list">
+                    <!-- Aquí se listarán los usuarios -->
+                </div>
+            </section>
+            <section id="managerView" class="view" style="display:none">
+                                                                <div id="reportsListManager" class="owner-list">
+                                                                    <!-- Aquí se listarán los reportes del manager -->
+                                                                </div>
+                                                <!-- Formulario para agregar reporte (manager) -->
+                                                <form id="addReportFormManager" class="owner-form">
+                                                    <h3>Agregar reporte</h3>
+                                                    <input type="text" id="reportTitleManager" placeholder="Título del reporte" required />
+                                                    <select id="reportTypeManager" required>
+                                                        <option value="">Tipo de reporte</option>
+                                                        <option value="inventario">Inventario</option>
+                                                        <option value="tarea">Tarea</option>
+                                                        <option value="otro">Otro</option>
+                                                    </select>
+                                                    <textarea id="reportDescManager" placeholder="Descripción" rows="2" style="resize:vertical"></textarea>
+                                                    <button type="submit">Agregar reporte</button>
+                                                </form>
+                                <!-- Formulario para agregar inventario (manager) -->
+                                <form id="addInventoryFormManager" class="owner-form">
+                                    <h3>Agregar artículo de inventario</h3>
+                                    <input type="text" id="inventoryNameManager" placeholder="Nombre del artículo" required />
+                                    <input type="number" id="inventoryQtyManager" placeholder="Cantidad" min="1" required />
+                                    <button type="submit">Agregar artículo</button>
+                                </form>
+                                <div id="inventoryListManager" class="owner-list">
+                                    <!-- Aquí se listará el inventario del manager -->
+                                </div>
+                <h2>Panel de Manager</h2>
+                <div class="dashboard-placeholder">Bienvenido, manager. Aquí verás tareas, inventario y reportes.</div>
+            </section>
+            <section id="employeeView" class="view" style="display:none">
+                                <!-- Formulario para agregar reporte (empleado) -->
+                                <form id="addReportFormEmployee" class="owner-form">
+                                    <h3>Agregar reporte</h3>
+                                    <input type="text" id="reportTitleEmployee" placeholder="Título del reporte" required />
+                                    <select id="reportTypeEmployee" required>
+                                        <option value="">Tipo de reporte</option>
+                                        <option value="inventario">Inventario</option>
+                                        <option value="tarea">Tarea</option>
+                                        <option value="otro">Otro</option>
+                                    </select>
+                                    <textarea id="reportDescEmployee" placeholder="Descripción" rows="2" style="resize:vertical"></textarea>
+                                    <button type="submit">Agregar reporte</button>
+                                </form>
+                                <div id="reportsListEmployee" class="owner-list">
+                                    <!-- Aquí se listarán los reportes del empleado -->
+                                </div>
+                <h2>Panel de Empleado</h2>
+                <div class="dashboard-placeholder">Bienvenido, empleado. Aquí verás tus tareas asignadas y tu historial.</div>
+            </section>
+        </main>
 
         <!-- LOGIN NUEVO CON FIREBASE AUTH -->
-
-
         <div id="loginView" class="view" style="background: linear-gradient(135deg, #1E3A8A 0%, #60A5FA 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; animation: gradientMove 8s ease-in-out infinite alternate;">
             <style>
                 @keyframes gradientMove {

@@ -1,3 +1,661 @@
+// --- FORMULARIO DE REPORTES PARA EMPLEADO ---
+document.addEventListener('DOMContentLoaded', function() {
+    const addReportFormEmployee = document.getElementById('addReportFormEmployee');
+    const reportTitleEmployee = document.getElementById('reportTitleEmployee');
+    const reportTypeEmployee = document.getElementById('reportTypeEmployee');
+    const reportDescEmployee = document.getElementById('reportDescEmployee');
+    const reportsListEmployee = document.getElementById('reportsListEmployee');
+
+    if (addReportFormEmployee) {
+        addReportFormEmployee.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = reportTitleEmployee.value.trim();
+            const type = reportTypeEmployee.value;
+            const desc = reportDescEmployee.value.trim();
+            // Obtener propiedad asignada al empleado
+            let propertyId = null;
+            try {
+                const session = JSON.parse(localStorage.getItem('airbnbmanager_session'));
+                if (session && session.user && session.user.propertyId) {
+                    propertyId = session.user.propertyId;
+                }
+            } catch {}
+            if (!title || !type || !propertyId) return;
+            window.db.collection('reports').add({
+                title,
+                type,
+                propertyId,
+                desc,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                addReportFormEmployee.reset();
+                loadReportsEmployee();
+            });
+        });
+    }
+
+    function loadReportsEmployee() {
+        let propertyId = null;
+        try {
+            const session = JSON.parse(localStorage.getItem('airbnbmanager_session'));
+            if (session && session.user && session.user.propertyId) {
+                propertyId = session.user.propertyId;
+            }
+        } catch {}
+        if (!propertyId) return;
+        window.db.collection('reports').where('propertyId', '==', propertyId).orderBy('createdAt', 'desc').get().then(snapshot => {
+            let html = '';
+            if (snapshot.empty) {
+                html = '<p style="color:#888">No hay reportes registrados.</p>';
+            } else {
+                snapshot.forEach(doc => {
+                    const r = doc.data();
+                    html += `<div class=\"report-item\">
+                        <b>${r.title || 'Reporte'}</b> <span style=\"color:#888\">[${r.type || ''}]</span><br>
+                        <small>Propiedad: ${r.propertyId}</small><br>
+                        <small>Fecha: ${r.createdAt && r.createdAt.toDate ? r.createdAt.toDate().toLocaleString() : ''}</small><br>
+                        <button onclick=\"editReport('${doc.id}')\" style=\"margin-right:0.5rem\">Editar</button>
+                        <button onclick=\"deleteReport('${doc.id}')\" style=\"color:#d32f2f\">Eliminar</button>
+                    </div>`;
+                });
+            }
+            if (reportsListEmployee) reportsListEmployee.innerHTML = html;
+        });
+    }
+
+    // Hook para cargar reportes empleado al mostrar panel
+    if (document.getElementById('employeeView')) {
+        const origShow = window.showEmployeeView;
+        window.showEmployeeView = function() {
+            if (typeof origShow === 'function') origShow();
+            loadReportsEmployee();
+        };
+    }
+});
+// --- FORMULARIOS DE REPORTES (Dueño y Manager) ---
+document.addEventListener('DOMContentLoaded', function() {
+    // Dueño
+    const addReportForm = document.getElementById('addReportForm');
+    const reportTitle = document.getElementById('reportTitle');
+    const reportType = document.getElementById('reportType');
+    const reportProperty = document.getElementById('reportProperty');
+    const reportDesc = document.getElementById('reportDesc');
+
+    function loadReportFormOptions() {
+        if (!reportProperty) return;
+        window.db.collection('properties').get().then(snapshot => {
+            reportProperty.innerHTML = '<option value="">Asignar a propiedad</option>';
+            snapshot.forEach(doc => {
+                const p = doc.data();
+                reportProperty.innerHTML += `<option value="${doc.id}">${p.name}</option>`;
+            });
+        });
+    }
+
+    if (addReportForm) {
+        addReportForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = reportTitle.value.trim();
+            const type = reportType.value;
+            const propertyId = reportProperty.value;
+            const desc = reportDesc.value.trim();
+            if (!title || !type || !propertyId) return;
+            window.db.collection('reports').add({
+                title,
+                type,
+                propertyId,
+                desc,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                addReportForm.reset();
+                loadReports();
+            });
+        });
+    }
+
+    // Manager
+    const addReportFormManager = document.getElementById('addReportFormManager');
+    const reportTitleManager = document.getElementById('reportTitleManager');
+    const reportTypeManager = document.getElementById('reportTypeManager');
+    const reportDescManager = document.getElementById('reportDescManager');
+
+    if (addReportFormManager) {
+        addReportFormManager.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = reportTitleManager.value.trim();
+            const type = reportTypeManager.value;
+            const desc = reportDescManager.value.trim();
+            // Obtener propiedad asignada al manager
+            let propertyId = null;
+            try {
+                const session = JSON.parse(localStorage.getItem('airbnbmanager_session'));
+                if (session && session.user && session.user.propertyId) {
+                    propertyId = session.user.propertyId;
+                }
+            } catch {}
+            if (!title || !type || !propertyId) return;
+            window.db.collection('reports').add({
+                title,
+                type,
+                propertyId,
+                desc,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                addReportFormManager.reset();
+                loadReportsManager();
+            });
+        });
+    }
+
+    // Mostrar reportes solo de la propiedad del manager
+    function loadReportsManager() {
+        let propertyId = null;
+        try {
+            const session = JSON.parse(localStorage.getItem('airbnbmanager_session'));
+            if (session && session.user && session.user.propertyId) {
+                propertyId = session.user.propertyId;
+            }
+        } catch {}
+        if (!propertyId) return;
+        window.db.collection('reports').where('propertyId', '==', propertyId).orderBy('createdAt', 'desc').get().then(snapshot => {
+            let html = '';
+            if (snapshot.empty) {
+                html = '<p style="color:#888">No hay reportes registrados.</p>';
+            } else {
+                snapshot.forEach(doc => {
+                    const r = doc.data();
+                    html += `<div class=\"report-item\">
+                        <b>${r.title || 'Reporte'}</b> <span style=\"color:#888\">[${r.type || ''}]</span><br>
+                        <small>Propiedad: ${r.propertyId}</small><br>
+                        <small>Fecha: ${r.createdAt && r.createdAt.toDate ? r.createdAt.toDate().toLocaleString() : ''}</small><br>
+                        <button onclick=\"editReport('${doc.id}')\" style=\"margin-right:0.5rem\">Editar</button>
+                        <button onclick=\"deleteReport('${doc.id}')\" style=\"color:#d32f2f\">Eliminar</button>
+                    </div>`;
+                });
+            }
+            const reportsListManager = document.getElementById('reportsListManager');
+            if (reportsListManager) reportsListManager.innerHTML = html;
+        });
+    }
+
+    // Hook para cargar opciones y reportes al mostrar panel dueño
+    if (document.getElementById('ownerView')) {
+        const origShow = window.showOwnerView;
+        window.showOwnerView = function() {
+            if (typeof origShow === 'function') origShow();
+            loadReportFormOptions();
+        };
+    }
+    // Hook para cargar reportes manager al mostrar panel
+    if (document.getElementById('managerView')) {
+        const origShow = window.showManagerView;
+        window.showManagerView = function() {
+            if (typeof origShow === 'function') origShow();
+            loadReportsManager();
+        };
+    }
+});
+// --- INVENTARIO PARA MANAGER ---
+document.addEventListener('DOMContentLoaded', function() {
+    // Formulario y lista para manager
+    const addInventoryFormManager = document.getElementById('addInventoryFormManager');
+    const inventoryNameManager = document.getElementById('inventoryNameManager');
+    const inventoryQtyManager = document.getElementById('inventoryQtyManager');
+    const inventoryListManager = document.getElementById('inventoryListManager');
+
+    // Guardar artículo de inventario (manager)
+    if (addInventoryFormManager) {
+        addInventoryFormManager.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = inventoryNameManager.value.trim();
+            const qty = parseInt(inventoryQtyManager.value, 10);
+            // Obtener propiedad asignada al manager
+            let propertyId = null;
+            try {
+                const session = JSON.parse(localStorage.getItem('airbnbmanager_session'));
+                if (session && session.user && session.user.propertyId) {
+                    propertyId = session.user.propertyId;
+                }
+            } catch {}
+            if (!name || !qty || !propertyId) return;
+            window.db.collection('inventory').add({
+                name,
+                qty,
+                propertyId,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                addInventoryFormManager.reset();
+                loadInventoryManager();
+            });
+        });
+    }
+
+    // Mostrar inventario solo de la propiedad del manager
+    function loadInventoryManager() {
+        let propertyId = null;
+        try {
+            const session = JSON.parse(localStorage.getItem('airbnbmanager_session'));
+            if (session && session.user && session.user.propertyId) {
+                propertyId = session.user.propertyId;
+            }
+        } catch {}
+        if (!propertyId) return;
+        window.db.collection('inventory').where('propertyId', '==', propertyId).orderBy('createdAt', 'desc').get().then(snapshot => {
+            let html = '';
+            if (snapshot.empty) {
+                html = '<p style="color:#888">No hay artículos de inventario registrados.</p>';
+            } else {
+                snapshot.forEach(doc => {
+                    const i = doc.data();
+                    html += `<div class=\"inventory-item\">
+                        <b>${i.name}</b> <span style=\"color:#888\">[${i.qty}]</span><br>
+                        <button onclick=\"deleteInventoryItemManager('${doc.id}')\" style=\"color:#d32f2f; background:none; border:none; cursor:pointer;\">Eliminar</button>
+                    </div>`;
+                });
+            }
+            if (inventoryListManager) inventoryListManager.innerHTML = html;
+        });
+    }
+
+    // Eliminar artículo de inventario (manager)
+    window.deleteInventoryItemManager = function(id) {
+        if (!id) return;
+        window.db.collection('inventory').doc(id).delete().then(() => {
+            loadInventoryManager();
+        });
+    };
+
+    // Hook para mostrar inventario manager al mostrar panel
+    if (document.getElementById('managerView')) {
+        const origShow = window.showManagerView;
+        window.showManagerView = function() {
+            if (typeof origShow === 'function') origShow();
+            loadInventoryManager();
+        };
+    }
+});
+// --- AUTOMATIZACIÓN DE INVENTARIO Y REPORTES (Firestore) ---
+document.addEventListener('DOMContentLoaded', function() {
+    // --- INVENTARIO ---
+    const addInventoryForm = document.getElementById('addInventoryForm');
+    const inventoryName = document.getElementById('inventoryName');
+    const inventoryQty = document.getElementById('inventoryQty');
+    const inventoryProperty = document.getElementById('inventoryProperty');
+    const inventoryList = document.getElementById('inventoryList');
+
+    // Cargar propiedades en select (solo dueño)
+    function loadInventoryFormOptions() {
+        if (!inventoryProperty) return;
+        window.db.collection('properties').get().then(snapshot => {
+            inventoryProperty.innerHTML = '<option value="">Asignar a propiedad</option>';
+            snapshot.forEach(doc => {
+                const p = doc.data();
+                inventoryProperty.innerHTML += `<option value="${doc.id}">${p.name}</option>`;
+            });
+        });
+    }
+
+    // Guardar artículo de inventario en Firestore
+    if (addInventoryForm) {
+        addInventoryForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = inventoryName.value.trim();
+            const qty = parseInt(inventoryQty.value, 10);
+            const propertyId = inventoryProperty.value;
+            if (!name || !qty || !propertyId) return;
+            window.db.collection('inventory').add({
+                name,
+                qty,
+                propertyId,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                addInventoryForm.reset();
+                loadInventory();
+            });
+        });
+    }
+
+    // Mostrar inventario según rol
+    function loadInventory() {
+        let q = window.db.collection('inventory');
+        let userRole = null;
+        let propertyId = null;
+        try {
+            const session = JSON.parse(localStorage.getItem('airbnbmanager_session'));
+            if (session && session.user) {
+                userRole = session.type || session.user.role || null;
+                if (userRole === 'manager' || userRole === 'employee') {
+                    propertyId = session.user.propertyId;
+                }
+            }
+        } catch {}
+        if (propertyId) {
+            q = q.where('propertyId', '==', propertyId);
+        }
+        q.orderBy('createdAt', 'desc').get().then(snapshot => {
+            let html = '';
+            if (snapshot.empty) {
+                html = '<p style="color:#888">No hay artículos de inventario registrados.</p>';
+            } else {
+                snapshot.forEach(doc => {
+                    const i = doc.data();
+                    html += `<div class="inventory-item">
+                        <b>${i.name}</b> <span style=\"color:#888\">[${i.qty}]</span><br>
+                        <small>Propiedad: ${i.propertyId}</small>
+                    </div>`;
+                });
+            }
+            if (inventoryList) inventoryList.innerHTML = html;
+        });
+    }
+
+    // Llamar loadInventoryFormOptions y loadInventory al mostrar panel dueño
+    if (document.getElementById('ownerView')) {
+        const origShow = window.showOwnerView;
+        window.showOwnerView = function() {
+            if (typeof origShow === 'function') origShow();
+            loadInventoryFormOptions();
+            loadInventory();
+            loadReports();
+        };
+    }
+    // Llamar loadInventory al mostrar panel manager/employee
+    if (document.getElementById('managerView')) {
+        const origShow = window.showManagerView;
+        window.showManagerView = function() {
+            if (typeof origShow === 'function') origShow();
+            loadInventory();
+            loadReports();
+        };
+    }
+    if (document.getElementById('employeeView')) {
+        const origShow = window.showEmployeeView;
+        window.showEmployeeView = function() {
+            if (typeof origShow === 'function') origShow();
+            loadInventory();
+            loadReports();
+        };
+    }
+
+    // --- REPORTES ---
+    const reportsList = document.getElementById('reportsList');
+    function loadReports() {
+        let q = window.db.collection('reports');
+        let userRole = null;
+        let propertyId = null;
+        try {
+            const session = JSON.parse(localStorage.getItem('airbnbmanager_session'));
+            if (session && session.user) {
+                userRole = session.type || session.user.role || null;
+                if (userRole === 'manager' || userRole === 'employee') {
+                    propertyId = session.user.propertyId;
+                }
+            }
+        } catch {}
+        if (propertyId) {
+            q = q.where('propertyId', '==', propertyId);
+        }
+        q.orderBy('createdAt', 'desc').get().then(snapshot => {
+            let html = '';
+            if (snapshot.empty) {
+                html = '<p style="color:#888">No hay reportes registrados.</p>';
+            } else {
+                snapshot.forEach(doc => {
+                    const r = doc.data();
+                    html += `<div class=\"report-item\">
+                        <b>${r.title || 'Reporte'}</b> <span style=\"color:#888\">[${r.type || ''}]</span><br>
+                        <small>Propiedad: ${r.propertyId}</small><br>
+                        <small>Fecha: ${r.createdAt && r.createdAt.toDate ? r.createdAt.toDate().toLocaleString() : ''}</small><br>
+                        <button onclick=\"editReport('${doc.id}')\" style=\"margin-right:0.5rem\">Editar</button>
+                        <button onclick=\"deleteReport('${doc.id}')\" style=\"color:#d32f2f\">Eliminar</button>
+                    </div>`;
+                });
+            // Función global para eliminar reporte
+            window.deleteReport = function(id) {
+                if (!id) return;
+                if (!confirm('¿Eliminar este reporte?')) return;
+                window.db.collection('reports').doc(id).delete().then(() => {
+                    if (typeof loadReports === 'function') loadReports();
+                    if (typeof loadReportsManager === 'function') loadReportsManager();
+                    if (typeof loadReportsEmployee === 'function') loadReportsEmployee();
+                });
+            };
+
+            // Función global para editar reporte (prompt simple)
+            window.editReport = function(id) {
+                if (!id) return;
+                window.db.collection('reports').doc(id).get().then(doc => {
+                    if (!doc.exists) return;
+                    const r = doc.data();
+                    const nuevoTitulo = prompt('Editar título:', r.title || '');
+                    if (nuevoTitulo === null) return;
+                    const nuevoTipo = prompt('Editar tipo:', r.type || '');
+                    if (nuevoTipo === null) return;
+                    const nuevaDesc = prompt('Editar descripción:', r.desc || '');
+                    if (nuevaDesc === null) return;
+                    window.db.collection('reports').doc(id).update({
+                        title: nuevoTitulo,
+                        type: nuevoTipo,
+                        desc: nuevaDesc
+                    }).then(() => {
+                        if (typeof loadReports === 'function') loadReports();
+                        if (typeof loadReportsManager === 'function') loadReportsManager();
+                        if (typeof loadReportsEmployee === 'function') loadReportsEmployee();
+                    });
+                });
+            };
+            }
+            if (reportsList) reportsList.innerHTML = html;
+        });
+    }
+});
+// --- AUTOMATIZACIÓN DE TAREAS (Firestore) ---
+document.addEventListener('DOMContentLoaded', function() {
+    const addTaskForm = document.getElementById('addTaskForm');
+    const taskTitle = document.getElementById('taskTitle');
+    const taskDesc = document.getElementById('taskDesc');
+    const taskProperty = document.getElementById('taskProperty');
+    const taskUser = document.getElementById('taskUser');
+    const tasksList = document.getElementById('tasksList');
+
+    // Cargar propiedades y usuarios en selects (solo dueño)
+    function loadTaskFormOptions() {
+        if (!taskProperty || !taskUser) return;
+        window.db.collection('properties').get().then(snapshot => {
+            taskProperty.innerHTML = '<option value="">Asignar a propiedad</option>';
+            snapshot.forEach(doc => {
+                const p = doc.data();
+                taskProperty.innerHTML += `<option value="${doc.id}">${p.name}</option>`;
+            });
+        });
+        window.db.collection('users').get().then(snapshot => {
+            taskUser.innerHTML = '<option value="">Asignar a usuario</option>';
+            snapshot.forEach(doc => {
+                const u = doc.data();
+                taskUser.innerHTML += `<option value="${doc.id}">${u.email} (${u.role})</option>`;
+            });
+        });
+    }
+
+    // Guardar tarea en Firestore
+    if (addTaskForm) {
+        addTaskForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = taskTitle.value.trim();
+            const desc = taskDesc.value.trim();
+            const propertyId = taskProperty.value;
+            const userId = taskUser.value;
+            if (!title || !propertyId || !userId) return;
+            window.db.collection('tasks').add({
+                title,
+                desc,
+                propertyId,
+                userId,
+                status: 'pendiente',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                addTaskForm.reset();
+                loadTasks();
+            });
+        });
+    }
+
+    // Mostrar tareas según rol
+    function loadTasks() {
+        let q = window.db.collection('tasks');
+        // Detectar usuario y rol
+        let userId = null;
+        let userRole = null;
+        try {
+            const session = JSON.parse(localStorage.getItem('airbnbmanager_session'));
+            if (session && session.user) {
+                userId = session.user.staffId || session.user.id || null;
+                userRole = session.type || session.user.role || null;
+            }
+        } catch {}
+        if (userRole === 'manager' || userRole === 'employee') {
+            q = q.where('userId', '==', userId);
+        }
+        q.orderBy('createdAt', 'desc').get().then(snapshot => {
+            let html = '';
+            if (snapshot.empty) {
+                html = '<p style="color:#888">No hay tareas registradas.</p>';
+            } else {
+                snapshot.forEach(doc => {
+                    const t = doc.data();
+                    html += `<div class="task-item">
+                        <b>${t.title}</b> <span style=\"color:#888\">[${t.status}]</span><br>
+                        <small>${t.desc || ''}</small><br>
+                        <small>Propiedad: ${t.propertyId} | Usuario: ${t.userId}</small>
+                    </div>`;
+                });
+            }
+            if (tasksList) tasksList.innerHTML = html;
+        });
+    }
+
+    // Llamar loadTaskFormOptions y loadTasks al mostrar panel dueño
+    if (document.getElementById('ownerView')) {
+        // Hook para cuando se muestra el panel del dueño
+        const origShow = window.showOwnerView;
+        window.showOwnerView = function() {
+            if (typeof origShow === 'function') origShow();
+            loadTaskFormOptions();
+            loadTasks();
+        };
+    }
+    // Llamar loadTasks al mostrar panel manager/employee
+    if (document.getElementById('managerView')) {
+        const origShow = window.showManagerView;
+        window.showManagerView = function() {
+            if (typeof origShow === 'function') origShow();
+            loadTasks();
+        };
+    }
+    if (document.getElementById('employeeView')) {
+        const origShow = window.showEmployeeView;
+        window.showEmployeeView = function() {
+            if (typeof origShow === 'function') origShow();
+            loadTasks();
+        };
+    }
+});
+// --- FIRESTORE: AGREGAR PROPIEDADES Y USUARIOS DESDE EL PANEL DEL DUEÑO ---
+document.addEventListener('DOMContentLoaded', function() {
+    // Referencias a Firestore
+    const db = window.db;
+    // --- PROPIEDADES ---
+    const addPropertyForm = document.getElementById('addPropertyForm');
+    const propertiesList = document.getElementById('propertiesList');
+    if (addPropertyForm && db) {
+        addPropertyForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('propertyName').value.trim();
+            const address = document.getElementById('propertyAddress').value.trim();
+            if (!name || !address) return;
+            await db.collection('properties').add({ name, address, createdAt: new Date() });
+            addPropertyForm.reset();
+            loadProperties();
+        });
+    }
+    async function loadProperties() {
+        if (!db) return;
+        const snap = await db.collection('properties').orderBy('createdAt').get();
+        let html = '<strong>Propiedades registradas:</strong><ul>';
+        snap.forEach(doc => {
+            const p = doc.data();
+            html += `<li>${p.name} <span style="color:#2563eb;font-size:0.95em">(${p.address})</span></li>`;
+        });
+        html += '</ul>';
+        propertiesList.innerHTML = html;
+        // Actualizar selector de propiedades en el form de usuario
+        const userProperty = document.getElementById('userProperty');
+        if (userProperty) {
+            userProperty.innerHTML = '<option value="">Asignar a propiedad</option>';
+            snap.forEach(doc => {
+                const p = doc.data();
+                userProperty.innerHTML += `<option value="${doc.id}">${p.name}</option>`;
+            });
+        }
+    }
+    if (propertiesList && db) loadProperties();
+
+    // --- USUARIOS ---
+    const addUserForm = document.getElementById('addUserForm');
+    const usersList = document.getElementById('usersList');
+    if (addUserForm && db) {
+        addUserForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('userName').value.trim();
+            const email = document.getElementById('userEmail').value.trim();
+            const role = document.getElementById('userRole').value;
+            const propertyId = document.getElementById('userProperty').value;
+            if (!name || !email || !role || !propertyId) return;
+            await db.collection('users').add({ name, email, role, propertyId, createdAt: new Date() });
+            addUserForm.reset();
+            loadUsers();
+        });
+    }
+    async function loadUsers() {
+        if (!db) return;
+        const snap = await db.collection('users').orderBy('createdAt').get();
+        let html = '<strong>Usuarios registrados:</strong><ul>';
+        snap.forEach(doc => {
+            const u = doc.data();
+            html += `<li>${u.name} <span style="color:#2563eb;font-size:0.95em">(${u.email}, ${u.role}, Propiedad: ${u.propertyId})</span></li>`;
+        });
+        html += '</ul>';
+        usersList.innerHTML = html;
+    }
+    if (usersList && db) loadUsers();
+});
+// Menú hamburguesa: abrir/cerrar en móvil
+document.addEventListener('DOMContentLoaded', function() {
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const navLinks = document.getElementById('navLinks');
+    if (hamburgerBtn && navLinks) {
+        hamburgerBtn.addEventListener('click', function() {
+            navLinks.classList.toggle('open');
+        });
+        // Cerrar menú al hacer click en un link (en móvil)
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => navLinks.classList.remove('open'));
+        });
+    }
+
+    // Cerrar sesión (placeholder)
+    const logoutBtn = document.getElementById('navLogout');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // Aquí puedes limpiar sesión y mostrar login
+            document.getElementById('loginView').style.display = 'flex';
+            document.getElementById('ownerView').style.display = 'none';
+            document.getElementById('managerView').style.display = 'none';
+            document.getElementById('employeeView').style.display = 'none';
+        });
+    }
+});
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.getElementById('firebaseLoginForm');
     const loginError = document.getElementById('loginError');
@@ -10,7 +668,72 @@ document.addEventListener('DOMContentLoaded', function() {
             window.auth.signInWithEmailAndPassword(email, password)
                 .then(userCredential => {
                     document.getElementById('loginView').style.display = 'none';
-                    if (document.getElementById('ownerView')) document.getElementById('ownerView').style.display = 'block';
+                    // Lógica: mostrar vista y menú según email (rol)
+                    const ownerView = document.getElementById('ownerView');
+                    const managerView = document.getElementById('managerView');
+                    const employeeView = document.getElementById('employeeView');
+                    const navDashboard = document.getElementById('navDashboard');
+                    const navTasks = document.getElementById('navTasks');
+                    const navInventory = document.getElementById('navInventory');
+                    const navReports = document.getElementById('navReports');
+                    const navUsers = document.getElementById('navUsers');
+                    const navSettings = document.getElementById('navSettings');
+
+                    // Ocultar todo por defecto
+                    ownerView.style.display = 'none';
+                    managerView.style.display = 'none';
+                    employeeView.style.display = 'none';
+                    navDashboard.style.display = 'none';
+                    navTasks.style.display = 'none';
+                    navInventory.style.display = 'none';
+                    navReports.style.display = 'none';
+                    navUsers.style.display = 'none';
+                    navSettings.style.display = 'none';
+
+                    // Consultar usuario en Firestore para obtener rol y propiedad asignada
+                    db.collection('users').where('email', '==', email).get().then(snapshot => {
+                        let user = null;
+                        snapshot.forEach(doc => user = doc.data());
+                        if (!user) {
+                            // Si no está en la colección, asumir dueño
+                            ownerView.style.display = 'block';
+                            navDashboard.style.display = 'inline-block';
+                            navReports.style.display = 'inline-block';
+                            navUsers.style.display = 'inline-block';
+                            navSettings.style.display = 'inline-block';
+                            return;
+                        }
+                        if (user.role === 'manager') {
+                            managerView.style.display = 'block';
+                            navDashboard.style.display = 'inline-block';
+                            navTasks.style.display = 'inline-block';
+                            navInventory.style.display = 'inline-block';
+                            navReports.style.display = 'inline-block';
+                            navSettings.style.display = 'inline-block';
+                            // Mostrar solo propiedades asignadas
+                            db.collection('properties').doc(user.propertyId).get().then(doc => {
+                                const p = doc.data();
+                                managerView.innerHTML = `<h2>Panel de Manager</h2><div class='dashboard-placeholder'>Propiedad asignada: <b>${p ? p.name : 'N/A'}</b></div>`;
+                            });
+                        } else if (user.role === 'employee') {
+                            employeeView.style.display = 'block';
+                            navDashboard.style.display = 'inline-block';
+                            navTasks.style.display = 'inline-block';
+                            navSettings.style.display = 'inline-block';
+                            // Mostrar solo propiedades asignadas
+                            db.collection('properties').doc(user.propertyId).get().then(doc => {
+                                const p = doc.data();
+                                employeeView.innerHTML = `<h2>Panel de Empleado</h2><div class='dashboard-placeholder'>Propiedad asignada: <b>${p ? p.name : 'N/A'}</b></div>`;
+                            });
+                        } else {
+                            // Dueño
+                            ownerView.style.display = 'block';
+                            navDashboard.style.display = 'inline-block';
+                            navReports.style.display = 'inline-block';
+                            navUsers.style.display = 'inline-block';
+                            navSettings.style.display = 'inline-block';
+                        }
+                    });
                 })
                 .catch(error => {
                     loginError.textContent = error.message;
