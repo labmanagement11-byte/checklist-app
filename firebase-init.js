@@ -14,5 +14,6 @@ window.addEventListener('DOMContentLoaded', function() {
 		};
 		firebase.initializeApp(firebaseConfig);
 		window.db = firebase.firestore();
+		window.auth = firebase.auth();
 	}
 });

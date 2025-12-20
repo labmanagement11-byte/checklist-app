@@ -1,3 +1,27 @@
+// Login con Firebase Auth
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.getElementById('firebaseLoginForm');
+    const loginError = document.getElementById('loginError');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            loginError.style.display = 'none';
+            window.auth.signInWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    // Usuario autenticado
+                    document.getElementById('loginView').style.display = 'none';
+                    // Aquí puedes mostrar la vista principal, por ejemplo:
+                    if (document.getElementById('ownerView')) document.getElementById('ownerView').style.display = 'block';
+                })
+                .catch(error => {
+                    loginError.textContent = error.message;
+                    loginError.style.display = 'block';
+                });
+        });
+    }
+});
 // ...existing code...
         name: 'Implementos de Limpieza',
         icon: '🧹',
@@ -5,160 +29,7 @@
             'Escoba', 'Trapeador', 'Recogedor', 'Balde', 'Desinfectante', 'Limpiador multiusos',
             'Limpiavidrios', 'Esponjas', 'Paños microfibra', 'Guantes', 'Cepillos',
             'Bolsas de basura', 'Lustramuebles', 'Ambientador', 'Papel toalla',
-            'Cloro', 'Creolina', 'Jabón líquido para pisos', 'Alcohol',
-            'Plumero', 'Escobillón', 'Atomizador', 'Cera para pisos'
-        ]
-    },
-    bbq: {
-        name: 'Zona BBQ',
-        icon: '🔥',
-        items: [
-            'Parrilla', 'Pinzas largas', 'Espátula parrilla', 'Cepillo limpieza parrilla',
-            'Carbón', 'Encendedor', 'Guantes térmicos', 'Bandeja aluminio',
-            'Platos desechables', 'Vasos plásticos', 'Servilletas', 'Mantel',
-            'Cubiertos desechables', 'Sillas plegables', 'Mesa auxiliar',
-            'Bolsas basura grandes', 'Papel aluminio', 'Encendedor largo'
-        ]
-    },
-    pasillo: {
-        name: 'Pasillo',
-        icon: '🚪',
-        items: [
-            'Alfombra pasillo', 'Lámpara pasillo', 'Cuadros decorativos', 'Espejo',
-            'Consola o mueble', 'Perchero', 'Plantas decorativas', 'Macetas',
-            'Paragüero', 'Zapatero', 'Cortinas', 'Ambientador', 'Reloj pared',
-            'Sensor movimiento', 'Portarretratos'
-        ]
-    },
-    terraza: {
-        name: 'Terraza',
-        icon: '🌿',
-        items: [
-            'Mesa exterior', 'Sillas exterior', 'Sombrilla', 'Cojines exteriores',
-            'Plantas en macetas', 'Maceteros', 'Regadera', 'Manguera',
-            'Escoba exterior', 'Luces decorativas', 'Alfombra exterior',
-            'Cenicero', 'Porta velas', 'Cubre sillas', 'Toldo', 'Ventilador exterior',
-            'Calefactor exterior', 'Repelente mosquitos', 'Cortinas exteriores'
-        ]
-    },
-    otras: {
-        name: 'Otras áreas',
-        icon: '📦',
-        items: [
-            'Extintores', 'Botiquín', 'Herramientas básicas', 'Linterna', 'Llaves', 'Cerraduras',
-            'Pilas', 'Fósforos', 'Velas', 'Cinta adhesiva', 'Tijeras', 'Bombillos',
-            'Cable extensión', 'Candados', 'Kit costura básico'
-        ]
-    }
-};
-// --- Firestore: Sincronización de staff/usuarios ---
-let staffUnsubscribe = null;
-let staff = [];
-function loadStaffFromFirestore() {
-    if (staffUnsubscribe) staffUnsubscribe();
-    staffUnsubscribe = window.db.collection('staff').onSnapshot(snapshot => {
-        staff = [];
-        snapshot.forEach(doc => {
-            staff.push({ id: doc.id, ...doc.data() });
-        });
-        if (typeof renderStaff === 'function') renderStaff();
-    });
-}
-
-function saveStaffToFirestore(member) {
-    if (!member.id) {
-        return window.db.collection('staff').add(member);
-    } else {
-        const s = { ...member };
-        delete s.id;
-        return window.db.collection('staff').doc(member.id).set(s);
-    }
-}
-
-function deleteStaffFromFirestore(staffId) {
-    return window.db.collection('staff').doc(staffId).delete();
-}
-// --- Fin Firestore staff ---
-// --- Firestore: Sincronización de inventario y verificaciones ---
-let inventoryChecksUnsubscribe = null;
-let deletedInventoryChecksUnsubscribe = null;
-function deleteInventoryCheckFromFirestore(checkId) {
-    return window.db.collection('inventoryChecks').doc(checkId).delete();
-}
-
-const CLEANING_TASKS = {
-    banos: {
-        name: '🚿 Baños',
-        icon: '🚿',
-        tasks: [
-            'Limpiar espejo', 'Limpiar lavamanos', 'Limpiar inodoro', 'Limpiar bañera/ducha',
-            'Limpiar pisos', 'Secar superficies', 'Cambiar toallas', 'Vaciar basura', 'Reponer papel higiénico'
-        ]
-    },
-    cocina: {
-        name: 'Cocina',
-        icon: '[cocina]',
-        tasks: [
-            'Revisar fugas de agua o gas y cerrar válvulas', 'Lavar vajilla, cubiertos y vasos',
-            'Tomar foto de despensa y nevera', 'Verificar electrodomésticos', 'Limpiar mostrador',
-            'Limpiar estufa', 'Limpiar microondas', 'Limpiar refrigerador', 'Limpiar fregadero',
-            'Secar platos', 'Guardar platos', 'Limpiar pisos', 'Vaciar basura', 'Desinfectar superficies'
-        ]
-    },
-    habitaciones: {
-        name: 'Habitaciones',
-        icon: '[habitaciones]',
-        tasks: [
-            'Cambiar sábanas y alinear almohadas', 'Hacer camas', 'Pasar aspiradora', 'Limpiar piso',
-            'Quitar polvo muebles', 'Limpiar ventanas', 'Organizar closets', 'Vaciar basura', 'Rociar ambientador'
-        ]
-    },
-    sala: {
-        name: 'Sala',
-        icon: '[sala]',
-        tasks: [
-            'Limpiar mesas y muebles', 'Pasar aspiradora', 'Limpiar sofás', 'Quitar polvo muebles',
-            'Limpiar piso', 'Organizar cojines', 'Limpiar ventanas', 'Vaciar basura', 'Organizar revistas/libros'
-        ]
-    },
-    comedor: {
-        name: 'Comedor',
-        icon: '[comedor]',
-        tasks: ['Limpiar mesa', 'Limpiar sillas', 'Pasar aspiradora', 'Limpiar piso', 'Quitar polvo muebles', 'Limpiar ventanas', 'Organizar adornos', 'Vaciar basura']
-    },
-    entrada: {
-        name: '🚪 Entrada/Recibidor',
-        icon: '🚪',
-        tasks: ['Barrer entrada', 'Limpiar pisos', 'Limpiar espejo', 'Organizar zapatos', 'Quitar polvo adornos', 'Limpiar puerta', 'Vaciar basura']
-    },
-    general: {
-        name: '🧹 Tareas generales',
-        icon: '🧹',
-        tasks: ['Limpiar pasamanos', 'Limpiar puertas', 'Lavar pisos', 'Limpiar ventanas', 'Lavar ropa', 'Secar ropa', 'Planchar', 'Riego de plantas']
-    }
-};
-
-// Tareas personalizadas por propiedad
-const CUSTOM_TASKS = {
-    'torre-magna-pi-limpieza': {
-        name: '🧹 Limpieza - Torre Magna PI',
-        icon: '🧹',
-        sections: [
-            {
-                title: '🛏️ Área de la Cama',
-                tasks: [
-                    'Polvo y limpieza de mesas de noche, cajones y gabinetes',
-                    'Limpieza interior/exterior de cajones de cama',
-                    'Cambio y lavado de ropa de cama',
-                    'Limpieza de cabecera, escritorio y silla',
-                    'Limpieza de lámparas, switches y tomacorrientes',
-                    'Pisos aspirados y trapeados'
-                ]
-            },
-            {
-                title: '📺 Área de TV y Sala',
-                tasks: [
-                    'Limpieza de TV (pantalla y soporte)',
+            // ...existing code...
                     'Limpieza de gabinete TV y cajones',
                     'Limpieza de sofá cama, cojines y cajones',
                     'Limpieza de mesa de centro',
