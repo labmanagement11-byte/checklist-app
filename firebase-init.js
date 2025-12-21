@@ -1,7 +1,7 @@
 // Configuración de Firebase para web clásica (sin módulos)
 // Incluye los scripts de Firebase en tu index.html o aquí dinámicamente:
 // Inicialización clásica de Firebase v8.x
-(function() {
+window.addEventListener('DOMContentLoaded', function() {
 	if (typeof firebase !== 'undefined' && !window.db) {
 		var firebaseConfig = {
 			apiKey: "AIzaSyBNoGj-sMu9YcCiNXggZDhSi8GOJO8f7wI",
@@ -16,4 +16,4 @@
 		window.db = firebase.firestore();
 		window.auth = firebase.auth();
 	}
-})();
+});
